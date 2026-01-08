@@ -1,0 +1,14 @@
+{# props: label, variant=primary|secondary|ghost|danger, size=sm|md, href(optional), type(optional), extra_class(optional) #}
+{% with v=variant|default:"primary" s=size|default:"md" %}
+  {% if href %}
+    <a href="{{ href }}"
+       class="{% if v == 'primary' %}btn-primary{% elif v == 'secondary' %}btn-secondary{% elif v == 'danger' %}btn-danger{% else %}btn-ghost{% endif %} {% if s == 'sm' %}btn-sm{% endif %} {{ extra_class|default:'' }}">
+      {{ label }}
+    </a>
+  {% else %}
+    <button type="{{ type|default:'button' }}"
+            class="{% if v == 'primary' %}btn-primary{% elif v == 'secondary' %}btn-secondary{% elif v == 'danger' %}btn-danger{% else %}btn-ghost{% endif %} {% if s == 'sm' %}btn-sm{% endif %} {{ extra_class|default:'' }}">
+      {{ label }}
+    </button>
+  {% endif %}
+{% endwith %}

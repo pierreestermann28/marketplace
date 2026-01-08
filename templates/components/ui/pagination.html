@@ -1,0 +1,12 @@
+{# props: page_obj, is_paginated #}
+{% if is_paginated %}
+  <nav class="mt-6 flex items-center gap-2 text-sm">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="underline">Prev</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="underline">Next</a>
+    {% endif %}
+  </nav>
+{% endif %}

@@ -1,0 +1,6 @@
+{# props: photos #}
+<div class="grid grid-cols-3 gap-2">
+  {% for photo in photos %}
+    <img class="h-24 w-full rounded object-cover" src="{{ photo.url }}" alt="" />
+  {% endfor %}
+</div>

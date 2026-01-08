@@ -1,0 +1,4 @@
+{# props: cents, currency #}
+{% with value=cents|floatformat:0 %}
+  {{ value }} {{ currency|default:"EUR" }}
+{% endwith %}

@@ -1,0 +1,23 @@
+{
+  "name": "stillusefull",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "vendor": "npm install alpinejs htmx.org && cp node_modules/htmx.org/dist/htmx.min.js static/vendor/htmx.min.js && cp node_modules/alpinejs/dist/cdn.min.js static/vendor/alpine.min.js",
+    "tailwind:build": "npx tailwindcss -c theme/tailwind.config.js -i theme/input.css -o static/css/app.css --minify",
+    "tailwind:watch": "npx tailwindcss -c theme/tailwind.config.js -i theme/input.css -o static/css/app.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "alpinejs": "^3.15.3",
+    "htmx.org": "^2.0.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
+}

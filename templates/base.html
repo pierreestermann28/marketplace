@@ -1,0 +1,26 @@
+{% load static %}
+{% load pwa %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#1F2A44" />
+    {% progressive_web_app_meta %}
+    <title>
+      {% block title %}StillUseful{% endblock %}
+    </title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="min-h-screen bg-white text-gray-900">
+    {% include "partials/navbar.html" %}
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+    {% include "partials/footer.html" %}
+    <script defer src="{% static 'vendor/htmx.min.js' %}"></script>
+    <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

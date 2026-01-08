@@ -1,0 +1,7 @@
+{# props: title, description(optional) #}
+<div class="rounded-xl border p-6 text-center">
+  <div class="text-lg font-semibold">{{ title }}</div>
+  {% if description %}
+    <p class="mt-2 text-sm text-gray-600">{{ description }}</p>
+  {% endif %}
+</div>

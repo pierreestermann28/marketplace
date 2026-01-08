@@ -1,0 +1,4 @@
+{# props: filters #}
+<form method="get" class="grid gap-2 md:grid-cols-5">
+  {% include "components/ui/input.html" with name="q" placeholder="Search" value=filters.q only %}
+</form>

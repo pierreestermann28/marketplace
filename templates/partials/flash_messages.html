@@ -1,0 +1,7 @@
+{% if messages %}
+  <div class="mx-auto max-w-6xl px-4 pt-4">
+    {% for message in messages %}
+      <div class="mb-2 rounded border px-3 py-2 text-sm">{{ message }}</div>
+    {% endfor %}
+  </div>
+{% endif %}

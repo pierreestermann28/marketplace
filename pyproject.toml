@@ -1,0 +1,4 @@
+[tool.djlint]
+profile = "django"
+line_length = 200
+ignore = "T002"
