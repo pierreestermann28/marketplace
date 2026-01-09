@@ -59,13 +59,13 @@
 
   /* Buttons */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none cursor-pointer;
   }
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-brand text-white hover:bg-brand-700 active:bg-brand-800;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-white border border-ink-200 text-ink-900 hover:bg-ink-50 active:bg-ink-100;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-white border border-ink-200 text-ink-900 hover:bg-ink-50 active:bg-ink-100 cursor-pointer;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-transparent text-ink-900 hover:bg-ink-50 active:bg-ink-100;

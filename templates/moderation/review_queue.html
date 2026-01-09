@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="mb-6">
+      <h1 class="h1">File de moderation</h1>
+      <p class="muted mt-2 text-sm">Annonces en attente de validation.</p>
+    </div>
+
+    {% if listings %}
+      <div class="grid gap-4">
+        {% for listing in listings %}
+          <div class="card card-body flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div class="text-sm font-medium text-ink-900">{{ listing.title }}</div>
+              <div class="muted text-sm">{{ listing.city }} · {{ listing.price_cents }} {{ listing.currency }}</div>
+              <div class="muted text-xs">Vendeur: {{ listing.seller }}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <form method="post" action="/staff/review-queue/">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                <input type="hidden" name="action" value="approve" />
+                {% include "components/ui/button.html" with label="Approuver" variant="primary" size="sm" type="submit" only %}
+              </form>
+              <form method="post" action="/staff/review-queue/">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                <input type="hidden" name="action" value="reject" />
+                {% include "components/ui/button.html" with label="Refuser" variant="danger" size="sm" type="submit" only %}
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      {% include "components/ui/empty_state.html" with title="Aucune annonce a modere" description="La file est vide." only %}
+    {% endif %}
+  </div>
+{% endblock %}

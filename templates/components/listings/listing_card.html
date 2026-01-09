@@ -1,5 +1,21 @@
 {# props: listing #}
-<div class="rounded-xl border p-3">
-  <div class="font-medium">{{ listing.title }}</div>
-  <div class="text-sm text-gray-600">{{ listing.city }}</div>
-</div>
+<a class="listing-card"
+   href="{% url 'listing_detail' slug=listing.slug|default:'item' uuid=listing.id %}">
+  {% with primary=listing.get_primary_image %}
+    {% if primary %}
+      <img class="listing-img" src="{{ primary.image_asset.image.url }}" alt="{{ listing.title }}" />
+    {% else %}
+      <div class="listing-img bg-ink-50"></div>
+    {% endif %}
+  {% endwith %}
+  <div class="listing-body">
+    <div class="mb-2 flex items-center justify-between text-xs text-ink-500">
+      <span>{{ listing.city }}</span>
+      <span>{{ listing.get_condition_display|default:listing.condition }}</span>
+    </div>
+    <div class="line-clamp-2 text-sm font-medium text-ink-900">{{ listing.title }}</div>
+    <div class="mt-2 price">
+      {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
+    </div>
+  </div>
+</a>

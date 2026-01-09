@@ -1,0 +1,32 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="h1">Mes annonces</h1>
+        <p class="muted mt-2 text-sm">Suivi du statut et performance.</p>
+      </div>
+      {% include "components/ui/button.html" with label="Nouvelle annonce" variant="primary" href="/sell/create/" only %}
+    </div>
+
+    {% if listings %}
+      <div class="grid gap-4">
+        {% for listing in listings %}
+          <div class="card card-body flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div class="text-sm font-medium text-ink-900">{{ listing.title }}</div>
+              <div class="muted text-sm">{{ listing.city }} · {{ listing.price_cents }} {{ listing.currency }}</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="badge">{{ listing.get_status_display|default:listing.status }}</span>
+              <a class="text-sm text-ink-600 hover:text-ink-900" href="/sell/{{ listing.id }}/photos/">Photos</a>
+              <a class="text-sm text-ink-600 hover:text-ink-900" href="/sell/{{ listing.id }}/submit/">Finaliser</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      {% include "components/ui/empty_state.html" with title="Aucune annonce pour le moment" description="Commence par creer ta premiere annonce." only %}
+    {% endif %}
+  </div>
+{% endblock %}

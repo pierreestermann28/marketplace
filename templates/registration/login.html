@@ -1,0 +1,26 @@
+{% extends "layouts/bare.html" %}
+{% block page_content %}
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="card card-body w-full max-w-md">
+      <h1 class="h2">Connexion</h1>
+      <p class="muted mt-2 text-sm">Accede a ton espace vendeur.</p>
+
+      <form method="post" class="mt-6 grid gap-4">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div>
+          <label class="label" for="id_username">Email ou identifiant</label>
+          <input class="input" type="text" name="username" id="id_username" autocomplete="username" required>
+        </div>
+        <div>
+          <label class="label" for="id_password">Mot de passe</label>
+          <input class="input" type="password" name="password" id="id_password" autocomplete="current-password" required>
+        </div>
+        {% if next %}
+          <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+        {% include "components/ui/button.html" with label="Se connecter" variant="primary" type="submit" only %}
+      </form>
+    </div>
+  </div>
+{% endblock %}

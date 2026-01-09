@@ -1,5 +1,13 @@
-<nav class="border-b">
-  <div class="mx-auto max-w-6xl px-4 py-4">
-    <a href="/" class="font-semibold">StillUseful</a>
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="flex items-center gap-6">
+      <a href="/" class="font-semibold text-ink-900">StillUseful</a>
+      <a href="/" class="text-sm text-ink-600 hover:text-ink-900">Explorer</a>
+      <a href="/sell/create/" class="text-sm text-ink-600 hover:text-ink-900">Vendre</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/my/listings/" class="text-sm text-ink-600 hover:text-ink-900">Mes annonces</a>
+      {% include "components/ui/button.html" with label="Publier" variant="primary" size="sm" href="/sell/create/" only %}
+    </div>
   </div>
 </nav>

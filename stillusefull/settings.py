@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -40,7 +41,7 @@ INSTALLED_APPS = [
     "pwa",
     "accounts",
     "catalog",
-    "media",
+    "mediahub",
     "listings",
     "sell",
     "commerce",
@@ -132,7 +133,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 # Media
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "storage"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Login redirects
 LOGIN_URL = "/auth/login/"

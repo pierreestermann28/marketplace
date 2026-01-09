@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.utils import timezone
+from django.utils.html import format_html
 
-from .models import Listing
+from .models import Listing, ListingImage
 
 
 @admin.action(description="Approve selected listings")
@@ -28,3 +29,23 @@ class ListingAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("title", "seller__username", "seller__email")
     actions = (approve_listings, reject_listings)
+
+
+class ListingImageInline(admin.TabularInline):
+    model = ListingImage
+    extra = 0
+    readonly_fields = ("preview",)
+    fields = ("preview", "image_asset", "is_primary", "sort_order")
+
+    def preview(self, obj):
+        if obj.image_asset and obj.image_asset.image:
+            return format_html(
+                '<img src="{}" style="height:60px;width:auto;border-radius:6px;" />',
+                obj.image_asset.image.url,
+            )
+        return "-"
+
+    preview.short_description = "Preview"
+
+
+ListingAdmin.inlines = [ListingImageInline]

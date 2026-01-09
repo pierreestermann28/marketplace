@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="mb-6">
+      <h1 class="h1">Finaliser l'annonce</h1>
+      <p class="muted mt-2 text-sm">
+        Complete les informations, puis soumets pour validation.
+      </p>
+    </div>
+
+    <form method="post" class="card card-body grid gap-4">
+      {% csrf_token %}
+      <div>
+        <label class="label" for="id_title">Titre</label>
+        {{ form.title }}
+      </div>
+      <div>
+        <label class="label" for="id_category">Categorie</label>
+        {{ form.category }}
+      </div>
+      <div>
+        <label class="label" for="id_description">Description</label>
+        {{ form.description }}
+      </div>
+      <div>
+        <label class="label" for="id_condition">Etat</label>
+        {{ form.condition }}
+      </div>
+      <div>
+        <label class="label" for="id_price_cents">Prix</label>
+        {{ form.price_cents }}
+      </div>
+      <div>
+        <label class="label" for="id_currency">Devise</label>
+        {{ form.currency }}
+      </div>
+      <div>
+        <label class="label" for="id_postal_code">Code postal</label>
+        {{ form.postal_code }}
+      </div>
+      <div>
+        <label class="label" for="id_city">Ville</label>
+        {{ form.city }}
+      </div>
+      <div class="flex items-center justify-end gap-2">
+        {% include "components/ui/button.html" with label="Soumettre pour validation" variant="primary" type="submit" only %}
+      </div>
+    </form>
+  </div>
+{% endblock %}

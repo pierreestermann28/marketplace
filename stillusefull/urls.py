@@ -17,16 +17,16 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
 from django.http import HttpResponse
-from django.views.generic import TemplateView
+from django.urls import include, path
 
 
 def htmx_ping(request):
     return HttpResponse("HTMX ok")
 
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
+    path("", include("listings.urls")),
+    path("auth/", include("django.contrib.auth.urls")),
     path("", include("pwa.urls")),
     path("htmx/ping/", htmx_ping, name="htmx_ping"),
     path("admin/", admin.site.urls),

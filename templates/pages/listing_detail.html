@@ -1,0 +1,96 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="grid gap-8 lg:grid-cols-[3fr_2fr]">
+      <section class="space-y-6">
+        <div class="space-y-6">
+        <div class="card rounded-3xl overflow-hidden">
+          <div class="grid gap-3 lg:grid-cols-[2fr_1fr]">
+              <div>
+                {% with primary=listing.get_primary_image %}
+                  {% if primary %}
+                    <img class="listing-img"
+                         src="{{ primary.image_asset.image.url }}"
+                         alt="{{ listing.title }}" />
+                  {% else %}
+                    <div class="listing-img bg-ink-50"></div>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              <div class="space-y-3 p-3">
+                <div class="text-sm uppercase tracking-[0.2em] text-ink-500">Etat</div>
+                <div class="text-sm text-ink-900">{{ listing.get_condition_display|default:listing.condition }}</div>
+                <div class="text-sm uppercase tracking-[0.2em] text-ink-500">Catégorie</div>
+                <div class="text-sm text-ink-900">{{ listing.category }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="card card-body space-y-4">
+            <div>
+              <div class="muted text-sm">{{ listing.city }} · {{ listing.postal_code }}</div>
+              <h1 class="h1 mt-1">{{ listing.title }}</h1>
+            </div>
+            <div class="price text-2xl">
+              {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
+            </div>
+            {% if listing.description %}<p class="text-sm text-ink-700 leading-relaxed">{{ listing.description }}</p>{% endif %}
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="rounded-xl border border-ink-100 p-3 text-sm text-ink-700">
+                Mise en ligne le {{ listing.created_at|date:"d M Y" }}
+              </div>
+            </div>
+          </div>
+          {% if listing.images.count > 1 %}
+            <div class="space-y-3">
+              <div class="text-sm font-semibold text-ink-500 uppercase tracking-wide">Galerie</div>
+              <div class="grid gap-3 sm:grid-cols-2">
+                {% for image in listing.images.all %}
+                  <div class="overflow-hidden rounded-2xl border border-ink-100 bg-ink-50">
+                    <img class="h-48 w-full object-cover"
+                         src="{{ image.image_asset.image.url }}"
+                         alt="">
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </section>
+        <aside class="space-y-4">
+          <div class="card card-body space-y-3">
+            <div class="text-sm font-semibold">Vendeur</div>
+            <div class="text-sm text-ink-900">{{ listing.seller.get_full_name|default:listing.seller.username }}</div>
+            <div class="text-xs text-ink-500">Membre depuis {{ listing.seller.date_joined|date:"Y" }}</div>
+            <div class="space-y-3 pt-4">
+              {% include "components/ui/button.html" with label="Contacter le vendeur" variant="secondary" only %}
+              {% include "components/ui/button.html" with label="Voir ses annonces" variant="ghost" href="/my/listings/" only %}
+            </div>
+          </div>
+          <div class="card card-body space-y-3">
+            <div class="text-sm font-semibold">Options de livraison</div>
+            <div class="text-sm text-ink-700 space-y-2">
+              <div class="flex items-center justify-between border-b border-ink-100 pb-2">
+                <span>Livraison sécurisée</span>
+                <span class="text-xs text-ink-500">Disponible</span>
+              </div>
+              <div class="flex items-center justify-between border-b border-ink-100 pb-2">
+                <span>Remise en main propre</span>
+                <span class="text-xs text-ink-500">Negociable</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>Retrait en point relais</span>
+                <span class="text-xs text-ink-500">Sur demande</span>
+              </div>
+            </div>
+          </div>
+          <div class="card card-body">
+            <h3 class="text-sm font-semibold">Sécurité</h3>
+            <ul class="mt-3 space-y-2 text-sm text-ink-600">
+              <li>Moderation manuelle avant publication</li>
+              <li>Paiement protégé et suivi</li>
+              <li>Vérification des vendeurs</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  {% endblock %}
