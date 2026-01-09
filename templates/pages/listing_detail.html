@@ -34,6 +34,19 @@
               {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
             </div>
             {% if listing.description %}<p class="text-sm text-ink-700 leading-relaxed">{{ listing.description }}</p>{% endif %}
+            <div class="flex flex-wrap gap-2 pt-2">
+              {% if listing.shipping_enabled %}
+                {% include "components/ui/badge.html" with label="Livraison sécurisée" tone="green" only %}
+              {% endif %}
+              {% if listing.in_person_enabled %}
+                {% include "components/ui/badge.html" with label="Remise en main propre" tone="secondary" only %}
+              {% endif %}
+            </div>
+            {% if listing.status == "rejected" and listing.moderation_notes %}
+              <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                Rejet : {{ listing.moderation_notes }}
+              </div>
+            {% endif %}
             <div class="grid gap-3 sm:grid-cols-2">
               <div class="rounded-xl border border-ink-100 p-3 text-sm text-ink-700">
                 Mise en ligne le {{ listing.created_at|date:"d M Y" }}
@@ -61,7 +74,8 @@
             <div class="text-sm text-ink-900">{{ listing.seller.get_full_name|default:listing.seller.username }}</div>
             <div class="text-xs text-ink-500">Membre depuis {{ listing.seller.date_joined|date:"Y" }}</div>
             <div class="space-y-3 pt-4">
-              {% include "components/ui/button.html" with label="Contacter le vendeur" variant="secondary" only %}
+              {% url 'messages:start' listing_id=listing.id as contact_url %}
+              {% include "components/ui/button.html" with label="Contacter le vendeur" variant="secondary" href=contact_url only %}
               {% include "components/ui/button.html" with label="Voir ses annonces" variant="ghost" href="/my/listings/" only %}
             </div>
           </div>

@@ -8,6 +8,8 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView, U
 
 from mediahub.models import ImageAsset
 
+from catalog.models import Category
+
 from .forms import ListingForm, PhotoUploadForm
 from .models import Listing, ListingImage
 
@@ -19,13 +21,32 @@ class HomeFeedView(ListView):
     paginate_by = 24
 
     def get_queryset(self):
+        qs = Listing.objects.filter(status=Listing.Status.PUBLISHED)
+        q = self.request.GET.get("q")
+        city = self.request.GET.get("city")
+        category = self.request.GET.get("category")
+        if q:
+            qs = qs.filter(title__icontains=q)
+        if city:
+            qs = qs.filter(city__icontains=city)
+        if category:
+            qs = qs.filter(category__slug=category)
         image_qs = ListingImage.objects.select_related("image_asset").order_by("-is_primary", "sort_order")
         return (
-            Listing.objects.filter(status=Listing.Status.PUBLISHED)
-            .select_related("category", "seller")
+            qs.select_related("category", "seller")
             .prefetch_related(Prefetch("images", queryset=image_qs))
             .order_by("-created_at")
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["categories"] = Category.objects.all()
+        context["filters"] = {
+            "q": self.request.GET.get("q", ""),
+            "city": self.request.GET.get("city", ""),
+            "category": self.request.GET.get("category", ""),
+        }
+        return context
 
 
 class ListingDetailView(DetailView):

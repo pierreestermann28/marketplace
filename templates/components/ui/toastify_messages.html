@@ -1,0 +1,9 @@
+{% if entries %}
+  {% with toast_entries=entries %}
+    {% include "components/ui/toastify_messages_impl.html" %}
+  {% endwith %}
+{% elif messages %}
+  {% with toast_entries=messages %}
+    {% include "components/ui/toastify_messages_impl.html" %}
+  {% endwith %}
+{% endif %}

@@ -155,43 +155,43 @@ PWA_APP_SCOPE = "/"
 PWA_APP_START_URL = "/"
 PWA_APP_STATUS_BAR_COLOR = "default"
 PWA_APP_ORIENTATION = "portrait"
-PWA_APP_ICONS = [
-    {
-        "src": "/static/img/pwa/icon-192.png",
-        "sizes": "192x192",
-    },
-    {
-        "src": "/static/img/pwa/icon-512.png",
-        "sizes": "512x512",
-    },
-]
-PWA_APP_SPLASH_SCREEN = [
-    {
-        "src": "/static/img/pwa/splash-640x1136.png",
-        "sizes": "640x1136",
-    },
-    {
-        "src": "/static/img/pwa/splash-750x1334.png",
-        "sizes": "750x1334",
-    },
-    {
-        "src": "/static/img/pwa/splash-1125x2436.png",
-        "sizes": "1125x2436",
-    },
-    {
-        "src": "/static/img/pwa/splash-1242x2208.png",
-        "sizes": "1242x2208",
-    },
-    {
-        "src": "/static/img/pwa/splash-1536x2048.png",
-        "sizes": "1536x2048",
-    },
-    {
-        "src": "/static/img/pwa/splash-1668x2224.png",
-        "sizes": "1668x2224",
-    },
-    {
-        "src": "/static/img/pwa/splash-2048x2732.png",
-        "sizes": "2048x2732",
-    },
-]
+# PWA_APP_ICONS = [
+#     {
+#         "src": "/static/img/pwa/icon-192.png",
+#         "sizes": "192x192",
+#     },
+#     {
+#         "src": "/static/img/pwa/icon-512.png",
+#         "sizes": "512x512",
+#     },
+# ]
+# PWA_APP_SPLASH_SCREEN = [
+#     {
+#         "src": "/static/img/pwa/splash-640x1136.png",
+#         "sizes": "640x1136",
+#     },
+#     {
+#         "src": "/static/img/pwa/splash-750x1334.png",
+#         "sizes": "750x1334",
+#     },
+#     {
+#         "src": "/static/img/pwa/splash-1125x2436.png",
+#         "sizes": "1125x2436",
+#     },
+#     {
+#         "src": "/static/img/pwa/splash-1242x2208.png",
+#         "sizes": "1242x2208",
+#     },
+#     {
+#         "src": "/static/img/pwa/splash-1536x2048.png",
+#         "sizes": "1536x2048",
+#     },
+#     {
+#         "src": "/static/img/pwa/splash-1668x2224.png",
+#         "sizes": "1668x2224",
+#     },
+#     {
+#         "src": "/static/img/pwa/splash-2048x2732.png",
+#         "sizes": "2048x2732",
+#     },
+# ]

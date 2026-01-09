@@ -1,0 +1,23 @@
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-surface-muted text-ink-900;
+  }
+
+  a {
+    @apply underline-offset-4;
+  }
+
+  /* Focus accessible */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ink-900 ring-offset-2 ring-offset-white;
+  }
+}

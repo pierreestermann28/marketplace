@@ -6,21 +6,32 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#1F2A44" />
-    {% progressive_web_app_meta %}
     <title>
       {% block title %}StillUseful{% endblock %}
     </title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+    <link rel="stylesheet" href="{% static 'vendor/toastify.css' %}" />
+    {% progressive_web_app_meta %}
     {% block extra_head %}{% endblock %}
   </head>
   <body class="min-h-screen bg-white text-gray-900">
     {% include "partials/navbar.html" %}
+    {% include "partials/flash_messages.html" %}
     <main>
       {% block content %}{% endblock %}
     </main>
     {% include "partials/footer.html" %}
     <script defer src="{% static 'vendor/htmx.min.js' %}"></script>
     <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
+    <script defer src="{% static 'vendor/toastify.js' %}"></script>
+    <script defer src="{% static 'vendor/lucide.min.js' %}"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.lucide && typeof lucide.createIcons === "function") {
+          lucide.createIcons();
+        }
+      });
+    </script>
     {% block extra_js %}{% endblock %}
   </body>
 </html>

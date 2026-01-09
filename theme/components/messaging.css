@@ -1,0 +1,27 @@
+@layer components {
+  .conversation-row {
+    @apply w-full text-left rounded-2xl border border-ink-100 bg-white p-3 transition shadow-sm hover:border-brand hover:bg-brand-100;
+  }
+  .conversation-row--active {
+    @apply border-brand;
+    background-color: rgba(31, 42, 68, 0.12);
+  }
+  .messaging-shell {
+    @apply flex flex-col gap-6 lg:flex-row;
+  }
+  .messaging-list {
+    @apply w-full lg:w-[280px];
+  }
+  .messaging-detail {
+    @apply w-full flex-1;
+  }
+  .messaging-shell {
+    @apply lg:flex lg:gap-6;
+  }
+  .messaging-list {
+    @apply w-full lg:w-[280px] space-y-4;
+  }
+  .messaging-detail {
+    @apply w-full;
+  }
+}

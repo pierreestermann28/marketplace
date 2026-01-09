@@ -7,7 +7,10 @@
 
       <form method="post" class="mt-6 grid gap-4">
         {% csrf_token %}
-        {{ form.non_field_errors }}
+        {# rely on global toast component, do not render inline errors #}
+        {% if form.non_field_errors %}
+          {% include "components/ui/toastify_messages.html" with entries=form.non_field_errors default_tags="error" only %}
+        {% endif %}
         <div>
           <label class="label" for="id_username">Email ou identifiant</label>
           <input class="input" type="text" name="username" id="id_username" autocomplete="username" required>

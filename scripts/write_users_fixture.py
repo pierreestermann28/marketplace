@@ -1,0 +1,37 @@
+from pathlib import Path
+
+content = """[
+  {
+    "model": "accounts.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$fX4LVQfE26AEgH0WMMZTab$COblB6by9dPHxPLsYjun9XpqOXEqlQZod0+XQ7aUyWo=",
+      "last_login": null,
+      "is_superuser": false,
+      "username": "alice",
+      "first_name": "Alice",
+      "last_name": "Moreau",
+      "email": "alice@example.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-01-01T09:00:00Z"
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$fX4LVQfE26AEgH0WMMZTab$COblB6by9dPHxPLsYjun9XpqOXEqlQZod0+XQ7aUyWo=",
+      "last_login": null,
+      "is_superuser": false,
+      "username": "paul",
+      "first_name": "Paul",
+      "last_name": "Dupont",
+      "email": "paul@example.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-05-15T12:00:00Z"
+    }
+  }
+]"""
+Path("fixtures/00-users.json").write_text(content, encoding="utf-8")

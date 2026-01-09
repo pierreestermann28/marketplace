@@ -6,8 +6,18 @@
       <a href="/sell/create/" class="text-sm text-ink-600 hover:text-ink-900">Vendre</a>
     </div>
     <div class="flex items-center gap-3">
-      <a href="/my/listings/" class="text-sm text-ink-600 hover:text-ink-900">Mes annonces</a>
-      {% include "components/ui/button.html" with label="Publier" variant="primary" size="sm" href="/sell/create/" only %}
+      {% if user.is_authenticated %}
+        <span class="text-sm text-ink-600">Bonjour {{ user.first_name|default:user.username }}</span>
+        <a href="/my/listings/" class="text-sm text-ink-600 hover:text-ink-900">Mes annonces</a>
+        <a href="{% url 'messages:list' %}" class="text-sm text-ink-600 hover:text-ink-900">Conversations</a>
+        <form method="post" action="{% url 'logout' %}" class="inline">
+          {% csrf_token %}
+          {% include "components/ui/button.html" with label="Déconnexion" variant="ghost" type="submit" only %}
+        </form>
+      {% else %}
+        <a href="/auth/login/" class="text-sm text-ink-600 hover:text-ink-900">Connexion</a>
+        {% include "components/ui/button.html" with label="Publier" variant="primary" size="sm" href="/sell/create/" only %}
+      {% endif %}
     </div>
   </div>
 </nav>

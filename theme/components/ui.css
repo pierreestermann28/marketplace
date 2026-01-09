@@ -1,0 +1,84 @@
+@layer components {
+  /* Layout containers */
+  .container-app {
+    @apply max-w-6xl mx-auto px-4;
+  }
+
+  /* Typography helpers */
+  .h1 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+  .h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  .muted {
+    @apply text-ink-600;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply bg-white border border-ink-100 rounded-2xl shadow-soft;
+  }
+  .card-body {
+    @apply p-4;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none cursor-pointer;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-brand text-white hover:bg-brand-700 active:bg-brand-800;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-white border border-ink-200 text-ink-900 hover:bg-ink-50 active:bg-ink-100 cursor-pointer;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-transparent text-ink-900 hover:bg-ink-50 active:bg-ink-100;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition select-none bg-danger text-white hover:bg-danger-700;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm rounded-xl;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-3 py-2 rounded-xl border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:border-ink-400;
+  }
+  .select {
+    @apply w-full px-3 py-2 rounded-xl border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:border-ink-400 pr-10;
+  }
+  .textarea {
+    @apply w-full px-3 py-2 rounded-xl border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:border-ink-400 min-h-[120px];
+  }
+  .label {
+    @apply text-sm font-medium text-ink-900;
+  }
+  .help {
+    @apply text-sm text-ink-600;
+  }
+  .error {
+    @apply text-sm text-danger;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-ink-100 text-ink-800;
+  }
+  .badge-success {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800;
+  }
+  .badge-danger {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800;
+  }
+
+  /* Nav */
+  .nav {
+    @apply sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-ink-100;
+  }
+  .nav-inner {
+    @apply max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3;
+  }
+}

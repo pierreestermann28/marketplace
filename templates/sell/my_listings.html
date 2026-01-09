@@ -1,28 +1,86 @@
 {% extends "layouts/app.html" %}
 {% block page_content %}
-  <div class="container-app py-10">
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <h1 class="h1">Mes annonces</h1>
-        <p class="muted mt-2 text-sm">Suivi du statut et performance.</p>
+  <div class="container-app space-y-6 py-10">
+    <div class="card card-body">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Tableau de bord</div>
+          <h1 class="h1 mt-2">Mes annonces</h1>
+          <p class="mt-2 text-sm text-ink-600">Suivi du statut et performance.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="rounded-full border border-ink-100 bg-white px-4 py-2 text-sm text-ink-600">
+            {{ listings|length }} annonce{{ listings|length|pluralize }}
+          </div>
+          {% include "components/ui/button.html" with label="Nouvelle annonce" variant="primary" href="/sell/create/" only %}
+        </div>
       </div>
-      {% include "components/ui/button.html" with label="Nouvelle annonce" variant="primary" href="/sell/create/" only %}
     </div>
 
     {% if listings %}
       <div class="grid gap-4">
         {% for listing in listings %}
-          <div class="card card-body flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div class="text-sm font-medium text-ink-900">{{ listing.title }}</div>
-              <div class="muted text-sm">{{ listing.city }} · {{ listing.price_cents }} {{ listing.currency }}</div>
+          <article class="card card-body space-y-3">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div class="relative h-24 w-24 overflow-hidden rounded-2xl bg-ink-50">
+                {% with primary=listing.get_primary_image %}
+                  {% if primary and primary.image_asset.image.url %}
+                    <img src="{{ primary.image_asset.image.url }}"
+                         alt="{{ listing.title }}"
+                         class="h-full w-full object-cover" />
+                  {% else %}
+                    <div class="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-[0.3em] text-ink-400">
+                      Apercu
+                    </div>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              <div class="flex-1 space-y-2">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div class="text-xs uppercase tracking-[0.3em] text-ink-500">
+                      {% if listing.category %}{{ listing.category.name }}{% else %}Annonce{% endif %}
+                    </div>
+                    <div class="text-base font-semibold text-ink-900">
+                      {{ listing.title|default:"Annonce sans titre" }}
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-semibold text-ink-900">
+                      {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
+                    </div>
+                    <div class="text-xs text-ink-500">
+                      {{ listing.city|default:"" }}{% if listing.city and listing.postal_code %} - {% endif %}{{ listing.postal_code|default:"" }}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-ink-600">
+                  <span class="uppercase tracking-[0.2em]">{{ listing.get_condition_display|default:listing.condition }}</span>
+                  {% if listing.shipping_enabled %}<span class="badge-success">Livraison</span>{% endif %}
+                  {% if listing.in_person_enabled %}<span class="badge">Remise</span>{% endif %}
+                  <span class="text-ink-400">Mise en ligne le {{ listing.created_at|date:"d M Y" }}</span>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                {% if listing.status == "rejected" %}
+                  <span class="badge badge-danger">Rejete</span>
+                {% else %}
+                  <span class="badge">{{ listing.get_status_display|default:listing.status }}</span>
+                {% endif %}
+                {% include "components/ui/button.html" with label="Photos" variant="ghost" size="sm" href="/sell/{{ listing.id }}/photos/" only %}
+                {% include "components/ui/button.html" with label="Finaliser" variant="secondary" size="sm" href="/sell/{{ listing.id }}/submit/" only %}
+                {% if listing.slug %}
+                  {% url "listing_detail" slug=listing.slug uuid=listing.id as listing_url %}
+                  {% include "components/ui/button.html" with label="Voir" variant="primary" size="sm" href=listing_url only %}
+                {% endif %}
+              </div>
             </div>
-            <div class="flex items-center gap-3">
-              <span class="badge">{{ listing.get_status_display|default:listing.status }}</span>
-              <a class="text-sm text-ink-600 hover:text-ink-900" href="/sell/{{ listing.id }}/photos/">Photos</a>
-              <a class="text-sm text-ink-600 hover:text-ink-900" href="/sell/{{ listing.id }}/submit/">Finaliser</a>
-            </div>
-          </div>
+            {% if listing.status == "rejected" and listing.moderation_notes %}
+              <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                Motif de rejet : {{ listing.moderation_notes }}
+              </div>
+            {% endif %}
+          </article>
         {% endfor %}
       </div>
     {% else %}

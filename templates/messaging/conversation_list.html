@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="space-y-3">
+      <h1 class="h1">Conversations</h1>
+      <div class="grid gap-3">
+        {% for conversation in conversations %}
+          <a href="{% url 'messages:detail' conversation.pk %}"
+             class="card card-body flex items-center justify-between gap-3 hover:shadow-soft transition">
+            <div>
+              <div class="text-sm font-semibold text-ink-900">{{ conversation.listing.title }}</div>
+              <div class="muted text-sm">
+                {% if request.user == conversation.buyer %}
+                  Avec {{ conversation.seller.get_full_name|default:conversation.seller.username }}
+                {% else %}
+                  Avec {{ conversation.buyer.get_full_name|default:conversation.buyer.username }}
+                {% endif %}
+              </div>
+            </div>
+            <div class="text-right text-xs text-ink-500">
+              Dernier message : {{ conversation.last_message_at|default:conversation.created_at|date:"d M Y H:i" }}
+            </div>
+          </a>
+        {% empty %}
+          {% include "components/ui/empty_state.html" with title="Aucune conversation" description="Contacte un vendeur pour démarrer." only %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

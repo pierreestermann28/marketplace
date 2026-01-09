@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <h1 class="h1 mb-6">Conversations</h1>
+    <div class="messaging-shell">
+      <section class="messaging-list card card-body space-y-4"
+               id="conversation-list">
+        <div class="flex items-center justify-between">
+          <span class="text-sm uppercase tracking-[0.3em] text-ink-500">Liste</span>
+        </div>
+        <div class="space-y-2">{% include "messaging/partials/conversation_list_panel.html" %}</div>
+      </section>
+      <section class="messaging-detail card card-body" id="conversation-detail">
+        {% if selected_conversation %}
+          {% include "messaging/partials/conversation_detail_panel.html" with form=message_form conversation=selected_conversation %}
+        {% else %}
+          <div class="rounded-2xl border border-ink-100 bg-ink-50 p-6 text-sm text-ink-500">
+            Sélectionne une conversation pour voir le fil.
+          </div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+  <script>
+    document.addEventListener("htmx:afterRequest", (event) => {
+      if (!event.target.matches("[data-conversation-id]")) {
+        return;
+      }
+      document.querySelectorAll(".conversation-row--active").forEach((el) => el.classList.remove("conversation-row--active"));
+      event.target.classList.add("conversation-row--active");
+    });
+
+    document.addEventListener("htmx:afterSwap", (event) => {
+      if (event.detail.target.id === "conversation-detail" && window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+      }
+    });
+  </script>
+{% endblock %}

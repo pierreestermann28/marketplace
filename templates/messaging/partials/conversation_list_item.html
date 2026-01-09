@@ -1,0 +1,27 @@
+{% if conversation %}
+  <button
+    class="conversation-row {% if selected %}conversation-row--active{% endif %}"
+    hx-get="{% url 'messages:detail' conversation.pk %}"
+    hx-target="#conversation-detail"
+    hx-swap="innerHTML"
+    data-conversation-id="{{ conversation.pk }}"
+  >
+    <div class="flex items-center justify-between text-sm font-semibold">
+      <span>{{ conversation.listing.title }}</span>
+      {% if conversation.messages.last %}
+        <span class="text-xs text-ink-500">
+          {{ conversation.messages.last.created_at|date:"H:i" }}
+        </span>
+      {% endif %}
+    </div>
+    <p class="text-xs text-ink-500">
+      {% if request.user == conversation.buyer %}
+        Avec {{ conversation.seller.get_full_name|default:conversation.seller.username }}
+      {% else %}
+        Avec {{ conversation.buyer.get_full_name|default:conversation.buyer.username }}
+      {% endif %}
+    </p>
+  </button>
+{% else %}
+  <div class="conversation-row bg-ink-50 border border-ink-100 h-20"></div>
+{% endif %}

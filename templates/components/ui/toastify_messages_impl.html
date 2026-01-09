@@ -1,0 +1,36 @@
+{% if toast_entries %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      {% for entry in toast_entries %}
+        (function () {
+          {% if entry.text %}
+            const textValue = "{{ entry.text|escapejs }}";
+            const tags = "{{ entry.tags|default:'' }}";
+            const duration = {{ entry.duration|default:4500 }};
+          {% else %}
+            const textValue = "{{ entry|escapejs }}";
+            const tags = "{{ default_tags|default:'' }}";
+            const duration = 4500;
+          {% endif %}
+          const isError = tags.toLowerCase().includes("error") || tags.toLowerCase().includes("danger");
+          const style = {
+            background: isError ? "#fee2e2" : "#ecfdf5",
+            color: isError ? "#991b1b" : "#065f46",
+            border: "1px solid " + (isError ? "#fecaca" : "#6ee7b7"),
+            boxShadow: "0 4px 24px rgba(17, 20, 24, 0.08)",
+            borderRadius: "1rem",
+          };
+          Toastify({
+            text: textValue,
+            duration: duration,
+            gravity: "top",
+            position: "right",
+            close: true,
+            className: "toastify-" + (tags || "default"),
+            style: style,
+          }).showToast();
+        })();
+      {% endfor %}
+    });
+  </script>
+{% endif %}
