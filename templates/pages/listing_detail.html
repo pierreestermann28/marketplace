@@ -26,9 +26,14 @@
             </div>
           </div>
           <div class="card card-body space-y-4">
-            <div>
-              <div class="muted text-sm">{{ listing.city }} · {{ listing.postal_code }}</div>
-              <h1 class="h1 mt-1">{{ listing.title }}</h1>
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="muted text-sm">{{ listing.city }} · {{ listing.postal_code }}</div>
+                <h1 class="h1 mt-1">{{ listing.title }}</h1>
+              </div>
+              <div class="mt-1">
+                {% include "components/listings/favorite_button.html" with listing=listing request=request only %}
+              </div>
             </div>
             <div class="price text-2xl">
               {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}

@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     "sell",
     "commerce",
     "messaging",
-    "moderation",
 ]
 
 MIDDLEWARE = [

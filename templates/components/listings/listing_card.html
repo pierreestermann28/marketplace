@@ -1,44 +1,49 @@
 {# props: listing #}
-<a class="listing-card"
-   href="{% url 'listing_detail' slug=listing.slug|default:'item' uuid=listing.id %}">
-  {% with primary=listing.get_primary_image %}
-    {% if primary %}
-      <div class="overflow-hidden rounded-2xl">
-        <img class="listing-img" src="{{ primary.image_asset.image.url }}" alt="{{ listing.title }}" />
+<div class="relative">
+  <a class="listing-card"
+     href="{% url 'listing_detail' slug=listing.slug|default:'item' uuid=listing.id %}">
+    {% with primary=listing.get_primary_image %}
+      {% if primary %}
+        <div class="overflow-hidden rounded-2xl">
+          <img class="listing-img" src="{{ primary.image_asset.image.url }}" alt="{{ listing.title }}" />
+        </div>
+      {% else %}
+        <div class="listing-img bg-ink-50"></div>
+      {% endif %}
+    {% endwith %}
+    <div class="listing-body space-y-2">
+      <div class="flex items-center justify-between text-xs text-ink-500">
+        <span>{{ listing.city }}</span>
+        <span>{{ listing.get_condition_display|default:listing.condition }}</span>
       </div>
-    {% else %}
-      <div class="listing-img bg-ink-50"></div>
-    {% endif %}
-  {% endwith %}
-  <div class="listing-body space-y-2">
-    <div class="flex items-center justify-between text-xs text-ink-500">
-      <span>{{ listing.city }}</span>
-      <span>{{ listing.get_condition_display|default:listing.condition }}</span>
+      <div class="text-xs uppercase tracking-[0.2em] text-ink-500">{{ listing.category }}</div>
+      <div class="line-clamp-2 text-sm font-medium text-ink-900">{{ listing.title }}</div>
+      <div class="flex items-center gap-1 text-xs text-ink-500">
+        <span>Vendeur :</span>
+        <span class="text-ink-800">{{ listing.seller.get_full_name|default:listing.seller.username }}</span>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        {% with rating=listing.seller.trust_score|default:0 %}
+          <span class="flex items-center gap-0.5">
+            {% for star in "12345" %}
+              {% if rating >= forloop.counter %}
+                <i data-lucide="star" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
+              {% elif rating >= forloop.counter|add:"-0.5" %}
+                <i data-lucide="star-half" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="star" class="h-4 w-4 text-ink-300" aria-hidden="true"></i>
+              {% endif %}
+            {% endfor %}
+          </span>
+          <span class="text-ink-500">{{ rating|floatformat:1 }}/5</span>
+        {% endwith %}
+      </div>
+      <div class="mt-2 price">
+        {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
+      </div>
     </div>
-    <div class="text-xs uppercase tracking-[0.2em] text-ink-500">{{ listing.category }}</div>
-    <div class="line-clamp-2 text-sm font-medium text-ink-900">{{ listing.title }}</div>
-    <div class="flex items-center gap-1 text-xs text-ink-500">
-      <span>Vendeur :</span>
-      <span class="text-ink-800">{{ listing.seller.get_full_name|default:listing.seller.username }}</span>
-    </div>
-    <div class="flex items-center gap-2 text-xs">
-      {% with rating=listing.seller.trust_score|default:0 %}
-        <span class="flex items-center gap-0.5">
-          {% for star in "12345" %}
-            {% if rating >= forloop.counter %}
-              <i data-lucide="star" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
-            {% elif rating >= forloop.counter|add:"-0.5" %}
-              <i data-lucide="star-half" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
-            {% else %}
-              <i data-lucide="star" class="h-4 w-4 text-ink-300" aria-hidden="true"></i>
-            {% endif %}
-          {% endfor %}
-        </span>
-        <span class="text-ink-500">{{ rating|floatformat:1 }}/5</span>
-      {% endwith %}
-    </div>
-    <div class="mt-2 price">
-      {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
-    </div>
+  </a>
+  <div class="absolute right-3 top-3">
+    {% include "components/listings/favorite_button.html" with listing=listing request=request only %}
   </div>
-</a>
+</div>

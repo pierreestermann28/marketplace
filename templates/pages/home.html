@@ -25,7 +25,9 @@
           </div>
           {% include "components/ui/button.html" with label="Rechercher" variant="primary" type="submit" only %}
         </form>
-        <div class="mt-4">{% include "components/listings/listing_grid.html" with listings=listings only %}</div>
+        <div class="mt-4">
+          {% include "components/listings/listing_grid.html" with listings=listings request=request only %}
+        </div>
       </div>
       <aside class="space-y-4">
         <div class="card card-body">

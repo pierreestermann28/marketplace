@@ -31,6 +31,12 @@
           lucide.createIcons();
         }
       });
+
+      document.addEventListener("htmx:afterSwap", function () {
+        if (window.lucide && typeof lucide.createIcons === "function") {
+          lucide.createIcons();
+        }
+      });
     </script>
     {% block extra_js %}{% endblock %}
   </body>

@@ -1,9 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Prefetch
+from django.db.models import BooleanField, Exists, OuterRef, Prefetch, Value
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views import View
 from django.views.generic import DetailView, FormView, ListView, TemplateView, UpdateView
 
 from mediahub.models import ImageAsset
@@ -11,7 +12,7 @@ from mediahub.models import ImageAsset
 from catalog.models import Category
 
 from .forms import ListingForm, PhotoUploadForm
-from .models import Listing, ListingImage
+from .models import Favorite, Listing, ListingImage
 
 
 class HomeFeedView(ListView):
@@ -32,11 +33,17 @@ class HomeFeedView(ListView):
         if category:
             qs = qs.filter(category__slug=category)
         image_qs = ListingImage.objects.select_related("image_asset").order_by("-is_primary", "sort_order")
-        return (
-            qs.select_related("category", "seller")
-            .prefetch_related(Prefetch("images", queryset=image_qs))
-            .order_by("-created_at")
-        )
+        if self.request.user.is_authenticated:
+            qs = qs.annotate(
+                is_favorited=Exists(
+                    Favorite.objects.filter(user=self.request.user, listing=OuterRef("pk"))
+                )
+            )
+        else:
+            qs = qs.annotate(is_favorited=Value(False, output_field=BooleanField()))
+        return qs.select_related("category", "seller").prefetch_related(
+            Prefetch("images", queryset=image_qs)
+        ).order_by("-created_at")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -55,10 +62,18 @@ class ListingDetailView(DetailView):
     context_object_name = "listing"
 
     def get_queryset(self):
-        return (
-            Listing.objects.select_related("category", "seller")
-            .prefetch_related("images__image_asset")
+        qs = Listing.objects.select_related("category", "seller").prefetch_related(
+            "images__image_asset"
         )
+        if self.request.user.is_authenticated:
+            qs = qs.annotate(
+                is_favorited=Exists(
+                    Favorite.objects.filter(user=self.request.user, listing=OuterRef("pk"))
+                )
+            )
+        else:
+            qs = qs.annotate(is_favorited=Value(False, output_field=BooleanField()))
+        return qs
 
     def get_object(self, queryset=None):
         slug = self.kwargs["slug"]
@@ -182,3 +197,24 @@ class ReviewQueueView(UserPassesTestMixin, ListView):
         listing.moderated_at = timezone.now()
         listing.save(update_fields=["status", "moderated_by", "moderated_at"])
         return HttpResponseRedirect(reverse("review_queue"))
+
+
+class ListingFavoriteToggleView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        listing = get_object_or_404(Listing, id=kwargs["listing_id"])
+        favorite, created = Favorite.objects.get_or_create(
+            user=request.user,
+            listing=listing,
+        )
+        if not created:
+            favorite.delete()
+        listing.is_favorited = created
+        if request.headers.get("HX-Request"):
+            next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("home")
+            return render(
+                request,
+                "components/listings/favorite_button.html",
+                {"listing": listing, "next_url": next_url},
+            )
+        redirect_to = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("home")
+        return HttpResponseRedirect(redirect_to)

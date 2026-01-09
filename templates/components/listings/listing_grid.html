@@ -1,7 +1,7 @@
 {# props: listings #}
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {% for listing in listings %}
-    {% include "components/listings/listing_card.html" with listing=listing only %}
+    {% include "components/listings/listing_card.html" with listing=listing request=request only %}
   {% empty %}
     {% include "components/ui/empty_state.html" with title="No listings" only %}
   {% endfor %}
