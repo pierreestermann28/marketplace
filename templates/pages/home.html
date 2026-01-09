@@ -3,30 +3,42 @@
   <div class="container-app py-10">
     <div class="grid gap-8 lg:grid-cols-[2fr_1fr]">
       <div>
-        <div class="mb-6">
+        <div class="mb-6 space-y-2">
           <h1 class="h1">Marketplace d'objets utiles et durables</h1>
-          <p class="muted mt-2 text-sm">Acheter et vendre en confiance, en favorisant la seconde vie.</p>
+          <p class="muted text-sm">Acheter et vendre en confiance, en favorisant la seconde vie.</p>
         </div>
-        <form method="get"
-              class="card card-body mb-6 grid gap-3 sm:grid-cols-[1fr_auto]">
+        <form method="get" class="card card-body mb-6 grid gap-3 sm:grid-cols-[1fr_auto]">
           <div class="grid gap-3 sm:grid-cols-3">
             {% include "components/ui/input.html" with name="q" placeholder="Rechercher un objet, une marque..." value=filters.q only %}
             {% include "components/ui/input.html" with name="city" placeholder="Ville" value=filters.city only %}
             <div>
-              <label class="label sr-only">Catégorie</label>
+              <label class="label sr-only">Categorie</label>
               <select name="category" class="input">
-                <option value="">Toutes les catégories</option>
+                <option value="">Toutes les categories</option>
                 {% for cat in categories %}
-                  <option value="{{ cat.slug }}"
-                          {% if cat.slug == filters.category %}selected{% endif %}>{{ cat.name }}</option>
+                  <option value="{{ cat.slug }}" {% if cat.slug == filters.category %}selected{% endif %}>{{ cat.name }}</option>
                 {% endfor %}
               </select>
             </div>
           </div>
           {% include "components/ui/button.html" with label="Rechercher" variant="primary" type="submit" only %}
         </form>
-        <div class="mt-4">
-          {% include "components/listings/listing_grid.html" with listings=listings request=request only %}
+        <div class="space-y-4">
+          <div class="card card-body">
+            <div class="flex flex-col gap-1 text-sm text-ink-500 sm:flex-row sm:items-center sm:justify-between">
+              <p>
+                {% if page_obj %}
+                  Affichage de {{ page_obj.start_index }} a {{ page_obj.end_index }} sur {{ page_obj.paginator.count }} annonces
+                {% else %}
+                  {{ listings|length }} annonces trouvees
+                {% endif %}
+              </p>
+            </div>
+            <div class="mt-4">
+              {% include "components/listings/listing_grid.html" with listings=listings request=request only %}
+            </div>
+          </div>
+          {% include "components/ui/pagination.html" with page_obj=page_obj is_paginated=is_paginated query_params=filters.querystring only %}
         </div>
       </div>
       <aside class="space-y-4">

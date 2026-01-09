@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import BooleanField, Exists, OuterRef, Prefetch, Value
+from django.db.models import BooleanField, Exists, OuterRef, Prefetch, Q, Value
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -23,11 +23,11 @@ class HomeFeedView(ListView):
 
     def get_queryset(self):
         qs = Listing.objects.filter(status=Listing.Status.PUBLISHED)
-        q = self.request.GET.get("q")
-        city = self.request.GET.get("city")
-        category = self.request.GET.get("category")
+        q = self.request.GET.get("q", "").strip()
+        city = self.request.GET.get("city", "").strip()
+        category = self.request.GET.get("category", "").strip()
         if q:
-            qs = qs.filter(title__icontains=q)
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
         if city:
             qs = qs.filter(city__icontains=city)
         if category:
@@ -52,8 +52,14 @@ class HomeFeedView(ListView):
             "q": self.request.GET.get("q", ""),
             "city": self.request.GET.get("city", ""),
             "category": self.request.GET.get("category", ""),
+            "querystring": self._get_filter_querystring(),
         }
         return context
+
+    def _get_filter_querystring(self):
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        return params.urlencode()
 
 
 class ListingDetailView(DetailView):
