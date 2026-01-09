@@ -43,12 +43,30 @@
     @apply px-3 py-1.5 text-sm rounded-xl;
   }
 
+  .profile-avatar {
+    @apply inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-brand text-sm font-semibold uppercase tracking-[0.3em] text-white transition duration-150;
+  }
+  .profile-avatar:hover,
+  .profile-avatar:focus-visible {
+    @apply bg-brand-700 ring-2 ring-brand ring-offset-white;
+  }
+
   /* Inputs */
   .input {
     @apply w-full px-3 py-2 rounded-xl border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:border-ink-400;
   }
   .select {
     @apply w-full px-3 py-2 rounded-xl border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:border-ink-400 pr-10;
+    cursor: pointer;
+  }
+  select.input {
+    cursor: pointer;
+  }
+  .requirement-dot {
+    @apply h-3 w-3 rounded-full border border-ink-200 bg-white flex items-center justify-center text-[10px] font-semibold text-transparent;
+  }
+  .requirement-dot.is-met {
+    @apply border-brand bg-brand text-white;
   }
   .textarea {
     @apply w-full px-3 py-2 rounded-xl border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:border-ink-400 min-h-[120px];

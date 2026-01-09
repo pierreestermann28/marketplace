@@ -1,0 +1,5 @@
+{% if listings %}
+  {% include "components/listings/listing_grid.html" with listings=listings request=request only %}
+{% else %}
+  {% include "components/ui/empty_state.html" with title="Wishlist vide" description="Ajoute des annonces en favoris pour les retrouver ici." only %}
+{% endif %}

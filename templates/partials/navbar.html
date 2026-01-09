@@ -1,26 +1,120 @@
-<nav class="nav">
-  <div class="nav-inner">
-    <div class="flex items-center gap-6">
-      <a href="/" class="font-semibold text-ink-900">StillUseful</a>
-      <a href="/" class="text-sm text-ink-600 hover:text-ink-900">Explorer</a>
-      <a href="/sell/create/" class="text-sm text-ink-600 hover:text-ink-900">Vendre</a>
-    </div>
+<header
+  x-data="{ mobileOpen: false, profileOpen: false }"
+  class="sticky top-0 z-40 border-b border-ink-100 bg-white/95 backdrop-blur shadow-sm"
+>
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
     <div class="flex items-center gap-3">
-      {% if user.is_authenticated %}
-        <span class="text-sm text-ink-600">Bonjour {{ user.first_name|default:user.username }}</span>
-        <a href="/my/listings/" class="text-sm text-ink-600 hover:text-ink-900">Mes annonces</a>
+      <a href="/" class="flex items-center gap-2 text-lg font-semibold text-ink-900">
+        <span class="flex h-9 w-9 items-center justify-center rounded-2xl bg-brand text-base font-bold text-white">
+          SU
+        </span>
+        <span class="text-lg font-semibold tracking-tight">StillUseful</span>
+      </a>
+      <nav class="hidden gap-6 text-sm font-medium text-ink-600 md:flex">
+        <a href="/" class="transition hover:text-ink-900">Explorer</a>
+        <a href="/sell/create/" class="transition hover:text-ink-900">Vendre</a>
+        <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Wishlist</a>
+        <a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a>
         {% if user.is_staff %}
-          <a href="{% url 'review_queue' %}" class="text-sm text-ink-600 hover:text-ink-900">Modération</a>
+          <a href="{% url 'review_queue' %}" class="transition hover:text-ink-900">Modération</a>
         {% endif %}
-        <a href="{% url 'messages:list' %}" class="text-sm text-ink-600 hover:text-ink-900">Conversations</a>
-        <form method="post" action="{% url 'logout' %}" class="inline">
-          {% csrf_token %}
-          {% include "components/ui/button.html" with label="Déconnexion" variant="ghost" type="submit" only %}
-        </form>
-      {% else %}
-        <a href="/auth/login/" class="text-sm text-ink-600 hover:text-ink-900">Connexion</a>
-        {% include "components/ui/button.html" with label="Publier" variant="primary" size="sm" href="/sell/create/" only %}
+      </nav>
+    </div>
+      <div class="flex items-center gap-3">
+        {% if user.is_authenticated %}
+          {% with display_name=user.get_full_name|default:user.username %}
+            <div class="relative hidden md:flex">
+              <button
+                type="button"
+                @click="profileOpen = !profileOpen"
+                :aria-expanded="profileOpen"
+                aria-haspopup="true"
+                class="profile-avatar focus:outline-none"
+              >
+                {{ display_name|slice:":1"|upper }}
+              </button>
+              <div
+                x-show="profileOpen"
+                @click.outside="profileOpen = false"
+                x-cloak
+                class="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-ink-100 bg-white py-2 shadow-lg"
+              >
+                <a
+                  href="{% url 'accounts:profile_detail' username=user.username %}"
+                  class="block cursor-pointer px-4 py-2 text-left text-sm font-medium text-ink-700 hover:bg-ink-50"
+                >
+                  Mon profil
+                </a>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                  {% csrf_token %}
+                  <button
+                    type="submit"
+                    class="w-full cursor-pointer px-4 py-2 text-left text-sm font-medium text-ink-700 hover:bg-ink-50"
+                  >
+                    Déconnexion
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endwith %}
+        {% else %}
+        <a href="{% url 'accounts:login' %}" class="btn btn-ghost text-xs md:text-sm flex items-center gap-2">
+          <i data-lucide="log-in" class="h-4 w-4"></i>Connexion
+        </a>
+        <a href="{% url 'accounts:register' %}" class="btn btn-secondary text-xs md:text-sm flex items-center gap-2">
+          <i data-lucide="user-plus" class="h-4 w-4"></i>Créer un compte
+        </a>
       {% endif %}
+        <button
+          type="button"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-ink-100 bg-white text-ink-600 shadow-sm md:hidden"
+          @click="mobileOpen = !mobileOpen"
+          aria-label="Ouvrir le menu"
+        >
+          <i
+            x-show="!mobileOpen"
+            data-lucide="menu"
+            class="h-5 w-5"
+          ></i>
+          <i
+            x-show="mobileOpen"
+            data-lucide="x"
+            class="h-5 w-5"
+          ></i>
+        </button>
     </div>
   </div>
-</nav>
+  <div
+    x-show="mobileOpen"
+    x-cloak
+    class="border-t border-ink-100 bg-white/95 px-4 py-4 shadow-lg backdrop-blur md:hidden"
+  >
+    <nav class="flex flex-col gap-3 text-sm font-medium text-ink-700">
+      <a href="/" class="transition hover:text-brand">Explorer</a>
+      <a href="/sell/create/" class="transition hover:text-brand">Vendre</a>
+      <a href="{% url 'wishlist' %}" class="transition hover:text-brand">Wishlist</a>
+      <a href="{% url 'messages:list' %}" class="transition hover:text-brand">Messages</a>
+      {% if user.is_staff %}
+        <a href="{% url 'review_queue' %}" class="transition hover:text-brand">Modération</a>
+      {% endif %}
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:profile_detail' username=user.username %}" class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">
+          Mon profil
+        </a>
+        <a href="{% url 'my_listings' %}" class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">
+          Mes annonces
+        </a>
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="w-full rounded-xl bg-danger px-4 py-2 text-sm font-semibold text-white">
+            Déconnexion
+          </button>
+        </form>
+        {% else %}
+        <a href="{% url 'accounts:login' %}" class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">
+          Connexion
+        </a>
+      {% endif %}
+    </nav>
+  </div>
+</header>

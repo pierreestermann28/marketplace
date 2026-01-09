@@ -158,6 +158,39 @@ class ListingDetailView(DetailView):
         return modes
 
 
+class WishlistView(LoginRequiredMixin, TemplateView):
+    template_name = "pages/wishlist.html"
+
+    def get_listings(self):
+        return (
+            Listing.objects.filter(
+                favorited_by__user=self.request.user,
+                status__in=[Listing.Status.PUBLISHED, Listing.Status.RESERVED],
+            )
+            .select_related("category", "seller")
+            .prefetch_related("images__image_asset")
+            .order_by("-favorited_by__created_at", "-created_at")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        listings = self.get_listings()
+        for listing in listings:
+            listing.is_favorited = True
+        context["listings"] = listings
+        context["wishlist_url"] = reverse("wishlist")
+        return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if self.request.headers.get("HX-Request"):
+            return render(
+                self.request,
+                "fragments/listings/wishlist_panel.html",
+                context,
+            )
+        return super().render_to_response(context, **response_kwargs)
+
+
 class MyListingsView(LoginRequiredMixin, ListView):
     model = Listing
     template_name = "sell/my_listings.html"
@@ -356,10 +389,13 @@ class ListingFavoriteToggleView(LoginRequiredMixin, View):
         listing.is_favorited = created
         if request.headers.get("HX-Request"):
             next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("home")
-            return render(
+            response = render(
                 request,
                 "components/listings/favorite_button.html",
                 {"listing": listing, "next_url": next_url},
             )
+            if request.POST.get("wishlist_origin"):
+                response["HX-Trigger"] = "wishlist-updated"
+            return response
         redirect_to = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("home")
         return HttpResponseRedirect(redirect_to)

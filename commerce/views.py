@@ -37,7 +37,11 @@ class ReviewCreateView(LoginRequiredMixin, FormView):
                 "comment": form.cleaned_data.get("comment", "").strip(),
             },
         )
-        stats = target.reputation
+        stats = getattr(target, "reputation", None)
+        if not stats:
+            from accounts.models import ReputationStats
+
+            stats = ReputationStats.for_user(target)
         stats.rebuild_from_reviews()
         return redirect(
             reverse(

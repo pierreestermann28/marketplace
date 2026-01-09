@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from catalog.models import Category
 
-from .models import Favorite, Listing
+from .models import Favorite, Listing, Reservation
 
 
 PNG_BYTES = (
@@ -63,7 +63,22 @@ class FavoriteToggleTests(TestCase):
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response["Location"].startswith("/auth/login/"))
+        login_url = reverse("accounts:login")
+        self.assertTrue(response["Location"].startswith(login_url))
+
+    def test_wishlist_toggle_sets_trigger_header(self):
+        self.client.force_login(self.buyer)
+        url = reverse("listing_favorite", kwargs={"listing_id": self.listing.id})
+
+        response = self.client.post(
+            url,
+            data={"next": "/", "wishlist_origin": "1"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["HX-Trigger"], "wishlist-updated")
+        self.assertTrue(Favorite.objects.filter(user=self.buyer, listing=self.listing).exists())
 
 
 class ListingViewTests(TestCase):
@@ -130,7 +145,8 @@ class ListingViewTests(TestCase):
         response = self.client.get(reverse("my_listings"))
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response["Location"].startswith("/auth/login/"))
+        login_url = reverse("accounts:login")
+        self.assertTrue(response["Location"].startswith(login_url))
 
     def test_my_listings_shows_only_seller_listings(self):
         Listing.objects.create(
@@ -248,9 +264,9 @@ class ListingWorkflowTests(TestCase):
             currency="EUR",
         )
         self.client.force_login(staff)
-        url = reverse("review_queue")
+        url = reverse("review_listing", kwargs={"pk": listing.id})
 
-        response = self.client.post(url, data={"listing_id": listing.id, "action": "approve"})
+        response = self.client.post(url, data={"action": "approve"})
 
         listing.refresh_from_db()
         self.assertEqual(response.status_code, 302)
@@ -271,3 +287,54 @@ class ListingWorkflowTests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 403)
+
+
+class MarketplaceFlowTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.seller = User.objects.create_user(username="seller", password="password123")
+        self.buyer = User.objects.create_user(username="buyer", password="password123")
+        self.other_buyer = User.objects.create_user(username="otherbuyer", password="password123")
+        self.staff = User.objects.create_user(
+            username="staff", password="password123", is_staff=True
+        )
+        self.category = Category.objects.create(name="Furniture", slug="furniture")
+
+    def test_publication_to_reservation_lifecycle(self):
+        listing = Listing.objects.create(
+            seller=self.seller,
+            title="Flow chair",
+            status=Listing.Status.PENDING_REVIEW,
+            currency="EUR",
+        )
+
+        self.client.force_login(self.staff)
+        review_url = reverse("review_listing", kwargs={"pk": listing.id})
+        response = self.client.post(review_url, data={"action": "approve"})
+
+        self.assertEqual(response.status_code, 302)
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, Listing.Status.PUBLISHED)
+
+        reserve_url = reverse("listing_reserve", kwargs={"listing_id": listing.id})
+        self.client.force_login(self.buyer)
+        response = self.client.post(reserve_url)
+        listing.refresh_from_db()
+
+        self.assertEqual(listing.status, Listing.Status.RESERVED)
+        self.assertTrue(Reservation.objects.active().filter(listing=listing, buyer=self.buyer).exists())
+
+        self.client.force_login(self.other_buyer)
+        response = self.client.post(reserve_url)
+        self.assertEqual(
+            Reservation.objects.active().filter(listing=listing).count(),
+            1,
+        )
+
+        self.client.force_login(self.seller)
+        cancel_url = reverse("listing_cancel_reservation", kwargs={"listing_id": listing.id})
+        response = self.client.post(cancel_url)
+        listing.refresh_from_db()
+
+        self.assertEqual(listing.status, Listing.Status.PUBLISHED)
+        self.assertFalse(Reservation.objects.active().filter(listing=listing).exists())

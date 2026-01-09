@@ -12,6 +12,7 @@ from .views import (
     ReservationCreateView,
     ReviewQueueView,
     SubmitForReviewView,
+    WishlistView,
 )
 
 urlpatterns = [
@@ -21,6 +22,7 @@ urlpatterns = [
     path("items/<uuid:listing_id>/cancel-reservation/", ReservationCancelView.as_view(), name="listing_cancel_reservation"),
     path("items/<slug:slug>-<uuid:uuid>/", ListingDetailView.as_view(), name="listing_detail"),
     path("my/listings/", MyListingsView.as_view(), name="my_listings"),
+    path("wishlist/", WishlistView.as_view(), name="wishlist"),
     path("sell/create/", ListingStartView.as_view(), name="listing_create"),
     path("sell/<uuid:pk>/photos/", PhotoUploadView.as_view(), name="listing_photos"),
     path("sell/<uuid:pk>/submit/", SubmitForReviewView.as_view(), name="listing_submit"),

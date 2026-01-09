@@ -1,5 +1,36 @@
-<footer class="border-t">
-  <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-gray-600">
-    <p>&copy; StillUseful</p>
+<footer class="border-t border-ink-100 bg-surface-muted">
+  <div class="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-3">
+    <div class="space-y-3">
+      <div class="flex items-center gap-2 text-lg font-semibold text-ink-900">
+        <span class="h-8 w-8 rounded-2xl bg-brand text-center text-sm font-bold uppercase leading-8 text-white">SU</span>
+        StillUseful
+      </div>
+      <p class="text-sm text-ink-600">
+        Marketplace responsable pour offrir une seconde vie aux objets du quotidien, avec une expérience de confiance du début à la fin.
+      </p>
+      <div class="flex items-center gap-3 text-ink-500">
+        <a href="#" class="transition hover:text-brand" aria-label="Instagram">
+          <i data-lucide="instagram" class="h-5 w-5"></i>
+        </a>
+        <a href="#" class="transition hover:text-brand" aria-label="LinkedIn">
+          <i data-lucide="linkedin" class="h-5 w-5"></i>
+        </a>
+        <a href="#" class="transition hover:text-brand" aria-label="Twitter">
+          <i data-lucide="twitter" class="h-5 w-5"></i>
+        </a>
+      </div>
+    </div>
+    <div class="space-y-2 text-sm text-ink-600">
+      <div class="font-semibold text-ink-900">Explorer</div>
+      <a href="/" class="transition hover:text-ink-900">Marketplace</a>
+      <a href="/sell/create/" class="transition hover:text-ink-900">Publier une annonce</a>
+      <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Wishlist</a>
+      <a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a>
+    </div>
+    <div class="space-y-2 text-sm text-ink-600">
+      <div class="font-semibold text-ink-900">Support</div>
+      <p class="text-sm">Besoin d’aide ? Contactez-nous à <a href="mailto:bonjour@stilluseful.com" class="underline">bonjour@stilluseful.com</a></p>
+      <p class="text-xs uppercase tracking-[0.4em] text-ink-400">© {% now "Y" %} StillUseful</p>
+    </div>
   </div>
 </footer>

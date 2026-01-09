@@ -1,0 +1,138 @@
+{% extends "layouts/bare.html" %}
+{% block page_content %}
+  <div class="min-h-screen bg-gradient-to-br from-brand/10 via-white to-surface-muted">
+    <div class="container-app flex min-h-[calc(100vh-4rem)] items-center justify-center py-3">
+      <div
+        class="w-full max-w-5xl overflow-hidden rounded-[32px] border border-ink-100 bg-white/80 shadow-soft backdrop-blur-xl"
+      >
+        <div class="grid gap-0 md:grid-cols-[1.3fr_1fr]">
+          <div class="hidden flex-col gap-4 bg-gradient-to-br from-brand via-brand/80 to-brand-700 p-10 text-white md:flex">
+            <div>
+              <p class="text-xs uppercase tracking-[0.5em] text-white/70">Créer votre compte</p>
+              <h2 class="mt-3 text-3xl font-semibold tracking-tight">Rejoignez StillUseful</h2>
+              <p class="mt-2 text-sm text-white/80">
+                Équipez-vous d’un espace sécurisé pour publier, échanger et suivre vos conversations.
+              </p>
+            </div>
+            <ul class="mt-auto space-y-3 text-sm">
+              <li class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="h-4 w-4 text-white"></i>
+                Vérification des profils
+              </li>
+              <li class="flex items-center gap-2">
+                <i data-lucide="shield" class="h-4 w-4 text-white"></i>
+                Paiements et réservations sécurisées
+              </li>
+              <li class="flex items-center gap-2">
+                <i data-lucide="users" class="h-4 w-4 text-white"></i>
+                Accès à une communauté responsable
+              </li>
+            </ul>
+          </div>
+          <div class="p-8 sm:p-10">
+            <div class="mb-6 space-y-2">
+              <h1 class="h2">Créez votre compte</h1>
+              <p class="muted text-sm">Entrez vos informations pour rejoindre la place de marché.</p>
+            </div>
+            <form method="post" class="grid gap-4">
+              {% csrf_token %}
+              {% if form.non_field_errors %}
+                {% include "components/ui/toastify_messages.html" with entries=form.non_field_errors default_tags="error" only %}
+              {% endif %}
+              {% for field in form %}
+                <div class="space-y-1">
+                  <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}
+                    <p class="help">{{ field.help_text }}</p>
+                  {% endif %}
+                  {% if field.errors and field.name != "password1" and field.name != "password2" %}
+                    <p class="error">{{ field.errors|striptags }}</p>
+                  {% endif %}
+                  {% if field.name == "password1" %}
+                    <div
+                      id="password-requirements"
+                      aria-live="polite"
+                      class="space-y-1 text-xs text-ink-500"
+                    >
+                      <p class="font-semibold text-ink-600">Mot de passe</p>
+                      <ul class="space-y-1">
+                        <li data-req="length" class="flex items-center gap-2">
+                          <span class="requirement-dot" aria-hidden="true"></span> 8 caractères minimum
+                        </li>
+                        <li data-req="digit" class="flex items-center gap-2">
+                          <span class="requirement-dot" aria-hidden="true"></span> Au moins un chiffre
+                        </li>
+                        <li data-req="upper" class="flex items-center gap-2">
+                          <span class="requirement-dot" aria-hidden="true"></span> Une majuscule
+                        </li>
+                        <li data-req="match" class="flex items-center gap-2">
+                          <span class="requirement-dot" aria-hidden="true"></span> Confirmation identique
+                        </li>
+                      </ul>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              {% include "components/ui/button.html" with label="Créer un compte" variant="primary" type="submit" only %}
+            </form>
+            <div class="mt-6 border-t border-ink-100 pt-4 text-xs text-ink-500">
+              <p>
+                Tu as déjà un compte ? <a href="{% url 'accounts:login' %}" class="text-brand font-semibold">Connecte-toi</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block extra_js %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const password = document.getElementById("id_password1");
+      const confirmation = document.getElementById("id_password2");
+      const requirementList = document.querySelectorAll("#password-requirements li");
+      if (!password || !requirementList.length) {
+        return;
+      }
+      const requirements = Array.from(requirementList).reduce((acc, li) => {
+        const key = li.dataset.req;
+        acc[key] = li;
+        return acc;
+      }, {});
+
+      function updateRequirements() {
+        const value = password.value;
+        const confirmValue = confirmation ? confirmation.value : "";
+        const states = {
+          length: value.length >= 8,
+          digit: /\d/.test(value),
+          upper: /[A-Z]/.test(value),
+          match: value && confirmation ? value === confirmValue : value.length > 0,
+        };
+        Object.entries(states).forEach(([key, satisfied]) => {
+          const target = requirements[key];
+          if (!target) {
+            return;
+          }
+          target.dataset.satisfied = satisfied ? "true" : "false";
+          target.classList.toggle("text-ink-900", satisfied);
+          target.classList.toggle("text-ink-500", !satisfied);
+          const dot = target.querySelector("span");
+          if (dot) {
+            dot.classList.toggle("is-met", satisfied);
+            dot.textContent = satisfied ? "✓" : "";
+          }
+        });
+      }
+
+      password.addEventListener("input", updateRequirements);
+      if (confirmation) {
+        confirmation.addEventListener("input", updateRequirements);
+        confirmation.addEventListener("focus", updateRequirements);
+      }
+      updateRequirements();
+    });
+  </script>
+{% endblock %}

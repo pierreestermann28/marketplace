@@ -1,6 +1,9 @@
 {# props: listing, next_url(optional) #}
 {% with next_target=next_url|default:request.get_full_path %}
-  {% if request.user.is_authenticated %}
+      {% if request.user.is_authenticated %}
+        {% if request.path == '/wishlist/' %}
+          <input type="hidden" name="wishlist_origin" value="1">
+        {% endif %}
     <form method="post"
           action="{% url 'listing_favorite' listing_id=listing.id %}"
           hx-post="{% url 'listing_favorite' listing_id=listing.id %}"
@@ -8,6 +11,9 @@
           hx-swap="outerHTML">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ next_target }}">
+      {% if request.path == '/wishlist/' %}
+        <input type="hidden" name="wishlist_origin" value="1">
+      {% endif %}
       <button type="submit"
               class="favorite-button {% if listing.is_favorited %}favorite-button--active{% endif %}"
               aria-pressed="{% if listing.is_favorited %}true{% else %}false{% endif %}"
@@ -18,7 +24,7 @@
       </button>
     </form>
   {% else %}
-    <a href="/auth/login/?next={{ next_target|urlencode }}"
+    <a href="{% url 'accounts:login' %}?next={{ next_target|urlencode }}"
        class="favorite-button"
        aria-label="Ajouter aux favoris">
       <i data-lucide="heart" class="h-4 w-4" aria-hidden="true"></i>
