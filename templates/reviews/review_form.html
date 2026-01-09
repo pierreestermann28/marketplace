@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="max-w-3xl space-y-6">
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-[0.4em] text-ink-500">
+          {{ role|title|replace:"_"," " }}
+        </div>
+        <h1 class="h1">
+          Avis sur {{ target_user.get_full_name|default:target_user.username }}
+        </h1>
+        <p class="muted text-sm">
+          Laisse une note entre 1 et 5 et partage une courte appréciation de l’échange.
+        </p>
+      </div>
+      <form method="post" class="card card-body space-y-4">
+        {% csrf_token %}
+        <div>
+          <label class="label" for="{{ form.rating.id_for_label }}">Note (1 à 5)</label>
+          {{ form.rating }}
+        </div>
+        <div>
+          <label class="label" for="{{ form.comment.id_for_label }}">Commentaire</label>
+          {{ form.comment }}
+        </div>
+        {% include "components/ui/button.html" with label="Enregistrer l'avis" variant="primary" type="submit" only %}
+      </form>
+    </div>
+  </div>
+{% endblock %}

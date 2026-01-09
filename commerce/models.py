@@ -1,5 +1,6 @@
 import uuid
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from accounts.models import Address
 from listings.models import Listing
@@ -142,7 +143,9 @@ class Review(models.Model):
     )
 
     role = models.CharField(max_length=20, choices=Role.choices, db_index=True)
-    rating = models.PositiveSmallIntegerField()
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
     comment = models.TextField(blank=True)
     tags = models.JSONField(default=list, blank=True)
 

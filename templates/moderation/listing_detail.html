@@ -1,0 +1,116 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="mb-6">
+      <h1 class="h1">Modération - Détail</h1>
+      <p class="muted mt-2 text-sm">Vérifie les images et les informations avant de publier ou rejeter.</p>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-[3fr_1fr]">
+      <section class="space-y-6">
+        <div class="card card-body space-y-4">
+          <div class="flex flex-wrap items-start gap-6">
+            <div class="h-52 w-full overflow-hidden rounded-3xl bg-ink-50 lg:w-2/3">
+              {% with primary=listing.get_primary_image %}
+                {% if primary %}
+                  <img
+                    class="h-full w-full object-cover"
+                    src="{{ primary.image_asset.image.url }}"
+                    alt="{{ listing.title }}"
+                  />
+                {% else %}
+                  <div class="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.4em] text-ink-400">
+                    Aucun visuel
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+            <div class="flex flex-1 flex-col justify-between gap-2 text-sm text-ink-600">
+              <div class="space-y-1">
+                <div class="text-xs uppercase tracking-[0.3em] text-ink-500">
+                  {% if listing.category %}{{ listing.category.name }}{% else %}Annonce{% endif %}
+                </div>
+                <div class="text-lg font-semibold text-ink-900">{{ listing.title }}</div>
+                <div class="text-xs uppercase tracking-[0.3em] text-ink-500">{{ listing.get_condition_display|default:listing.condition }}</div>
+              </div>
+              <div class="space-y-1">
+                <div class="text-ink-900 text-xs uppercase tracking-[0.3em]" >Ville</div>
+                <div>{{ listing.city }}, {{ listing.postal_code }}</div>
+              </div>
+              <div class="text-sm">
+                <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Prix</div>
+                <div class="text-3xl font-semibold text-ink-900">
+                  {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
+                </div>
+              </div>
+              <div class="space-y-1 text-xs text-ink-500">
+                <div>Modes : {% if listing.shipping_enabled %}Livraison{% endif %}{% if listing.shipping_enabled and listing.in_person_enabled %} • {% endif %}{% if listing.in_person_enabled %}Remise{% endif %}</div>
+                <div>Soumis le {{ listing.created_at|date:"d M Y à H:i" }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-ink-500">Description</h2>
+            <p class="text-sm text-ink-700">{{ listing.description|linebreaksbr }}</p>
+          </div>
+          <div class="space-y-2">
+            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-ink-500">Images</h2>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {% for image in listing.images.all %}
+                <div class="overflow-hidden rounded-2xl border border-ink-100 bg-ink-50">
+                  <img class="h-32 w-full object-cover" src="{{ image.image_asset.image.url }}" alt="Image {{ forloop.counter }}" />
+                </div>
+              {% empty %}
+                <div class="rounded-2xl border border-ink-100 bg-ink-50 p-4 text-center text-xs uppercase tracking-[0.3em] text-ink-400">
+                  Pas encore d&apos;images
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+      <aside class="space-y-4">
+        <div class="card card-body space-y-4">
+          <div>
+            <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Vendeur</div>
+            <div class="text-lg font-semibold text-ink-900">{{ listing.seller.get_full_name|default:listing.seller.username }}</div>
+            <div class="text-xs text-ink-500">Membre depuis {{ listing.seller.date_joined|date:"Y" }}</div>
+          </div>
+          <div class="space-y-2">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="approve" />
+              {% include "components/ui/button.html" with label="Approuver" variant="primary" size="sm" type="submit" only %}
+            </form>
+            <form method="post" class="space-y-2">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="reject" />
+              <label class="label text-xs uppercase tracking-[0.3em] text-ink-500" for="moderation_notes">Motif de rejet</label>
+              <textarea
+                id="moderation_notes"
+                name="moderation_notes"
+                rows="4"
+                class="input w-full text-sm"
+                placeholder="Explique pourquoi l'annonce est refusée"
+              >{{ listing.moderation_notes }}</textarea>
+              {% include "components/ui/button.html" with label="Rejeter" variant="danger" size="sm" type="submit" only %}
+            </form>
+          </div>
+        </div>
+        <div class="card card-body space-y-3">
+          <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Statut</div>
+          <div class="text-sm text-ink-700">
+            {{ listing.get_status_display|default:listing.status }}
+          </div>
+          {% if listing.moderation_notes %}
+            <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              Notes actuelles : {{ listing.moderation_notes }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="card card-body">
+          <a href="{% url 'review_queue' %}" class="text-xs uppercase tracking-[0.3em] text-ink-500">Retour à la file</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+{% endblock %}

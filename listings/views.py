@@ -1,7 +1,11 @@
+from datetime import timedelta
+
+from django.conf import settings
+from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import BooleanField, Exists, OuterRef, Prefetch, Q, Value
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
@@ -12,7 +16,13 @@ from mediahub.models import ImageAsset
 from catalog.models import Category
 
 from .forms import ListingForm, PhotoUploadForm
-from .models import Favorite, Listing, ListingImage
+from accounts.models import ReputationStats
+from .models import Favorite, Listing, ListingImage, Reservation
+
+
+def get_listing_detail_url(listing):
+    slug = listing.slug or "item"
+    return reverse("listing_detail", kwargs={"slug": slug, "uuid": listing.id})
 
 
 class HomeFeedView(ListView):
@@ -69,7 +79,7 @@ class ListingDetailView(DetailView):
 
     def get_queryset(self):
         qs = (
-            Listing.objects.filter(status=Listing.Status.PUBLISHED)
+            Listing.objects.filter(status__in=[Listing.Status.PUBLISHED, Listing.Status.RESERVED])
             .select_related("category", "seller")
             .prefetch_related("images__image_asset")
         )
@@ -96,16 +106,31 @@ class ListingDetailView(DetailView):
         secondary_images = [
             image for image in gallery_images if image != primary_image
         ]
+        photo_gallery = [primary_image] + secondary_images if primary_image else secondary_images
+        active_reservation = listing.refresh_reservation_state()
+        stats = getattr(listing.seller, "reputation", None)
+        if not stats:
+            stats = ReputationStats.for_user(listing.seller)
         context.update(
             {
                 "primary_image": primary_image,
                 "gallery_images": secondary_images,
+                "photo_gallery": photo_gallery,
                 "location_label": self._build_location_label(listing),
                 "seller_display_name": listing.seller.get_full_name()
                 or listing.seller.username,
                 "seller_reputation": getattr(listing.seller, "trust_score", None),
+                "seller_reputation_stats": stats,
+                "condition_display": listing.get_condition_display() or listing.condition,
                 "fulfillment_modes": self._build_fulfillment_modes(listing),
                 "contact_url": reverse("messages:start", kwargs={"listing_id": listing.id}),
+                "active_reservation": active_reservation,
+                "reservation_expiration_hours": getattr(settings, "RESERVATION_HOLD_HOURS", 24),
+                "reserve_url": reverse("listing_reserve", kwargs={"listing_id": listing.id}),
+                "cancel_reservation_url": reverse("listing_cancel_reservation", kwargs={"listing_id": listing.id}),
+                "can_reserve": listing.status == Listing.Status.PUBLISHED
+                and self.request.user.is_authenticated
+                and self.request.user != listing.seller,
             }
         )
         return context
@@ -139,11 +164,20 @@ class MyListingsView(LoginRequiredMixin, ListView):
     context_object_name = "listings"
 
     def get_queryset(self):
+        reservation_qs = Reservation.objects.active().select_related("buyer")
         return (
             Listing.objects.filter(seller=self.request.user)
             .select_related("category")
-            .order_by("-created_at")
+            .prefetch_related("images__image_asset", Prefetch("reservations", queryset=reservation_qs))
+            .order_by("-updated_at")
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        for listing in context["listings"]:
+            listing.active_reservation = listing.refresh_reservation_state()
+        context["reservation_expiration_hours"] = getattr(settings, "RESERVATION_HOLD_HOURS", 24)
+        return context
 
 
 class ListingStartView(LoginRequiredMixin, FormView):
@@ -237,17 +271,76 @@ class ReviewQueueView(UserPassesTestMixin, ListView):
             .order_by("created_at")
         )
 
+
+class ReservationCreateView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
-        listing_id = request.POST.get("listing_id")
+        listing = get_object_or_404(Listing, id=kwargs["listing_id"])
+        detail_url = get_listing_detail_url(listing)
+        if listing.seller == request.user:
+            django_messages.error(request, "Vous ne pouvez pas réserver votre propre annonce.")
+            return redirect(detail_url)
+        active_reservation = listing.refresh_reservation_state()
+        if listing.status != Listing.Status.PUBLISHED or active_reservation:
+            django_messages.error(request, "Cette annonce n’est pas disponible à la réservation.")
+            return redirect(detail_url)
+        expires_at = timezone.now() + timedelta(
+            hours=getattr(settings, "RESERVATION_HOLD_HOURS", 24)
+        )
+        Reservation.objects.create(
+            listing=listing, buyer=request.user, expires_at=expires_at
+        )
+        listing.status = Listing.Status.RESERVED
+        listing.save(update_fields=["status"])
+        django_messages.success(request, "L’annonce a bien été réservée.")
+        return redirect(detail_url)
+
+
+class ReservationCancelView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        listing = get_object_or_404(Listing, id=kwargs["listing_id"], seller=request.user)
+        detail_url = get_listing_detail_url(listing)
+        reservation = listing.refresh_reservation_state()
+        if not reservation:
+            django_messages.info(request, "Il n’y a plus de réservation active.")
+            return redirect(detail_url)
+        reservation.cancel()
+        if listing.status == Listing.Status.RESERVED:
+            listing.status = Listing.Status.PUBLISHED
+            listing.save(update_fields=["status"])
+        django_messages.success(request, "La réservation a été annulée.")
+        return redirect(detail_url)
+
+
+class ListingModerationDetailView(UserPassesTestMixin, DetailView):
+    model = Listing
+    template_name = "moderation/listing_detail.html"
+    context_object_name = "listing"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def get_queryset(self):
+        return (
+            Listing.objects.filter(status=Listing.Status.PENDING_REVIEW)
+            .select_related("seller", "category")
+            .prefetch_related("images__image_asset")
+        )
+
+    def post(self, request, *args, **kwargs):
+        listing = self.get_object()
         action = request.POST.get("action")
-        listing = get_object_or_404(Listing, id=listing_id)
+        notes = request.POST.get("moderation_notes", "").strip()
         if action == "approve":
             listing.status = Listing.Status.PUBLISHED
+            listing.moderation_notes = ""
         elif action == "reject":
             listing.status = Listing.Status.REJECTED
+            listing.moderation_notes = notes
         listing.moderated_by = request.user
         listing.moderated_at = timezone.now()
-        listing.save(update_fields=["status", "moderated_by", "moderated_at"])
+        listing.save(
+            update_fields=["status", "moderation_notes", "moderated_by", "moderated_at"]
+        )
         return HttpResponseRedirect(reverse("review_queue"))
 
 

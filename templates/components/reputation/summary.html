@@ -1,0 +1,19 @@
+{# props: stats, label="Vendeur" #}
+{% if stats %}
+  <div class="rounded-2xl border border-ink-100 bg-white/70 px-4 py-3 text-sm text-ink-600">
+    <div class="flex items-center gap-2">
+      <span class="text-lg font-semibold text-ink-900">
+        {{ stats.seller_rating_avg|floatformat:1 }}/5
+      </span>
+      <span class="text-xs uppercase tracking-[0.3em] text-ink-500">
+        {{ stats.seller_rating_count }} avis
+      </span>
+    </div>
+    <div class="text-xs text-ink-500">
+      {{ stats.items_sold_count }} objet{% if stats.items_sold_count > 1 %}s{% endif %} vendus
+    </div>
+    <div class="text-xs text-ink-500 mt-1">
+      {{ stats.buyer_rating_avg|floatformat:1 }}/5 ({{ stats.buyer_rating_count }} évaluations acheteur)
+    </div>
+  </div>
+{% endif %}

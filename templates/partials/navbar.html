@@ -9,6 +9,9 @@
       {% if user.is_authenticated %}
         <span class="text-sm text-ink-600">Bonjour {{ user.first_name|default:user.username }}</span>
         <a href="/my/listings/" class="text-sm text-ink-600 hover:text-ink-900">Mes annonces</a>
+        {% if user.is_staff %}
+          <a href="{% url 'review_queue' %}" class="text-sm text-ink-600 hover:text-ink-900">Modération</a>
+        {% endif %}
         <a href="{% url 'messages:list' %}" class="text-sm text-ink-600 hover:text-ink-900">Conversations</a>
         <form method="post" action="{% url 'logout' %}" class="inline">
           {% csrf_token %}

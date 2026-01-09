@@ -1,6 +1,11 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Avg
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class User(AbstractUser):
@@ -52,3 +57,49 @@ class ReputationStats(models.Model):
     disputes_count = models.PositiveIntegerField(default=0)
 
     updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def for_user(cls, user):
+        stats, _ = cls.objects.get_or_create(user=user)
+        return stats
+
+    def rebuild_from_reviews(self):
+        from commerce.models import Review
+
+        seller_reviews = Review.objects.filter(
+            target=self.user, role=Review.Role.BUYER_TO_SELLER
+        )
+        buyer_reviews = Review.objects.filter(
+            target=self.user, role=Review.Role.SELLER_TO_BUYER
+        )
+
+        def avg_from_queryset(qs):
+            data = qs.aggregate(avg=Avg("rating"))
+            return Decimal(data["avg"] or 0)
+
+        self.seller_rating_count = seller_reviews.count()
+        self.seller_rating_avg = avg_from_queryset(seller_reviews)
+        self.items_sold_count = seller_reviews.count()
+        self.buyer_rating_count = buyer_reviews.count()
+        self.buyer_rating_avg = avg_from_queryset(buyer_reviews)
+        self.items_bought_count = buyer_reviews.count()
+        self.save(
+            update_fields=[
+                "seller_rating_avg",
+                "seller_rating_count",
+                "items_sold_count",
+                "buyer_rating_avg",
+                "buyer_rating_count",
+                "items_bought_count",
+                "updated_at",
+            ]
+        )
+        preferred_score = self.seller_rating_avg or self.buyer_rating_avg
+        self.user.trust_score = preferred_score
+        self.user.save(update_fields=["trust_score"])
+
+
+@receiver(post_save, sender=User)
+def ensure_reputation_stats(sender, instance, created, **kwargs):
+    if created:
+        ReputationStats.objects.get_or_create(user=instance)

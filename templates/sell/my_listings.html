@@ -6,7 +6,7 @@
         <div>
           <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Tableau de bord</div>
           <h1 class="h1 mt-2">Mes annonces</h1>
-          <p class="mt-2 text-sm text-ink-600">Suivi du statut et performance.</p>
+          <p class="mt-2 text-sm text-ink-600">Suivi du statut et visibilité des objets publiés.</p>
         </div>
         <div class="flex items-center gap-3">
           <div class="rounded-full border border-ink-100 bg-white px-4 py-2 text-sm text-ink-600">
@@ -18,73 +18,109 @@
     </div>
 
     {% if listings %}
-      <div class="grid gap-4">
+      <div class="space-y-4">
         {% for listing in listings %}
-          <article class="card card-body space-y-3">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div class="relative h-24 w-24 overflow-hidden rounded-2xl bg-ink-50">
-                {% with primary=listing.get_primary_image %}
-                  {% if primary and primary.image_asset.image.url %}
-                    <img src="{{ primary.image_asset.image.url }}"
-                         alt="{{ listing.title }}"
-                         class="h-full w-full object-cover" />
-                  {% else %}
-                    <div class="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-[0.3em] text-ink-400">
-                      Apercu
-                    </div>
-                  {% endif %}
-                {% endwith %}
+          {% url "listing_submit" pk=listing.id as edit_url %}
+          {% url "listing_photos" pk=listing.id as photos_url %}
+          {% url "listing_submit" pk=listing.id as submit_url %}
+          <article class="card card-body space-y-4 border border-ink-100 shadow-sm">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
+              <div class="flex-shrink-0">
+                <div class="relative h-28 w-28 overflow-hidden rounded-2xl bg-ink-50">
+                  {% with primary=listing.get_primary_image %}
+                    {% if primary and primary.image_asset.image.url %}
+                      <img
+                        src="{{ primary.image_asset.image.url }}"
+                        alt="{{ listing.title }}"
+                        class="h-full w-full object-cover"
+                      />
+                    {% else %}
+                      <div class="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-[0.3em] text-ink-400">
+                        Aperçu
+                      </div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
               </div>
-              <div class="flex-1 space-y-2">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div>
+              <div class="flex-1 space-y-3">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                  <div class="space-y-1">
                     <div class="text-xs uppercase tracking-[0.3em] text-ink-500">
                       {% if listing.category %}{{ listing.category.name }}{% else %}Annonce{% endif %}
                     </div>
-                    <div class="text-base font-semibold text-ink-900">
+                    <div class="text-lg font-semibold text-ink-900">
                       {{ listing.title|default:"Annonce sans titre" }}
+                    </div>
+                    <div class="text-sm text-ink-500">
+                      {{ listing.city|default:"" }}{% if listing.city and listing.postal_code %} • {% endif %}{{ listing.postal_code|default:"" }}
                     </div>
                   </div>
                   <div class="text-right">
-                    <div class="text-sm font-semibold text-ink-900">
+                    <div class="text-base font-semibold text-ink-900">
                       {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
                     </div>
                     <div class="text-xs text-ink-500">
-                      {{ listing.city|default:"" }}{% if listing.city and listing.postal_code %} - {% endif %}{{ listing.postal_code|default:"" }}
+                      Mise à jour {{ listing.updated_at|date:"d M Y" }}
                     </div>
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-xs text-ink-600">
-                  <span class="uppercase tracking-[0.2em]">{{ listing.get_condition_display|default:listing.condition }}</span>
+                  <span class="uppercase tracking-[0.3em]">{{ listing.get_condition_display|default:listing.condition }}</span>
                   {% if listing.shipping_enabled %}<span class="badge-success">Livraison</span>{% endif %}
                   {% if listing.in_person_enabled %}<span class="badge">Remise</span>{% endif %}
-                  <span class="text-ink-400">Mise en ligne le {{ listing.created_at|date:"d M Y" }}</span>
+                </div>
+                {% if listing.active_reservation %}
+                  <div class="rounded-2xl border border-ink-100 bg-ink-50 px-4 py-3 text-sm text-ink-700">
+                    <div class="flex items-center justify-between text-xs text-ink-500">
+                      <span>Réservé par</span>
+                      <span>Expire {{ reservation_expiration_hours }}h après la réservation</span>
+                    </div>
+                    <div class="text-sm font-semibold text-ink-900">
+                      {{ listing.active_reservation.buyer.get_full_name|default:listing.active_reservation.buyer.username }}
+                    </div>
+                    <div class="text-xs text-ink-500">
+                      Expire le {{ listing.active_reservation.expires_at|date:"d M Y" }} à {{ listing.active_reservation.expires_at|time:"H:i" }}
+                    </div>
+                    <form method="post" action="{% url 'listing_cancel_reservation' listing_id=listing.id %}" class="mt-3">
+                      {% csrf_token %}
+                      {% include "components/ui/button.html" with label="Annuler la réservation" variant="danger" size="sm" type="submit" only %}
+                    </form>
+                  </div>
+                {% endif %}
+                <div class="flex items-center gap-2">
+                  {% if listing.status == "published" %}
+                    {% include "components/ui/badge.html" with label="Publié" tone="green" only %}
+                  {% elif listing.status == "pending_review" %}
+                    {% include "components/ui/badge.html" with label="En relecture" tone="gray" only %}
+                  {% elif listing.status == "draft" %}
+                    {% include "components/ui/badge.html" with label="Brouillon" tone="gray" only %}
+                  {% elif listing.status == "rejected" %}
+                    {% include "components/ui/badge.html" with label="Rejeté" tone="red" only %}
+                  {% else %}
+                    {% include "components/ui/badge.html" with label=listing.get_status_display|default:listing.status tone="gray" only %}
+                  {% endif %}
                 </div>
               </div>
-              <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-                {% if listing.status == "rejected" %}
-                  <span class="badge badge-danger">Rejete</span>
-                {% else %}
-                  <span class="badge">{{ listing.get_status_display|default:listing.status }}</span>
-                {% endif %}
-                {% include "components/ui/button.html" with label="Photos" variant="ghost" size="sm" href="/sell/{{ listing.id }}/photos/" only %}
-                {% include "components/ui/button.html" with label="Finaliser" variant="secondary" size="sm" href="/sell/{{ listing.id }}/submit/" only %}
-                {% if listing.slug %}
-                  {% url "listing_detail" slug=listing.slug uuid=listing.id as listing_url %}
-                  {% include "components/ui/button.html" with label="Voir" variant="primary" size="sm" href=listing_url only %}
-                {% endif %}
-              </div>
             </div>
-            {% if listing.status == "rejected" and listing.moderation_notes %}
-              <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            {% if listing.moderation_notes and listing.status == "rejected" %}
+              <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                 Motif de rejet : {{ listing.moderation_notes }}
               </div>
             {% endif %}
+            <div class="flex flex-wrap gap-2">
+              {% include "components/ui/button.html" with label="Modifier les infos" variant="secondary" size="sm" href=edit_url only %}
+              {% include "components/ui/button.html" with label="Ajouter des photos" variant="ghost" size="sm" href=photos_url only %}
+              {% include "components/ui/button.html" with label="Soumettre pour validation" variant="primary" size="sm" href=submit_url only %}
+              {% if listing.status == "published" and listing.slug %}
+                {% url "listing_detail" slug=listing.slug uuid=listing.id as listing_url %}
+                {% include "components/ui/button.html" with label="Publier" variant="ghost" size="sm" href=listing_url only %}
+              {% endif %}
+            </div>
           </article>
         {% endfor %}
       </div>
     {% else %}
-      {% include "components/ui/empty_state.html" with title="Aucune annonce pour le moment" description="Commence par creer ta premiere annonce." only %}
+      {% include "components/ui/empty_state.html" with title="Aucune annonce" description="Crée ta première annonce pour qu’elle apparaisse ici." only %}
     {% endif %}
   </div>
 {% endblock %}

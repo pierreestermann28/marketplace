@@ -5,6 +5,8 @@ from catalog.models import Category
 from django.db.models import Prefetch
 
 from mediahub.models import ImageAsset, VideoUpload, Keyframe
+from django.conf import settings
+from django.utils import timezone
 from django.utils.text import slugify
 
 
@@ -95,6 +97,10 @@ class Listing(models.Model):
             models.Index(fields=["postal_code", "status", "created_at"]),
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._initial_status = self.status
+
     def __str__(self):
         return self.title
 
@@ -104,10 +110,39 @@ class Listing(models.Model):
             return primary
         return self.images.select_related("image_asset").order_by("sort_order").first()
 
+    def cancel_active_reservation(self):
+        now = timezone.now()
+        active = self.reservations.active()
+        if active.exists():
+            active.update(cancelled_at=now)
+
     def save(self, *args, **kwargs):
         if not self.slug and self.title:
             self.slug = slugify(self.title)[:160]
+        prev_status = self._initial_status
         super().save(*args, **kwargs)
+        if prev_status == self.Status.RESERVED and self.status == self.Status.PUBLISHED:
+            self.cancel_active_reservation()
+        self._initial_status = self.status
+
+    def refresh_reservation_state(self):
+        now = timezone.now()
+        stale = self.reservations.filter(cancelled_at__isnull=True, expires_at__lte=now)
+        if stale.exists():
+            stale.update(cancelled_at=now)
+        active = (
+            self.reservations.filter(cancelled_at__isnull=True, expires_at__gt=now)
+            .select_related("buyer")
+            .order_by("-reserved_at")
+            .first()
+        )
+        if active and self.status != self.Status.RESERVED:
+            self.status = self.Status.RESERVED
+            self.save(update_fields=["status"])
+        if not active and self.status == self.Status.RESERVED:
+            self.status = self.Status.PUBLISHED
+            self.save(update_fields=["status"])
+        return active
 
 
 class ListingImage(models.Model):
@@ -131,6 +166,49 @@ class ListingImage(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["listing", "sort_order"])]
+
+
+class ReservationQuerySet(models.QuerySet):
+    def active(self):
+        now = timezone.now()
+        return self.filter(cancelled_at__isnull=True, expires_at__gt=now)
+
+
+class ReservationManager(models.Manager):
+    def get_queryset(self):
+        return ReservationQuerySet(self.model, using=self._db)
+
+    def active(self):
+        return self.get_queryset().active()
+
+
+class Reservation(models.Model):
+    listing = models.ForeignKey(
+        Listing,
+        on_delete=models.CASCADE,
+        related_name="reservations",
+    )
+    buyer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reservations",
+    )
+    reserved_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ReservationManager()
+
+    class Meta:
+        ordering = ["-reserved_at"]
+
+    def is_active(self):
+        return self.cancelled_at is None and self.expires_at > timezone.now()
+
+    def cancel(self):
+        if not self.cancelled_at:
+            self.cancelled_at = timezone.now()
+            self.save(update_fields=["cancelled_at"])
 
 
 class Favorite(models.Model):

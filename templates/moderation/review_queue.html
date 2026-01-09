@@ -9,25 +9,30 @@
     {% if listings %}
       <div class="grid gap-4">
         {% for listing in listings %}
-          <div class="card card-body flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div class="text-sm font-medium text-ink-900">{{ listing.title }}</div>
-              <div class="muted text-sm">{{ listing.city }} · {{ listing.price_cents }} {{ listing.currency }}</div>
-              <div class="muted text-xs">Vendeur: {{ listing.seller }}</div>
-            </div>
-            <div class="flex items-center gap-2">
-              <form method="post" action="/staff/review-queue/">
-                {% csrf_token %}
-                <input type="hidden" name="listing_id" value="{{ listing.id }}" />
-                <input type="hidden" name="action" value="approve" />
-                {% include "components/ui/button.html" with label="Approuver" variant="primary" size="sm" type="submit" only %}
-              </form>
-              <form method="post" action="/staff/review-queue/">
-                {% csrf_token %}
-                <input type="hidden" name="listing_id" value="{{ listing.id }}" />
-                <input type="hidden" name="action" value="reject" />
-                {% include "components/ui/button.html" with label="Refuser" variant="danger" size="sm" type="submit" only %}
-              </form>
+          <div class="card card-body space-y-3">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div class="text-sm font-semibold text-ink-900">{{ listing.title }}</div>
+                <div class="text-xs uppercase tracking-[0.3em] text-ink-500">{{ listing.get_status_display|default:listing.status }}</div>
+                <div class="muted text-sm">{{ listing.city }} · {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}</div>
+                <div class="muted text-xs">Vendeur: {{ listing.seller }}</div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                {% url "review_listing" pk=listing.id as detail_url %}
+                {% include "components/ui/button.html" with label="Détails" variant="ghost" size="sm" href=detail_url only %}
+                <form method="post" action="{% url 'review_queue' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                  <input type="hidden" name="action" value="approve" />
+                  {% include "components/ui/button.html" with label="Approuver" variant="primary" size="sm" type="submit" only %}
+                </form>
+                <form method="post" action="{% url 'review_queue' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                  <input type="hidden" name="action" value="reject" />
+                  {% include "components/ui/button.html" with label="Refuser" variant="danger" size="sm" type="submit" only %}
+                </form>
+              </div>
             </div>
           </div>
         {% endfor %}
