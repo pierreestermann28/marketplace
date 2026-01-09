@@ -45,7 +45,7 @@
       <div class="flex {% if message.sender == request.user %}justify-end{% endif %}">
         <div class="max-w-3xl rounded-2xl border border-ink-100 p-3 shadow-sm {% if message.sender == request.user %}bg-brand text-white{% else %}bg-ink-50 text-ink-900{% endif %}">
           <div class="text-xs {% if message.sender == request.user %}text-white/80{% else %}text-ink-500{% endif %}">
-            {{ message.sender.get_full_name|default:message.sender.username }} - {{ message.created_at|date:"d M Y H:i" }}
+            {{ message.sender.get_full_name|default:message.sender.email }} - {{ message.created_at|date:"d M Y H:i" }}
           </div>
           <p class="text-sm">
             {% if message.sender == request.user %}

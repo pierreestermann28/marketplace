@@ -27,7 +27,7 @@ def reject_listings(modeladmin, request, queryset):
 class ListingAdmin(admin.ModelAdmin):
     list_display = ("title", "seller", "price_cents", "currency", "status")
     list_filter = ("status",)
-    search_fields = ("title", "seller__username", "seller__email")
+    search_fields = ("title", "seller__email")
     actions = (approve_listings, reject_listings)
 
 

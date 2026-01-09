@@ -3,13 +3,19 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import BooleanField, Exists, OuterRef, Prefetch, Q, Value
+from django.db.models import Avg, BooleanField, Exists, OuterRef, Prefetch, Q, Value
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
-from django.views.generic import DetailView, FormView, ListView, TemplateView, UpdateView
+from django.views.generic import (
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
 from mediahub.models import ImageAsset
 
@@ -17,6 +23,7 @@ from catalog.models import Category
 
 from .forms import ListingForm, PhotoUploadForm
 from accounts.models import ReputationStats
+from commerce.models import Review
 from .models import Favorite, Listing, ListingImage, Reservation
 
 
@@ -42,18 +49,24 @@ class HomeFeedView(ListView):
             qs = qs.filter(city__icontains=city)
         if category:
             qs = qs.filter(category__slug=category)
-        image_qs = ListingImage.objects.select_related("image_asset").order_by("-is_primary", "sort_order")
+        image_qs = ListingImage.objects.select_related("image_asset").order_by(
+            "-is_primary", "sort_order"
+        )
         if self.request.user.is_authenticated:
             qs = qs.annotate(
                 is_favorited=Exists(
-                    Favorite.objects.filter(user=self.request.user, listing=OuterRef("pk"))
+                    Favorite.objects.filter(
+                        user=self.request.user, listing=OuterRef("pk")
+                    )
                 )
             )
         else:
             qs = qs.annotate(is_favorited=Value(False, output_field=BooleanField()))
-        return qs.select_related("category", "seller").prefetch_related(
-            Prefetch("images", queryset=image_qs)
-        ).order_by("-created_at")
+        return (
+            qs.select_related("category", "seller")
+            .prefetch_related(Prefetch("images", queryset=image_qs))
+            .order_by("-created_at")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -79,14 +92,18 @@ class ListingDetailView(DetailView):
 
     def get_queryset(self):
         qs = (
-            Listing.objects.filter(status__in=[Listing.Status.PUBLISHED, Listing.Status.RESERVED])
+            Listing.objects.filter(
+                status__in=[Listing.Status.PUBLISHED, Listing.Status.RESERVED]
+            )
             .select_related("category", "seller")
             .prefetch_related("images__image_asset")
         )
         if self.request.user.is_authenticated:
             qs = qs.annotate(
                 is_favorited=Exists(
-                    Favorite.objects.filter(user=self.request.user, listing=OuterRef("pk"))
+                    Favorite.objects.filter(
+                        user=self.request.user, listing=OuterRef("pk")
+                    )
                 )
             )
         else:
@@ -103,14 +120,15 @@ class ListingDetailView(DetailView):
         listing = context["listing"]
         primary_image = listing.get_primary_image()
         gallery_images = list(listing.images.all())
-        secondary_images = [
-            image for image in gallery_images if image != primary_image
-        ]
-        photo_gallery = [primary_image] + secondary_images if primary_image else secondary_images
+        secondary_images = [image for image in gallery_images if image != primary_image]
+        photo_gallery = (
+            [primary_image] + secondary_images if primary_image else secondary_images
+        )
         active_reservation = listing.refresh_reservation_state()
         stats = getattr(listing.seller, "reputation", None)
         if not stats:
             stats = ReputationStats.for_user(listing.seller)
+        review_stats = self._build_seller_review_stats(listing.seller)
         context.update(
             {
                 "primary_image": primary_image,
@@ -118,16 +136,25 @@ class ListingDetailView(DetailView):
                 "photo_gallery": photo_gallery,
                 "location_label": self._build_location_label(listing),
                 "seller_display_name": listing.seller.get_full_name()
-                or listing.seller.username,
+                or listing.seller.email,
                 "seller_reputation": getattr(listing.seller, "trust_score", None),
-                "seller_reputation_stats": stats,
-                "condition_display": listing.get_condition_display() or listing.condition,
+                "seller_reputation_stats": review_stats,
+                "condition_display": listing.get_condition_display()
+                or listing.condition,
                 "fulfillment_modes": self._build_fulfillment_modes(listing),
-                "contact_url": reverse("messages:start", kwargs={"listing_id": listing.id}),
+                "contact_url": reverse(
+                    "messages:start", kwargs={"listing_id": listing.id}
+                ),
                 "active_reservation": active_reservation,
-                "reservation_expiration_hours": getattr(settings, "RESERVATION_HOLD_HOURS", 24),
-                "reserve_url": reverse("listing_reserve", kwargs={"listing_id": listing.id}),
-                "cancel_reservation_url": reverse("listing_cancel_reservation", kwargs={"listing_id": listing.id}),
+                "reservation_expiration_hours": getattr(
+                    settings, "RESERVATION_HOLD_HOURS", 24
+                ),
+                "reserve_url": reverse(
+                    "listing_reserve", kwargs={"listing_id": listing.id}
+                ),
+                "cancel_reservation_url": reverse(
+                    "listing_cancel_reservation", kwargs={"listing_id": listing.id}
+                ),
                 "can_reserve": listing.status == Listing.Status.PUBLISHED
                 and self.request.user.is_authenticated
                 and self.request.user != listing.seller,
@@ -156,6 +183,23 @@ class ListingDetailView(DetailView):
                 }
             )
         return modes
+
+    def _build_seller_review_stats(self, seller):
+        seller_reviews = seller.reviews_received.filter(
+            role=Review.Role.BUYER_TO_SELLER
+        )
+        buyer_reviews = seller.reviews_received.filter(
+            role=Review.Role.SELLER_TO_BUYER
+        )
+        seller_avg = seller_reviews.aggregate(avg=Avg("rating"))["avg"]
+        buyer_avg = buyer_reviews.aggregate(avg=Avg("rating"))["avg"]
+        return {
+            "seller_rating_avg": seller_avg or 0,
+            "seller_rating_count": seller_reviews.count(),
+            "items_sold_count": seller_reviews.count(),
+            "buyer_rating_avg": buyer_avg or 0,
+            "buyer_rating_count": buyer_reviews.count(),
+        }
 
 
 class WishlistView(LoginRequiredMixin, TemplateView):
@@ -201,7 +245,9 @@ class MyListingsView(LoginRequiredMixin, ListView):
         return (
             Listing.objects.filter(seller=self.request.user)
             .select_related("category")
-            .prefetch_related("images__image_asset", Prefetch("reservations", queryset=reservation_qs))
+            .prefetch_related(
+                "images__image_asset", Prefetch("reservations", queryset=reservation_qs)
+            )
             .order_by("-updated_at")
         )
 
@@ -209,7 +255,9 @@ class MyListingsView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         for listing in context["listings"]:
             listing.active_reservation = listing.refresh_reservation_state()
-        context["reservation_expiration_hours"] = getattr(settings, "RESERVATION_HOLD_HOURS", 24)
+        context["reservation_expiration_hours"] = getattr(
+            settings, "RESERVATION_HOLD_HOURS", 24
+        )
         return context
 
 
@@ -242,7 +290,9 @@ class ListingStartView(LoginRequiredMixin, FormView):
             listing_image.sort_order = idx
             listing_image.is_primary = idx == primary_index
             listing_image.save(update_fields=["sort_order", "is_primary"])
-        return HttpResponseRedirect(reverse("listing_submit", kwargs={"pk": listing.id}))
+        return HttpResponseRedirect(
+            reverse("listing_submit", kwargs={"pk": listing.id})
+        )
 
 
 class PhotoUploadView(LoginRequiredMixin, FormView):
@@ -250,9 +300,7 @@ class PhotoUploadView(LoginRequiredMixin, FormView):
     form_class = PhotoUploadForm
 
     def dispatch(self, request, *args, **kwargs):
-        self.listing = get_object_or_404(
-            Listing, id=kwargs["pk"], seller=request.user
-        )
+        self.listing = get_object_or_404(Listing, id=kwargs["pk"], seller=request.user)
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -269,7 +317,8 @@ class PhotoUploadView(LoginRequiredMixin, FormView):
         context = super().get_context_data(**kwargs)
         context["listing"] = self.listing
         context["images"] = [
-            li.image_asset.image for li in self.listing.images.select_related("image_asset")
+            li.image_asset.image
+            for li in self.listing.images.select_related("image_asset")
         ]
         return context
 
@@ -310,11 +359,15 @@ class ReservationCreateView(LoginRequiredMixin, View):
         listing = get_object_or_404(Listing, id=kwargs["listing_id"])
         detail_url = get_listing_detail_url(listing)
         if listing.seller == request.user:
-            django_messages.error(request, "Vous ne pouvez pas réserver votre propre annonce.")
+            django_messages.error(
+                request, "Vous ne pouvez pas réserver votre propre annonce."
+            )
             return redirect(detail_url)
         active_reservation = listing.refresh_reservation_state()
         if listing.status != Listing.Status.PUBLISHED or active_reservation:
-            django_messages.error(request, "Cette annonce n’est pas disponible à la réservation.")
+            django_messages.error(
+                request, "Cette annonce n’est pas disponible à la réservation."
+            )
             return redirect(detail_url)
         expires_at = timezone.now() + timedelta(
             hours=getattr(settings, "RESERVATION_HOLD_HOURS", 24)
@@ -330,7 +383,9 @@ class ReservationCreateView(LoginRequiredMixin, View):
 
 class ReservationCancelView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
-        listing = get_object_or_404(Listing, id=kwargs["listing_id"], seller=request.user)
+        listing = get_object_or_404(
+            Listing, id=kwargs["listing_id"], seller=request.user
+        )
         detail_url = get_listing_detail_url(listing)
         reservation = listing.refresh_reservation_state()
         if not reservation:
@@ -388,7 +443,11 @@ class ListingFavoriteToggleView(LoginRequiredMixin, View):
             favorite.delete()
         listing.is_favorited = created
         if request.headers.get("HX-Request"):
-            next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("home")
+            next_url = (
+                request.POST.get("next")
+                or request.META.get("HTTP_REFERER")
+                or reverse("home")
+            )
             response = render(
                 request,
                 "components/listings/favorite_button.html",
@@ -397,5 +456,9 @@ class ListingFavoriteToggleView(LoginRequiredMixin, View):
             if request.POST.get("wishlist_origin"):
                 response["HX-Trigger"] = "wishlist-updated"
             return response
-        redirect_to = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("home")
+        redirect_to = (
+            request.POST.get("next")
+            or request.META.get("HTTP_REFERER")
+            or reverse("home")
+        )
         return HttpResponseRedirect(redirect_to)

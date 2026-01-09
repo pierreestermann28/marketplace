@@ -72,7 +72,7 @@
         <div class="card card-body space-y-4">
           <div>
             <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Vendeur</div>
-            <div class="text-lg font-semibold text-ink-900">{{ listing.seller.get_full_name|default:listing.seller.username }}</div>
+            <div class="text-lg font-semibold text-ink-900">{{ listing.seller.get_full_name|default:listing.seller.email }}</div>
             <div class="text-xs text-ink-500">Membre depuis {{ listing.seller.date_joined|date:"Y" }}</div>
           </div>
           <div class="space-y-2">

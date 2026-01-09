@@ -12,9 +12,9 @@ class MessagingViewsTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.buyer = User.objects.create_user(username="buyer", password="password123")
-        cls.seller = User.objects.create_user(username="seller", password="password123")
-        cls.other = User.objects.create_user(username="other", password="password123")
+        cls.buyer = User.objects.create_user(email="buyer@example.com", password="password123")
+        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
+        cls.other = User.objects.create_user(email="other@example.com", password="password123")
         cls.listing = Listing.objects.create(
             seller=cls.seller,
             title="Test listing",

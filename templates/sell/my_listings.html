@@ -76,7 +76,7 @@
                       <span>Expire {{ reservation_expiration_hours }}h après la réservation</span>
                     </div>
                     <div class="text-sm font-semibold text-ink-900">
-                      {{ listing.active_reservation.buyer.get_full_name|default:listing.active_reservation.buyer.username }}
+                      {{ listing.active_reservation.buyer.get_full_name|default:listing.active_reservation.buyer.email }}
                     </div>
                     <div class="text-xs text-ink-500">
                       Expire le {{ listing.active_reservation.expires_at|date:"d M Y" }} à {{ listing.active_reservation.expires_at|time:"H:i" }}

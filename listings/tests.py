@@ -31,8 +31,8 @@ class FavoriteToggleTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.seller = User.objects.create_user(username="seller", password="password123")
-        cls.buyer = User.objects.create_user(username="buyer", password="password123")
+        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
+        cls.buyer = User.objects.create_user(email="buyer@example.com", password="password123")
         cls.listing = Listing.objects.create(
             seller=cls.seller,
             title="Vintage chair",
@@ -85,8 +85,8 @@ class ListingViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.seller = User.objects.create_user(username="seller", password="password123")
-        cls.other_user = User.objects.create_user(username="other", password="password123")
+        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
+        cls.other_user = User.objects.create_user(email="other@example.com", password="password123")
         cls.category = Category.objects.create(name="Furniture", slug="furniture")
         cls.category_other = Category.objects.create(name="Decor", slug="decor")
         cls.listing_main = Listing.objects.create(
@@ -184,7 +184,7 @@ class ListingWorkflowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.seller = User.objects.create_user(username="seller", password="password123")
+        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
         cls.category = Category.objects.create(name="Furniture", slug="furniture")
 
     def test_listing_start_creates_listing_and_images(self):
@@ -253,7 +253,7 @@ class ListingWorkflowTests(TestCase):
 
     def test_review_queue_updates_status(self):
         staff = get_user_model().objects.create_user(
-            username="staff",
+            email="staff@example.com",
             password="password123",
             is_staff=True,
         )
@@ -292,11 +292,11 @@ class ListingWorkflowTests(TestCase):
 class MarketplaceFlowTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.seller = User.objects.create_user(username="seller", password="password123")
-        self.buyer = User.objects.create_user(username="buyer", password="password123")
-        self.other_buyer = User.objects.create_user(username="otherbuyer", password="password123")
+        self.seller = User.objects.create_user(email="seller@example.com", password="password123")
+        self.buyer = User.objects.create_user(email="buyer@example.com", password="password123")
+        self.other_buyer = User.objects.create_user(email="otherbuyer@example.com", password="password123")
         self.staff = User.objects.create_user(
-            username="staff", password="password123", is_staff=True
+            email="staff@example.com", password="password123", is_staff=True
         )
         self.category = Category.objects.create(name="Furniture", slug="furniture")
 

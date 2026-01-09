@@ -11,9 +11,9 @@
               <div class="text-sm font-semibold text-ink-900">{{ conversation.listing.title }}</div>
               <div class="muted text-sm">
                 {% if request.user == conversation.buyer %}
-                  Avec {{ conversation.seller.get_full_name|default:conversation.seller.username }}
+                  Avec {{ conversation.seller.get_full_name|default:conversation.seller.email }}
                 {% else %}
-                  Avec {{ conversation.buyer.get_full_name|default:conversation.buyer.username }}
+                  Avec {{ conversation.buyer.get_full_name|default:conversation.buyer.email }}
                 {% endif %}
               </div>
             </div>

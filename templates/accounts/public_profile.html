@@ -1,0 +1,55 @@
+{% extends "layouts/app.html" %}
+{% load profile_tags %}
+{% block page_content %}
+  <div class="container-app py-10">
+    <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <section class="space-y-6">
+        <div class="card card-body space-y-3">
+          <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Profil public</div>
+          <div class="flex items-center gap-4">
+            <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+              <span class="text-xl font-bold">{{ object|initials }}</span>
+            </div>
+            <div>
+              <h1 class="text-3xl font-semibold text-ink-900">{{ object.get_full_name|default:object.email }}</h1>
+              <p class="text-sm text-ink-500">Membre depuis {{ object.date_joined|date:"Y" }}</p>
+            </div>
+          </div>
+          {% include "components/reputation/summary.html" with stats=reputation_stats only %}
+        </div>
+        <div class="card card-body space-y-4">
+          <div class="text-sm uppercase tracking-[0.3em] text-ink-500">Avis récents</div>
+          {% if reviews_received %}
+            <div class="space-y-3">
+              {% for review in reviews_received %}
+                <div class="rounded-2xl border border-ink-100 bg-ink-50 p-3">
+                  <div class="flex items-center justify-between text-xs text-ink-500">
+                    <span>{{ review.role|human_role }}</span>
+                    <span>{{ review.created_at|date:"d M Y" }}</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-sm font-semibold text-ink-900">
+                    <i data-lucide="star" class="h-4 w-4 text-yellow-500"></i>
+                    {{ review.rating }}/5
+                  </div>
+                  {% if review.comment %}
+                    <p class="text-sm text-ink-700">{{ review.comment }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-sm text-ink-500">Cet utilisateur n'a pas encore d'avis publics.</p>
+          {% endif %}
+        </div>
+      </section>
+      <aside class="space-y-4">
+        <div class="card card-body space-y-3">
+          <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-ink-500">Actions</h2>
+          <p class="text-sm text-ink-600">
+            Pour contacter ce vendeur, passe par l'annonce qui t'intéresse. Tu trouveras le bouton "Contacter" sur chaque fiche.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+{% endblock %}

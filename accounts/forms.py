@@ -4,7 +4,6 @@ from django.contrib.auth.forms import UserCreationForm
 
 
 class SignUpForm(UserCreationForm):
-    username = forms.CharField(label="Identifiant", widget=forms.TextInput(attrs={"autocomplete": "username"}))
     email = forms.EmailField(
         label="Adresse email",
         required=True,
@@ -25,7 +24,7 @@ class SignUpForm(UserCreationForm):
 
     class Meta:
         model = get_user_model()
-        fields = ["username", "email", "first_name", "last_name"]
+        fields = ["email", "first_name", "last_name"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -34,7 +33,7 @@ class SignUpForm(UserCreationForm):
                 field.widget.attrs["class"] = "input"
             else:
                 field.widget.attrs["class"] += " input"
-            if field_name in {"username", "email"}:
-                field.widget.attrs.setdefault("autocomplete", field_name)
+            if field_name in {"email"}:
+                field.widget.attrs.setdefault("autocomplete", "email")
             if field_name in {"password1", "password2"}:
                 field.help_text = ""

@@ -8,7 +8,7 @@ from .models import ImageAsset, Keyframe, VideoUpload
 class ImageAssetAdmin(admin.ModelAdmin):
     list_display = ("preview", "user", "created_at")
     readonly_fields = ("preview",)
-    search_fields = ("user__username", "user__email")
+    search_fields = ("user__email",)
     list_filter = ("created_at",)
 
     def preview(self, obj):

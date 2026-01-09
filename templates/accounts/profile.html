@@ -7,11 +7,11 @@
         <div class="flex flex-col gap-6 lg:flex-row lg:items-center">
           <div class="flex items-center gap-4">
             <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-              <span class="text-xl font-bold">{{ object.get_full_name|default:object.username|slice:":1"|upper }}</span>
+              <span class="text-xl font-bold">{{ object|initials }}</span>
             </div>
             <div>
               <p class="text-xs uppercase tracking-[0.4em] text-ink-500">Profil</p>
-              <h1 class="text-3xl font-semibold text-ink-900">{{ object.get_full_name|default:object.username }}</h1>
+              <h1 class="text-3xl font-semibold text-ink-900">{{ object.get_full_name|default:object.email }}</h1>
               <p class="text-sm text-ink-500">{{ object.email }}</p>
             </div>
           </div>

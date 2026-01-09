@@ -61,7 +61,7 @@
                   <div class="rounded-2xl border border-ink-100 bg-ink-50 px-4 py-3 text-sm text-ink-700">
                     <div class="flex items-center justify-between">
                       <span>
-                        Réservé par {{ active_reservation.buyer.get_full_name|default:active_reservation.buyer.username }}
+                        Réservé par {{ active_reservation.buyer.get_full_name|default:active_reservation.buyer.email }}
                       </span>
                       <span class="text-xs text-ink-500">
                         Expire le {{ active_reservation.expires_at|date:"d M Y" }} à {{ active_reservation.expires_at|time:"H:i" }}
@@ -104,33 +104,31 @@
       </section>
       <aside class="space-y-4">
         <div class="card card-body space-y-4">
-          <div class="space-y-1 text-sm text-ink-500">Vendeur</div>
-          <div class="text-lg font-semibold text-ink-900">{{ seller_display_name }}</div>
-          {% with rating=seller_reputation|default:0 %}
-            <div class="flex items-center gap-2 text-sm text-ink-500">
-              <span class="flex items-center gap-0.5">
-                {% for star in "12345" %}
-                  {% if rating >= forloop.counter %}
-                    <i data-lucide="star" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
-                  {% elif rating >= forloop.counter|add:"-0.5" %}
-                    <i data-lucide="star-half" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
-                  {% else %}
-                    <i data-lucide="star" class="h-4 w-4 text-ink-300" aria-hidden="true"></i>
-                  {% endif %}
-                {% endfor %}
-              </span>
-              <span class="text-xs text-ink-900 font-semibold">{{ rating|floatformat:1 }}/5</span>
-              <span class="text-xs">confiance</span>
+          <div class="flex flex-col gap-2">
+            <div class="text-sm uppercase tracking-[0.3em] text-ink-500">Vendeur</div>
+            <div class="flex flex-col gap-1">
+              <div class="text-lg font-semibold text-ink-900">{{ seller_display_name }}</div>
+              <div class="text-xs text-ink-500 flex items-center gap-2">
+                <span>Membre depuis {{ listing.seller.date_joined|date:"Y" }}</span>
+                <a
+                  class="text-xs underline text-ink-500"
+                  href="{% url 'accounts:public_profile' pk=listing.seller.pk %}"
+                >
+                  Voir le profil
+                </a>
+              </div>
             </div>
-          {% endwith %}
-          <div class="text-xs text-ink-500">
-            Membre depuis {{ listing.seller.date_joined|date:"Y" }}
           </div>
           {% include "components/reputation/summary.html" with stats=seller_reputation_stats only %}
-          <div class="space-y-2 pt-4">
+          <div class="flex flex-wrap gap-2 pt-4">
             {% include "components/ui/button.html" with label="Contacter le vendeur" variant="primary" href=contact_url only %}
-            {% include "components/ui/button.html" with label="Voir ses annonces" variant="ghost" href="/my/listings/" only %}
-            <a class="text-xs underline text-ink-500" href="{% url 'accounts:profile_detail' username=listing.seller.username %}">Voir le profil</a>
+            <a
+              href="{% url 'accounts:public_profile' pk=listing.seller.pk %}"
+              class="btn btn-ghost flex items-center gap-2"
+            >
+              <i data-lucide="user" class="h-4 w-4"></i>
+              Voir le profil
+            </a>
           </div>
         </div>
         <div class="card card-body space-y-3">

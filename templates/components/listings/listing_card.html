@@ -16,12 +16,12 @@
         <span>{{ listing.city }}</span>
         <span>{{ listing.get_condition_display|default:listing.condition }}</span>
       </div>
-      <div class="text-xs uppercase tracking-[0.2em] text-ink-500">{{ listing.category }}</div>
-      <div class="line-clamp-2 text-sm font-medium text-ink-900">{{ listing.title }}</div>
-      <div class="flex items-center gap-1 text-xs text-ink-500">
-        <span>Vendeur :</span>
-        <span class="text-ink-800">{{ listing.seller.get_full_name|default:listing.seller.username }}</span>
-      </div>
+        <div class="text-xs uppercase tracking-[0.2em] text-ink-500">{{ listing.category }}</div>
+        <div class="line-clamp-2 text-sm font-medium text-ink-900">{{ listing.title }}</div>
+        <div class="flex items-center gap-1 text-xs text-ink-500">
+          <span>Vendeur :</span>
+          <span class="text-ink-800">{{ listing.seller.get_full_name|default:listing.seller.email }}</span>
+        </div>
       <div class="flex items-center gap-2 text-xs">
         {% with rating=listing.seller.trust_score|default:0 %}
           <span class="flex items-center gap-0.5">

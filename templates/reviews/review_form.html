@@ -7,7 +7,7 @@
           {{ role|title|replace:"_"," " }}
         </div>
         <h1 class="h1">
-          Avis sur {{ target_user.get_full_name|default:target_user.username }}
+          Avis sur {{ target_user.get_full_name|default:target_user.email }}
         </h1>
         <p class="muted text-sm">
           Laisse une note entre 1 et 5 et partage une courte appréciation de l’échange.
