@@ -68,8 +68,10 @@ class ListingDetailView(DetailView):
     context_object_name = "listing"
 
     def get_queryset(self):
-        qs = Listing.objects.select_related("category", "seller").prefetch_related(
-            "images__image_asset"
+        qs = (
+            Listing.objects.filter(status=Listing.Status.PUBLISHED)
+            .select_related("category", "seller")
+            .prefetch_related("images__image_asset")
         )
         if self.request.user.is_authenticated:
             qs = qs.annotate(
@@ -85,6 +87,50 @@ class ListingDetailView(DetailView):
         slug = self.kwargs["slug"]
         listing_id = self.kwargs["uuid"]
         return get_object_or_404(self.get_queryset(), id=listing_id, slug=slug)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        listing = context["listing"]
+        primary_image = listing.get_primary_image()
+        gallery_images = list(listing.images.all())
+        secondary_images = [
+            image for image in gallery_images if image != primary_image
+        ]
+        context.update(
+            {
+                "primary_image": primary_image,
+                "gallery_images": secondary_images,
+                "location_label": self._build_location_label(listing),
+                "seller_display_name": listing.seller.get_full_name()
+                or listing.seller.username,
+                "seller_reputation": getattr(listing.seller, "trust_score", None),
+                "fulfillment_modes": self._build_fulfillment_modes(listing),
+                "contact_url": reverse("messages:start", kwargs={"listing_id": listing.id}),
+            }
+        )
+        return context
+
+    def _build_location_label(self, listing):
+        parts = [listing.city, listing.postal_code]
+        return ", ".join(filter(None, parts)) or listing.country_code
+
+    def _build_fulfillment_modes(self, listing):
+        modes = []
+        if listing.shipping_enabled:
+            modes.append(
+                {
+                    "label": "Livraison sécurisée",
+                    "detail": "Expédition suivie et assurance incluse",
+                }
+            )
+        if listing.in_person_enabled:
+            modes.append(
+                {
+                    "label": "Remise en main propre",
+                    "detail": "Retrait sur rendez-vous local",
+                }
+            )
+        return modes
 
 
 class MyListingsView(LoginRequiredMixin, ListView):
