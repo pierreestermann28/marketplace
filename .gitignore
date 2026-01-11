@@ -15,7 +15,5 @@ pnpm-debug.log*
 static/css/app.css
 storage/
 
-.env
-.env.*
 
 .vscode/
