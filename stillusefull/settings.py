@@ -22,12 +22,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-6j8%$en26uheoo%s_)_*s3p_*0lzgpka-0!_yoc3&0cfq@j2if"
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY", "django-insecure-6j8%$en26uheoo%s_)_*s3p_*0lzgpka-0!_yoc3&0cfq@j2if"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,0.0.0.0").split(",")
+    if host.strip()
+]
 
 
 # Application definition
@@ -86,11 +92,11 @@ WSGI_APPLICATION = "stillusefull.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "marketplace",
-        "USER": "postgres",
-        "PASSWORD": "",
-        "HOST": "localhost",
-        "PORT": "",
+        "NAME": os.environ.get("POSTGRES_DB", "stillusefull"),
+        "USER": os.environ.get("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+        "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
     }
 }
 
@@ -145,10 +151,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # Celery
 CELERY_BROKER_URL = os.environ.get(
-    "CELERY_BROKER_URL", "redis://localhost:6379/0"
+    "CELERY_BROKER_URL", "redis://redis:6379/0"
 )
 CELERY_RESULT_BACKEND = os.environ.get(
-    "CELERY_RESULT_BACKEND", CELERY_BROKER_URL
+    "CELERY_RESULT_BACKEND", "redis://redis:6379/1"
 )
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_SOFT_TIME_LIMIT = 30

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import FormView, TemplateView
 
-from mediahub.models import BatchUpload, ImageAsset
+from mediahub.models import BatchUpload, ImageAsset, MediaAsset
 
 from .forms import BatchUploadForm
 from .models import DetectedItem
