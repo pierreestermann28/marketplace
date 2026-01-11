@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "vendor": "npm install alpinejs htmx.org toastify-js lucide && cp node_modules/htmx.org/dist/htmx.min.js static/vendor/htmx.min.js && cp node_modules/alpinejs/dist/cdn.min.js static/vendor/alpine.min.js && cp node_modules/toastify-js/src/toastify.js static/vendor/toastify.js && cp node_modules/toastify-js/src/toastify.css static/vendor/toastify.css && cp node_modules/lucide/dist/umd/lucide.min.js static/vendor/lucide.min.js",
     "tailwind:build": "npx tailwindcss -c theme/tailwind.config.js -i theme/input.css -o static/css/app.css --minify",
-    "tailwind:watch": "npx tailwindcss -c theme/tailwind.config.js -i theme/input.css -o static/css/app.css --watch"
+    "tailwind:watch": "npx tailwindcss -c theme/tailwind.config.js -i theme/input.css -o static/css/app.css --watch --poll 1000"
   },
   "keywords": [],
   "author": "",

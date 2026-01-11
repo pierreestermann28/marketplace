@@ -3,28 +3,107 @@
 {% block title %}Ajouter un lot{% endblock %}
 
 {% block content %}
-<section class="mx-auto max-w-4xl py-12 px-4">
-  <div class="rounded-3xl border border-ink-100 bg-white/80 p-8 shadow-xl">
-    <h1 class="text-2xl font-semibold text-ink-900">Ajouter un lot d'objets</h1>
-    <p class="mt-2 text-sm text-ink-600">
-      Uploadez 5 à 30 photos et laissez l'IA détecter plusieurs objets par lot. Vous pourrez ensuite swiper les annonces générées.
-    </p>
-    <form method="post" enctype="multipart/form-data" class="mt-6 space-y-6">
+<section class="mx-auto max-w-5xl py-12 px-4">
+  <div class="rounded-3xl border border-ink-100 bg-white/80 p-8 shadow-2xl">
+    <div class="flex flex-col gap-4">
+      <p class="text-sm uppercase tracking-[0.4em] text-brand-500">Swipe Machine</p>
+      <h1 class="text-3xl font-semibold text-ink-900">Ajoutez votre lot en un geste</h1>
+      <p class="text-sm text-ink-600">
+        Glissez-déposez vos photos, laissez l'IA extraire les objets et récupérez un swipe board prêt à être validé.
+        Pas de formulaire long : on s'occupe du reste.
+      </p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="mt-8 space-y-6">
       {% csrf_token %}
-      <label class="block">
-        <span class="text-sm font-medium text-ink-600">Photos (5 à 30 fichiers)</span>
-        {{ form.media_files }}
-      </label>
+      <div class="grid gap-4 rounded-2xl border border-ink-100 bg-white px-6 py-6 text-sm text-ink-600 mb-6">
+        <p class="font-semibold text-ink-900">Déroulé rapide</p>
+        <ul class="grid gap-2">
+          <li class="flex items-start gap-2">
+            <span class="badge badge-success">1</span>
+            <span>Upload de vos visuels ou vidéos (multi fichiers acceptés).</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="badge badge-success">2</span>
+            <span>Analyse IA en quelques secondes avec rapport de confiance.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="badge badge-success">3</span>
+            <span>Swipez vos cartes, puis l'équipe valide et publie.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="rounded-2xl border border-ink-100 bg-white/80 p-6 shadow-sm">
+        <label
+          for="media-input"
+          id="drop-zone"
+          class="group relative cursor-pointer rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50/70 px-8 py-14 text-center transition hover:border-brand-400 hover:bg-white"
+          data-target="dropzone"
+        >
+          <input
+            id="media-input"
+            name="media_files"
+            type="file"
+            accept="image/*"
+            multiple
+            class="sr-only"
+            required
+          />
+          <div class="relative flex flex-col items-center justify-center gap-3">
+            <div class="h-12 w-12 rounded-full border border-dashed border-brand-400 bg-brand-50 text-brand-600 flex items-center justify-center text-xl font-semibold transition group-hover:bg-brand-100">
+              ⬆
+            </div>
+            <p class="text-lg font-semibold text-ink-900">Déposez vos photos ici</p>
+            <p class="text-sm text-ink-600">
+              1 à 30 fichiers. Drag & drop, ou cliquez pour ouvrir votre explorateur.
+            </p>
+            <p id="drop-zone-info" class="text-xs uppercase tracking-[0.4em] text-ink-500">Aucun fichier sélectionné</p>
+          </div>
+        </label>
+      </div>
+
       {% if form.media_files.errors %}
         <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
       {% endif %}
+
       <button
         type="submit"
-        class="btn btn-primary mt-4 inline-flex items-center justify-center px-5 py-3 text-sm font-semibold"
+        class="btn btn-primary w-full py-3 text-base font-semibold"
       >
         Lancer l’analyse
       </button>
     </form>
+
   </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const dropZone = document.querySelector("[data-target='dropzone']");
+      const input = document.querySelector("#media-input");
+      const info = document.querySelector("#drop-zone-info");
+
+      const updateInfo = () => {
+        const count = input.files.length;
+        info.textContent =
+          count === 0 ? "Aucun fichier sélectionné" : `${count} fichier${count > 1 ? "s" : ""} prêt${count > 1 ? "s" : ""}`;
+      };
+
+      if (dropZone && input) {
+        ["dragenter", "dragover"].forEach((event) => {
+          dropZone.addEventListener(event, (e) => {
+            e.preventDefault();
+            dropZone.classList.add("border-brand-400", "bg-white");
+          });
+        });
+        ["dragleave", "drop"].forEach((event) => {
+          dropZone.addEventListener(event, () => {
+            dropZone.classList.remove("border-brand-400", "bg-white");
+          });
+        });
+        input.addEventListener("change", updateInfo);
+      }
+    });
+  </script>
 </section>
 {% endblock %}

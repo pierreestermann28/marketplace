@@ -57,11 +57,13 @@ services:
     build: .
     env_file:
       - .env
-    command: sh -c "npm ci && npm run vendor && npm run tailwind:watch"
+    command: npm run tailwind:watch
     volumes:
       - .:/app
     depends_on:
       - web
+    tty: true
+    stdin_open: true
 
   flower:
     build: .
