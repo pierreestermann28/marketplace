@@ -26,6 +26,7 @@ def htmx_ping(request):
 
 urlpatterns = [
     path("", include("listings.urls")),
+    path("batches/", include("ingestion.urls")),
     path("messages/", include("messaging.urls")),
     path("commerce/", include("commerce.urls")),
     path("accounts/", include("accounts.urls")),

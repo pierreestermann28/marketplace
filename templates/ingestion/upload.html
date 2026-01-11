@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter un lot{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-4xl py-12 px-4">
+  <div class="rounded-3xl border border-ink-100 bg-white/80 p-8 shadow-xl">
+    <h1 class="text-2xl font-semibold text-ink-900">Ajouter un lot d'objets</h1>
+    <p class="mt-2 text-sm text-ink-600">
+      Uploadez 5 à 30 photos et laissez l'IA détecter plusieurs objets par lot. Vous pourrez ensuite swiper les annonces générées.
+    </p>
+    <form method="post" enctype="multipart/form-data" class="mt-6 space-y-6">
+      {% csrf_token %}
+      <label class="block">
+        <span class="text-sm font-medium text-ink-600">Photos (5 à 30 fichiers)</span>
+        {{ form.media_files }}
+      </label>
+      {% if form.media_files.errors %}
+        <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
+      {% endif %}
+      <button
+        type="submit"
+        class="btn btn-primary mt-4 inline-flex items-center justify-center px-5 py-3 text-sm font-semibold"
+      >
+        Lancer l’analyse
+      </button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Modération des annonces{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-4xl py-12 px-4">
+  <div class="space-y-6 rounded-3xl border border-ink-100 bg-white/90 p-8 shadow-2xl">
+    <header class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="text-sm text-ink-500">Flux de modération</p>
+        <h1 class="text-2xl font-semibold text-ink-900">Validez les propositions IA approuvées</h1>
+        <p class="mt-1 text-sm text-ink-600">
+          Chaque carte a déjà été validée par son propriétaire ; tu peux maintenant publier ou rejeter la proposition finale.
+        </p>
+      </div>
+      <div class="rounded-2xl border border-ink-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-ink-700">
+        <p>Demandes en attente : {{ pending_admin_count }}</p>
+        <p>Lots analysés : {{ pending_user_count }}</p>
+      </div>
+    </header>
+    <div
+      id="admin-swipe-card"
+      hx-get="{% url 'ingestion:admin_swipe_fragment' %}"
+      hx-trigger="load"
+      hx-target="#admin-swipe-card"
+      hx-swap="innerHTML"
+    >
+      {% if current_item %}
+        {% include "fragments/ingestion/admin_swipe_card.html" %}
+      {% else %}
+        {% include "fragments/ingestion/admin_swipe_empty.html" %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

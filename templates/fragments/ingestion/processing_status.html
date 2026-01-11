@@ -1,0 +1,29 @@
+<div id="batch-status" class="rounded-2xl border border-ink-100 bg-white p-6">
+  <p class="text-sm text-ink-500">Batch {{ batch.id }}</p>
+  <div class="mt-3 flex items-center justify-between">
+    <div>
+      <p class="text-lg font-semibold text-ink-900">{{ batch.get_status_display }}</p>
+      <p class="text-xs uppercase tracking-wide text-ink-500">Détectés : {{ detected_count }}</p>
+    </div>
+    <div class="text-right text-sm text-ink-600">
+      <p>En attente : {{ pending_count }}</p>
+      <p>Analytiques : {{ batch.media_count }}</p>
+    </div>
+  </div>
+  {% if batch.status == 'DONE' %}
+    <a
+      href="{% url 'ingestion:batch_swipe' batch_id=batch.id %}"
+      class="mt-5 inline-flex items-center justify-center rounded-2xl border border-transparent bg-brand px-4 py-2 text-sm font-semibold text-white"
+    >
+      Voir les cartes
+    </a>
+  {% elif batch.status == 'FAILED' %}
+    <p class="mt-4 text-sm font-semibold text-danger">
+      Erreur : {{ batch.error_message|default:"Une erreur est survenue." }}
+    </p>
+  {% else %}
+    <p class="mt-4 text-sm text-ink-600">
+      Analyse en cours... actualisation automatique toutes les 3 secondes.
+    </p>
+  {% endif %}
+</div>

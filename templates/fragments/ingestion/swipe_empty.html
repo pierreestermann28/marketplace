@@ -1,0 +1,23 @@
+<div class="rounded-3xl border border-ink-100 bg-white/90 p-8 text-center shadow-lg">
+  <p class="text-sm uppercase tracking-wide text-ink-500">Batch terminé</p>
+  <h2 class="mt-2 text-2xl font-semibold text-ink-900">
+    Aucune carte restante
+  </h2>
+  <p class="mt-2 text-sm text-ink-600">
+    Toutes les propositions ont été traitées. Vous pouvez retrouver vos annonces sur votre espace de vente.
+  </p>
+  <div class="mt-5 flex justify-center gap-3">
+    <a
+      href="{% url 'my_listings' %}"
+      class="rounded-2xl border border-transparent bg-brand px-4 py-3 text-sm font-semibold text-white"
+    >
+      Mes annonces
+    </a>
+    <a
+      href="{% url 'home' %}"
+      class="rounded-2xl border border-ink-200 px-4 py-3 text-sm font-semibold text-ink-700"
+    >
+      Retour au feed
+    </a>
+  </div>
+</div>

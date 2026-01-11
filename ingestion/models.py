@@ -5,10 +5,12 @@ from django.db import models
 
 class DetectedItem(models.Model):
     class Status(models.TextChoices):
-        PENDING = "PENDING", "Pending"
-        APPROVED = "APPROVED", "Approved"
-        REJECTED = "REJECTED", "Rejected"
-        EDITED = "EDITED", "Edited"
+        PENDING = "PENDING", "Proposition en attente"
+        USER_APPROVED = "USER_APPROVED", "Validée par le vendeur"
+        USER_REJECTED = "USER_REJECTED", "Rejetée par le vendeur"
+        ADMIN_APPROVED = "ADMIN_APPROVED", "Validée par l’équipe"
+        ADMIN_REJECTED = "ADMIN_REJECTED", "Rejetée par l’équipe"
+        EDITED = "EDITED", "Modifiée"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -29,6 +31,13 @@ class DetectedItem(models.Model):
         null=True,
         blank=True,
         related_name="hero_for_items",
+    )
+    listing = models.OneToOneField(
+        "listings.Listing",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="source_item",
     )
 
     status = models.CharField(

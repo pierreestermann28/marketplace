@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Analyse en cours{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-4xl py-12 px-4">
+  <div class="rounded-3xl border border-dashed border-ink-200 bg-white/80 p-8 shadow-lg">
+    <h1 class="text-2xl font-semibold text-ink-900">Analyse en cours</h1>
+    <p class="mt-2 text-sm text-ink-600">
+      L'IA travaille sur votre lot. Vous pouvez fermer l'onglet, la progression se mettra à jour automatiquement.
+    </p>
+    <div
+      class="mt-6 space-y-3"
+      hx-get="{% url 'ingestion:batch_status_fragment' batch_id=batch.id %}"
+      hx-trigger="load, every 3s"
+      hx-target="#batch-status"
+      hx-swap="outerHTML"
+    >
+      {% include "fragments/ingestion/processing_status.html" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

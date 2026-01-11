@@ -13,11 +13,12 @@
       </a>
       <nav class="hidden gap-6 text-sm font-medium text-ink-600 md:flex">
         <a href="/" class="transition hover:text-ink-900">Explorer</a>
-        <a href="/sell/create/" class="transition hover:text-ink-900">Vendre</a>
+        <a href="{% url 'ingestion:batch_upload' %}" class="transition hover:text-ink-900">Vendre</a>
         <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Wishlist</a>
         <a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a>
         {% if user.is_staff %}
           <a href="{% url 'review_queue' %}" class="transition hover:text-ink-900">Modération</a>
+          <a href="{% url 'ingestion:admin_swipe' %}" class="transition hover:text-ink-900">Lots IA</a>
         {% endif %}
       </nav>
     </div>
@@ -92,11 +93,12 @@
   >
     <nav class="flex flex-col gap-3 text-sm font-medium text-ink-700">
       <a href="/" class="transition hover:text-brand">Explorer</a>
-      <a href="/sell/create/" class="transition hover:text-brand">Vendre</a>
+      <a href="{% url 'ingestion:batch_upload' %}" class="transition hover:text-brand">Vendre</a>
       <a href="{% url 'wishlist' %}" class="transition hover:text-brand">Wishlist</a>
       <a href="{% url 'messages:list' %}" class="transition hover:text-brand">Messages</a>
       {% if user.is_staff %}
         <a href="{% url 'review_queue' %}" class="transition hover:text-brand">Modération</a>
+        <a href="{% url 'ingestion:admin_swipe' %}" class="transition hover:text-brand">Lots IA</a>
       {% endif %}
       {% if user.is_authenticated %}
         <a href="{% url 'accounts:personal_profile' %}" class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">

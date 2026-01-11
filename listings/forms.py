@@ -41,13 +41,31 @@ class MultiFileInput(forms.ClearableFileInput):
 
 class MultiFileField(forms.Field):
     widget = MultiFileInput
-    default_error_messages = {"required": "Veuillez ajouter au moins une photo."}
+    default_error_messages = {
+        "required": "Veuillez ajouter au moins une photo.",
+        "min_count": "Ajoutez au moins {min} fichiers.",
+        "max_count": "Ajoutez au plus {max} fichiers.",
+    }
+
+    def __init__(self, *args, min_count=None, max_count=None, **kwargs):
+        self.min_count = min_count
+        self.max_count = max_count
+        super().__init__(*args, **kwargs)
 
     def clean(self, value):
         value = super().clean(value)
         files = value or []
         if not files:
             raise ValidationError(self.error_messages["required"])
+        count = len(files)
+        if self.min_count is not None and count < self.min_count:
+            raise ValidationError(
+                self.error_messages["min_count"].format(min=self.min_count)
+            )
+        if self.max_count is not None and count > self.max_count:
+            raise ValidationError(
+                self.error_messages["max_count"].format(max=self.max_count)
+            )
         return files
 
 

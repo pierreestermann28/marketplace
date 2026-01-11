@@ -24,6 +24,7 @@ from catalog.models import Category
 from .forms import ListingForm, PhotoUploadForm
 from accounts.models import ReputationStats
 from commerce.models import Review
+from ingestion.models import DetectedItem
 from .models import Favorite, Listing, ListingImage, Reservation
 
 
@@ -352,6 +353,14 @@ class ReviewQueueView(UserPassesTestMixin, ListView):
             .select_related("seller", "category")
             .order_by("created_at")
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["pending_ia_count"] = DetectedItem.objects.filter(
+            status=DetectedItem.Status.USER_APPROVED
+        ).count()
+        context["admin_swipe_url"] = reverse("ingestion:admin_swipe")
+        return context
 
 
 class ReservationCreateView(LoginRequiredMixin, View):

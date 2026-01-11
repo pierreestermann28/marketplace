@@ -5,6 +5,22 @@
       <h1 class="h1">File de moderation</h1>
       <p class="muted mt-2 text-sm">Annonces en attente de validation.</p>
     </div>
+    {% if pending_ia_count %}
+      <div class="mb-6 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-semibold text-blue-900">Propositions IA en attente</p>
+            <p class="text-xs uppercase tracking-[0.3em] text-blue-600">lots validés par les vendeurs</p>
+            <p class="text-sm text-blue-700">{{ pending_ia_count }} objets prêts à publier</p>
+          </div>
+          <a href="{{ admin_swipe_url }}" class="btn btn-primary btn-sm">Voir les lots IA</a>
+        </div>
+      </div>
+    {% else %}
+      <div class="mb-6 rounded-2xl border border-ink-100 bg-white px-5 py-4 text-sm text-ink-600">
+        Aucune proposition IA validée par les vendeurs pour le moment.
+      </div>
+    {% endif %}
 
     {% if listings %}
       <div class="grid gap-4">

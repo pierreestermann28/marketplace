@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -140,6 +142,16 @@ AUTH_USER_MODEL = "accounts.User"
 # Media
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Celery
+CELERY_BROKER_URL = os.environ.get(
+    "CELERY_BROKER_URL", "redis://localhost:6379/0"
+)
+CELERY_RESULT_BACKEND = os.environ.get(
+    "CELERY_RESULT_BACKEND", CELERY_BROKER_URL
+)
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_SOFT_TIME_LIMIT = 30
 
 # Login redirects
 LOGIN_URL = "/accounts/login/"

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Validez vos annonces{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-4xl py-12 px-4">
+  <div class="space-y-6">
+    <header class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-ink-600">Batch {{ batch.id }}</p>
+        <h1 class="text-2xl font-semibold text-ink-900">Swiper vos DetectedItems</h1>
+      </div>
+      <div class="text-right text-xs text-ink-600">
+        <p>En attente : {{ pending_count }}</p>
+        <p>Validés : {{ approved_count }}</p>
+        <p>Rejetés : {{ rejected_count }}</p>
+      </div>
+    </header>
+    <div id="swipe-card">
+      {% if current_item %}
+        {% include "fragments/ingestion/swipe_card.html" %}
+      {% else %}
+        {% include "fragments/ingestion/swipe_empty.html" %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
