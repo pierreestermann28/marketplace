@@ -64,6 +64,9 @@ services:
       - web
     tty: true
     stdin_open: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=1000
 
   flower:
     build: .
