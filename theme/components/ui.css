@@ -17,7 +17,7 @@
 
   /* Surfaces */
   .card {
-    @apply bg-green border border-ink-100 rounded-2xl shadow-soft;
+    @apply bg-white border border-ink-100 rounded-2xl shadow-soft;
   }
   .card-body {
     @apply p-4;
@@ -86,7 +86,7 @@
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-ink-100 text-ink-800;
   }
   .badge-success {
-    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800;
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-success/10 text-success;
   }
   .badge-danger {
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800;

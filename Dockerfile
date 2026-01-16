@@ -20,6 +20,9 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+COPY package*.json ./
+RUN npm install
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 

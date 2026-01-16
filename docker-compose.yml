@@ -60,13 +60,12 @@ services:
     command: npm run tailwind:watch
     volumes:
       - .:/app
+      - /app/node_modules
     depends_on:
       - web
     tty: true
     stdin_open: true
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - CHOKIDAR_INTERVAL=1000
+ 
 
   flower:
     build: .
