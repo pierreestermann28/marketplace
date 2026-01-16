@@ -12,8 +12,10 @@ yarn-error.log*
 pnpm-debug.log*
 
 .dist/
-static/css/app.css
+static/
 storage/
+media/
 
 
 .vscode/
+

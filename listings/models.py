@@ -1,11 +1,12 @@
 import uuid
 from django.conf import settings
 from django.db import models
+
 from catalog.models import Category
 from django.db.models import Prefetch
 
-from mediahub.models import ImageAsset, VideoUpload, Keyframe
 from django.conf import settings
+from django.db.models import F
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -61,6 +62,8 @@ class Listing(models.Model):
     postal_code = models.CharField(max_length=20, blank=True, db_index=True)
     city = models.CharField(max_length=80, blank=True, db_index=True)
     country_code = models.CharField(max_length=2, default="FR")
+    available_from = models.DateTimeField(null=True, blank=True, db_index=True)
+    view_count = models.PositiveIntegerField(default=0, db_index=True)
 
     source_type = models.CharField(max_length=12, default="images")  # images|video
     source_video = models.ForeignKey(
@@ -144,6 +147,10 @@ class Listing(models.Model):
             self.save(update_fields=["status"])
         return active
 
+    def increment_view_count(self):
+        Listing.objects.filter(pk=self.pk).update(view_count=F("view_count") + 1)
+        self.refresh_from_db(fields=["view_count"])
+
 
 class ListingImage(models.Model):
     listing = models.ForeignKey(
@@ -211,6 +218,32 @@ class Reservation(models.Model):
             self.save(update_fields=["cancelled_at"])
 
 
+class ListingReminder(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="listing_reminders",
+    )
+    listing = models.ForeignKey(
+        Listing,
+        on_delete=models.CASCADE,
+        related_name="reminders",
+    )
+    notify_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("user", "listing")]
+
+    def save(self, *args, **kwargs):
+        if not self.notify_at:
+            available = self.listing.available_from
+            if available:
+                self.notify_at = available - timezone.timedelta(hours=6)
+            else:
+                self.notify_at = timezone.now()
+        super().save(*args, **kwargs)
 class Favorite(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites"

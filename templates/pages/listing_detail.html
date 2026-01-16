@@ -56,6 +56,24 @@
               <div class="price text-3xl">
                 {% include "components/commerce/money.html" with cents=listing.price_cents currency=listing.currency only %}
               </div>
+              {% if available_from %}
+                <p class="text-sm text-ink-600">
+                  Disponible à partir du {{ available_from|date:"d F Y" }}
+                </p>
+                {% if remind_url %}
+                  {% if reminder_exists %}
+                    <p class="text-xs text-success">Vous recevrez la notification.</p>
+                  {% else %}
+                    <form method="post" action="{{ remind_url }}">
+                      {% csrf_token %}
+                      {% include "components/ui/button.html" with label="Me prévenir" variant="ghost" size="sm" type="submit" only %}
+                    </form>
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+              <p class="text-xs uppercase tracking-[0.4em] text-ink-400">
+                Vues totales : {{ view_count }}
+              </p>
               <div class="space-y-3">
                 {% if active_reservation %}
                   <div class="rounded-2xl border border-ink-100 bg-ink-50 px-4 py-3 text-sm text-ink-700">

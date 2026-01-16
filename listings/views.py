@@ -3,7 +3,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Avg, BooleanField, Exists, OuterRef, Prefetch, Q, Value
+from django.core.mail import send_mail
+from django.db.models import Avg, BooleanField, Exists, F, OuterRef, Prefetch, Q, Value
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -25,7 +26,13 @@ from .forms import ListingForm, PhotoUploadForm
 from accounts.models import ReputationStats
 from commerce.models import Review
 from ingestion.models import DetectedItem
-from .models import Favorite, Listing, ListingImage, Reservation
+from .models import (
+    Favorite,
+    Listing,
+    ListingImage,
+    ListingReminder,
+    Reservation,
+)
 
 
 def get_listing_detail_url(listing):
@@ -50,9 +57,7 @@ class HomeFeedView(ListView):
             qs = qs.filter(city__icontains=city)
         if category:
             qs = qs.filter(category__slug=category)
-        image_qs = ListingImage.objects.select_related("image_asset").order_by(
-            "-is_primary", "sort_order"
-        )
+        image_qs = self._image_prefetch_queryset()
         if self.request.user.is_authenticated:
             qs = qs.annotate(
                 is_favorited=Exists(
@@ -78,12 +83,65 @@ class HomeFeedView(ListView):
             "category": self.request.GET.get("category", ""),
             "querystring": self._get_filter_querystring(),
         }
+        recommended, category_ids = self._get_recommendations()
+        context["recommended_listings"] = recommended
+        context["recommendation_reason"] = self._build_recommendation_reason(
+            category_ids
+        )
         return context
 
     def _get_filter_querystring(self):
         params = self.request.GET.copy()
         params.pop("page", None)
         return params.urlencode()
+
+    def _image_prefetch_queryset(self):
+        return ListingImage.objects.select_related("image_asset").order_by(
+            "-is_primary", "sort_order"
+        )
+
+    def _get_recommendations(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return [], []
+
+        fav_categories = list(
+            Favorite.objects.filter(user=user)
+            .exclude(listing__category__isnull=True)
+            .values_list("listing__category", flat=True)
+        )
+        reserved_categories = list(
+            Reservation.objects.filter(
+                buyer=user, cancelled_at__isnull=True
+            )
+            .exclude(listing__category__isnull=True)
+            .values_list("listing__category", flat=True)
+        )
+        category_ids = list({*fav_categories, *reserved_categories})
+        if not category_ids:
+            return [], []
+
+        qs = (
+            Listing.objects.filter(
+                status=Listing.Status.PUBLISHED, category_id__in=category_ids
+            )
+            .select_related("category", "seller")
+            .prefetch_related(
+                Prefetch("images", queryset=self._image_prefetch_queryset())
+            )
+            .order_by("-created_at")
+        )
+        return list(qs[:6]), category_ids
+
+    def _build_recommendation_reason(self, category_ids):
+        if not category_ids:
+            return "vos favoris"
+        category = (
+            Category.objects.filter(id__in=category_ids).order_by("name").first()
+        )
+        if category:
+            return f"vos favoris dans {category.name}"
+        return "vos favoris"
 
 
 class ListingDetailView(DetailView):
@@ -119,6 +177,7 @@ class ListingDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         listing = context["listing"]
+        listing.increment_view_count()
         primary_image = listing.get_primary_image()
         gallery_images = list(listing.images.all())
         secondary_images = [image for image in gallery_images if image != primary_image]
@@ -159,6 +218,21 @@ class ListingDetailView(DetailView):
                 "can_reserve": listing.status == Listing.Status.PUBLISHED
                 and self.request.user.is_authenticated
                 and self.request.user != listing.seller,
+                "available_from": listing.available_from,
+                "view_count": listing.view_count,
+                "remind_url": (
+                    reverse(
+                        "listing_remind", kwargs={"listing_id": listing.id}
+                    )
+                    if listing.available_from and self.request.user.is_authenticated
+                    else None
+                ),
+                "reminder_exists": (
+                    self.request.user.is_authenticated
+                    and ListingReminder.objects.filter(
+                        user=self.request.user, listing=listing
+                    ).exists()
+                ),
             }
         )
         return context
@@ -440,6 +514,40 @@ class ListingModerationDetailView(UserPassesTestMixin, DetailView):
         )
         return HttpResponseRedirect(reverse("review_queue"))
 
+
+class ListingReminderCreateView(LoginRequiredMixin, View):
+    def post(self, request, listing_id, *args, **kwargs):
+        listing = get_object_or_404(Listing, id=listing_id)
+        reminder, created = ListingReminder.objects.get_or_create(
+            user=request.user, listing=listing
+        )
+        if created:
+            self._notify_seller(listing, request.user)
+            django_messages.success(
+                request, "Nous vous préviendrons dès que l’annonce sera disponible."
+            )
+        else:
+            django_messages.info(
+                request, "Vous êtes déjà inscrit pour être prévenu."
+            )
+        return HttpResponseRedirect(get_listing_detail_url(listing))
+
+    def _notify_seller(self, listing, requester):
+        if not listing.seller.email:
+            return
+        subject = (
+            f"Un acheteur veut être prévenu pour {listing.title or 'votre annonce'}"
+        )
+        sender = getattr(settings, "DEFAULT_FROM_EMAIL", settings.SERVER_EMAIL)
+        message = "\n".join(
+            [
+                f"{requester.get_full_name() or requester.email} souhaite être notifié.",
+                f"Annonce : {listing.title}",
+                f"ID : {listing.id}",
+                f"Disponible à partir de : {listing.available_from or 'à confirmer'}",
+            ]
+        )
+        send_mail(subject, message, sender, [listing.seller.email], fail_silently=True)
 
 class ListingFavoriteToggleView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):

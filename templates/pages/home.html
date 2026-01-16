@@ -72,8 +72,28 @@
       </div>
     </section>
 
+    {% if recommended_listings %}
+      <section class="space-y-4">
+        <div class="flex items-end justify-between gap-4">
+          <div>
+            <p class="section-label">Suggestions personnalisées</p>
+            <h2 class="h2">
+              Basées sur {{ recommendation_reason }}
+            </h2>
+          </div>
+          <a
+            href="#listings-feed"
+            class="text-sm font-semibold text-brand hover:underline"
+          >
+            Voir tout
+          </a>
+        </div>
+        {% include "components/listings/listing_grid.html" with listings=recommended_listings request=request only %}
+      </section>
+    {% endif %}
+
     <div class="space-y-6">
-      <div class="card card-body space-y-4">
+        <div class="card card-body space-y-4" id="listings-feed">
         <div class="flex flex-col gap-1 text-sm text-ink-500 sm:flex-row sm:items-center sm:justify-between">
           <p>
             {% if page_obj %}
