@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from listings.models import Listing
 
@@ -19,6 +20,12 @@ class Conversation(models.Model):
     )
     last_message_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    reports = GenericRelation(
+        "reports.Report",
+        content_type_field="target_content_type",
+        object_id_field="target_object_id",
+        related_query_name="conversation_reports",
+    )
 
     class Meta:
         unique_together = [("listing", "buyer")]

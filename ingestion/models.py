@@ -37,7 +37,7 @@ class DetectedItem(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="source_item",
+        related_name="detected_item",
     )
 
     status = models.CharField(

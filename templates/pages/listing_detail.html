@@ -179,6 +179,15 @@
               </p>
             {% endif %}
           </div>
+          <div class="mt-4">
+            <div class="rounded-2xl border border-ink-100 bg-white/80 p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs uppercase tracking-[0.3em] text-ink-500">Signalement</h3>
+                <span class="text-xs text-ink-400">Nous examinons sous 24h</span>
+              </div>
+              {% include "components/reports/report_form.html" with form=report_form action_url=report_action_url only %}
+            </div>
+          </div>
           {% if user == listing.seller %}
             <div class="mt-4 rounded-2xl border border-ink-100 bg-white/80 p-4 space-y-3">
               <div class="flex items-center justify-between">

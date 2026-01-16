@@ -23,7 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY", "django-insecure-6j8%$en26uheoo%s_)_*s3p_*0lzgpka-0!_yoc3&0cfq@j2if"
+    "DJANGO_SECRET_KEY",
+    "django-insecure-6j8%$en26uheoo%s_)_*s3p_*0lzgpka-0!_yoc3&0cfq@j2if",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     "operations",
     "ingestion",
     "messaging",
+    "reports",
 ]
 
 MIDDLEWARE = [
@@ -151,14 +153,14 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Celery
-CELERY_BROKER_URL = os.environ.get(
-    "CELERY_BROKER_URL", "redis://redis:6379/0"
-)
-CELERY_RESULT_BACKEND = os.environ.get(
-    "CELERY_RESULT_BACKEND", "redis://redis:6379/1"
-)
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/1")
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_SOFT_TIME_LIMIT = 30
+
+# Redis connection settings (used by health checks, celery, etc.)
+REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
+REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
 
 # Login redirects
 LOGIN_URL = "/accounts/login/"
@@ -223,3 +225,44 @@ PWA_APP_ORIENTATION = "portrait"
 #         "sizes": "2048x2732",
 #     },
 # ]
+
+# Stripe billing
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PREMIUM_PRICE_ID = os.environ.get("STRIPE_PREMIUM_PRICE_ID", "")
+STRIPE_CHECKOUT_SUCCESS_URL = os.environ.get(
+    "STRIPE_CHECKOUT_SUCCESS_URL", "/accounts/profile/?upgrade=success"
+)
+STRIPE_CHECKOUT_CANCEL_URL = os.environ.get(
+    "STRIPE_CHECKOUT_CANCEL_URL", "/accounts/pricing/?canceled=1"
+)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "structured": {
+            "()": "stillusefull.logging.JSONFormatter",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "structured",
+            "level": "INFO",
+        },
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "celery": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "ingestion": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "mediahub": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}

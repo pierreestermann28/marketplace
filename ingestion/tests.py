@@ -145,3 +145,15 @@ class IngestionTests(TestCase):
         self.batch.refresh_from_db()
         self.assertEqual(self.batch.status, BatchUpload.Status.FAILED)
         self.assertIn("Quota mensuel d’IA atteint", self.batch.error_message)
+
+    @override_settings(FREE_LISTING_QUOTA_PER_MONTH=0)
+    def test_admin_quota_shows_upgrade_when_limit_reached(self):
+        self.detected_item.status = DetectedItem.Status.USER_APPROVED
+        self.detected_item.save(update_fields=["status"])
+        self.client.force_login(self.staff)
+        url = reverse("ingestion:detecteditem_admin_approve", kwargs={"item_id": self.detected_item.id})
+        response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Quota mensuel de publications atteint")
+        self.detected_item.refresh_from_db()
+        self.assertEqual(self.detected_item.status, DetectedItem.Status.USER_APPROVED)

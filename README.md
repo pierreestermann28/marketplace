@@ -8,31 +8,45 @@
    ```bash
    cp .env.example .env
    ```
-2. Build & start everything (web, Celery worker, Tailwind watch, Postgres, Redis, Flower):
+2. Build & start the full stack (web, Celery worker, Tailwind watcher, Postgres, Redis, Flower):
    ```bash
    docker compose up --build
    ```
-   The entrypoint waits for Postgres/Redis and applies migrations before running the service command.
+   The shared entrypoint waits for Postgres and Redis, runs `python manage.py migrate --noinput`, then hands control over to each service's command. Because we bind-mount the project into `/app`, Django, Celery, and Tailwind watch the source files for hot reload behavior.
 
-## Useful commands
+## Services overview
 
-- Run migrations manually (entrypoint already runs them, but this is handy when you change migrations):
+- **web** – runs `python manage.py runserver 0.0.0.0:8000` for automatic Python code reload, so edits to views/templates are reflected immediately. Logs are streamed by `docker compose logs -f web`.
+- **worker** – Celery worker (`--pool=solo`) processes ingestion and notification tasks; it shares the same bind mount so code changes lift without rebuilding.
+- **tailwind** – executes `npm run tailwind:watch`, compiling Tailwind layers into `static/css/app.css` and keeping an eye on `theme/`/`tailwind.config.js`. The watch output prints through `docker compose logs tailwind`.
+- **flower** – Celery monitoring at http://localhost:5555/ (port-forwarded from the container); starts with the same codebase plus `SKIP_MIGRATE=1`.
+- **postgres**/ **redis** – standard containers with health checks; the web/worker services resolve them via `POSTGRES_HOST=postgres` and `REDIS_HOST=redis`.
+
+## Handy commands
+
+- Run migrations manually again if you touched model files:
   ```bash
   docker compose exec web python manage.py migrate
   ```
-- Create a superuser:
+- Create a superuser or run other Django CLI commands:
   ```bash
   docker compose exec web python manage.py createsuperuser
-  ```
-- Open a Django shell:
-  ```bash
   docker compose exec web python manage.py shell
   ```
-- Tailwind/watch logs are streamed via the `tailwind` service. The `vendor` npm script runs automatically before `tailwind:watch`.
-- Flower monitoring is available at http://localhost:5555/ (celery -A `stillusefull` is the module reference).
+- Peek at Tailwind output or restart the watcher:
+  ```bash
+  docker compose logs -f tailwind
+  docker compose restart tailwind
+  ```
+- Watch Celery via Flower:
+  ```bash
+  open http://localhost:5555/
+  docker compose logs -f flower
+  ```
 
-## Notes
+## Tips for smooth dev
 
-- The `web`, `worker`, and `flower` services share the same Python image (`python:3.11-slim` with Node/npm installed) and reuse `/app` via a bind mount for live reload.
-- Tailwind writes to `static/css/app.css` (same as the existing Tailwind config) so Django picks up the styles without extra steps.
-- Postgres and Redis are exposed via Docker networks; the Django settings load their hostnames from `.env`.
+- Hot reload works because `.` is mounted into `/app` for every service; editing Python, templates, or CSS/JS files triggers Django/Tailwind restarts automatically.
+- Tailwind compiles into `static/css/app.css`, which Django loads from `STATICFILES_DIRS`, so no extra asset build step is needed.
+- Use `docker compose exec web manage.py collectstatic --noinput` before deploying if you ever bundle static assets.
+- If you skip migrations (e.g., on worker or Flower), set `SKIP_MIGRATE=1` in `.env`.

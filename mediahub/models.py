@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from django.conf import settings
@@ -40,6 +41,8 @@ class BatchUpload(models.Model):
             models.Index(fields=["status", "created_at"]),
         ]
 
+    logger = logging.getLogger("mediahub.batch")
+
     def mark_processing(self):
         self.status = self.Status.RUNNING
         self.processing_started_at = timezone.now()
@@ -54,16 +57,32 @@ class BatchUpload(models.Model):
                 "updated_at",
             ]
         )
+        self.logger.info(
+            "Batch processing started",
+            extra={"batch_id": str(self.id), "owner_id": self.owner_id},
+        )
 
     def mark_done(self):
         self.status = self.Status.DONE
         self.processed_at = timezone.now()
         self.save(update_fields=["status", "processed_at", "updated_at"])
+        self.logger.info(
+            "Batch processing completed",
+            extra={"batch_id": str(self.id), "owner_id": self.owner_id},
+        )
 
     def mark_failed(self, message=None):
         self.status = self.Status.FAILED
         self.error_message = message or ""
         self.save(update_fields=["status", "error_message", "updated_at"])
+        self.logger.error(
+            "Batch processing failed",
+            extra={
+                "batch_id": str(self.id),
+                "owner_id": self.owner_id,
+                "error_message": self.error_message,
+            },
+        )
 
     def mark_asset_processed(self):
         BatchUpload.objects.filter(pk=self.pk).update(

@@ -23,13 +23,26 @@
     <div class="space-y-2 text-sm text-ink-600">
       <div class="font-semibold text-ink-900">Explorer</div>
       <a href="/" class="transition hover:text-ink-900">Marketplace</a>
+      <a href="{% url 'home_feed_partial' %}" class="transition hover:text-ink-900">Catégories & villes</a>
       <a href="{% url 'ingestion:batch_upload' %}" class="transition hover:text-ink-900">Publier une annonce</a>
       <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Wishlist</a>
-      <a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a>
+      <a href="{% url 'reports:landing' %}" class="transition hover:text-ink-900">Signaler</a>
     </div>
     <div class="space-y-2 text-sm text-ink-600">
-      <div class="font-semibold text-ink-900">Support</div>
-      <p class="text-sm">Besoin d’aide ? Contactez-nous à <a href="mailto:bonjour@stilluseful.com" class="underline">bonjour@stilluseful.com</a></p>
+      <div class="font-semibold text-ink-900">Compte & sécurité</div>
+      <a href="{% url 'accounts:personal_profile' %}" class="transition hover:text-ink-900">Mon profil</a>
+      <a href="{% url 'accounts:pricing' %}" class="transition hover:text-ink-900">Abonnement Premium</a>
+      <a href="{% url 'my_listings' %}" class="transition hover:text-ink-900">Mes annonces</a>
+      <a href="{% url 'healthz' %}" class="transition hover:text-ink-900">Healthcheck</a>
+    </div>
+    <div class="space-y-2 text-sm text-ink-600">
+      <div class="font-semibold text-ink-900">Opérations</div>
+      <a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a>
+      {% if user.is_staff %}
+        <a href="{% url 'operations:dashboard' %}" class="transition hover:text-ink-900">Supervision</a>
+        <a href="{% url 'operations:admin_listings' %}" class="transition hover:text-ink-900">Modération</a>
+      {% endif %}
+      <p class="text-sm">Besoin d’aide ? Écrivez à <a href="mailto:bonjour@stilluseful.com" class="underline">bonjour@stilluseful.com</a></p>
       <p class="text-xs uppercase tracking-[0.4em] text-ink-400">© {% now "Y" %} StillUseful</p>
     </div>
   </div>

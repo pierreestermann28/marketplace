@@ -1,0 +1,121 @@
+{% extends "layouts/app.html" %}
+
+{% block page_content %}
+  <div class="container-app py-10 space-y-6">
+    <header class="space-y-2">
+      <h1 class="h1">Administration des annonces</h1>
+      <p class="muted">Pilotez les listings, dépubliez un contenu problématique ou désactivez un vendeur quand nécessaire.</p>
+    </header>
+
+    <section class="space-y-4">
+      <form method="get" class="flex flex-wrap items-center gap-3">
+        <label class="text-xs uppercase tracking-[0.4em] text-ink-400">Filtrer</label>
+            <div>
+              <select
+                name="status"
+                class="input min-w-[200px]"
+                aria-label="Filtrer par statut"
+              >
+                <option value="" {% if not status_filter %}selected{% endif %}>Tous les statuts</option>
+                {% for option in status_choices_for_filter %}
+                  <option value="{{ option.value }}" {% if option.value == status_filter %}selected{% endif %}>
+                    {{ option.label }} ({{ option.count }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+        <button type="submit" class="btn btn-secondary">Appliquer</button>
+        <div class="text-xs text-ink-500">Affichage limité aux {{ listings|length }} annonces les plus récentes.</div>
+      </form>
+      <div class="space-y-4">
+        {% for listing in listings %}
+          <article class="card card-body space-y-3">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-ink-500">
+                  {% if listing.category %}{{ listing.category.name }}{% else %}Sans catégorie{% endif %}
+                </p>
+                <h2 class="text-xl font-semibold text-ink-900">{{ listing.title|default:"- sans titre -" }}</h2>
+                <p class="text-sm text-ink-500">
+                  {{ listing.city }}, {{ listing.postal_code }} • {{ listing.seller.get_full_name|default:listing.seller.email }}
+                </p>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                <span class="badge badge-outline badge-sm uppercase tracking-[0.3em]">{{ listing.get_status_display }}</span>
+                {% if listing.reports.count %}
+                  <span class="text-xs text-danger">{{ listing.reports.count }} signalement{% if listing.reports.count|pluralize %}s{% endif %}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="grid gap-4 lg:grid-cols-2">
+              <form method="post" class="space-y-2">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                <input type="hidden" name="action" value="unpublish" />
+                <label class="text-xs uppercase tracking-[0.3em] text-ink-500" for="note-{{ listing.id }}">Motif de retrait (facultatif)</label>
+                <textarea
+                  id="note-{{ listing.id }}"
+                  name="note"
+                  rows="2"
+                  class="textarea textarea-sm w-full"
+                  placeholder="Ajoute une note publique pour les vendeurs et la modération."
+                ></textarea>
+                <button type="submit" class="btn btn-danger">Dépublier</button>
+              </form>
+              <form method="post" class="space-y-2">
+                {% csrf_token %}
+                <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                <input type="hidden" name="action" value="ban_user" />
+                <p class="text-xs text-ink-500">Désactivez le vendeur pour empêcher toute nouvelle publication.</p>
+                <button type="submit" class="btn btn-warning">Bloquer le vendeur</button>
+              </form>
+            </div>
+          </article>
+        {% empty %}
+          <div class="card card-body">
+            <p class="text-sm text-ink-600">Aucune annonce pour ce filtre.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="grid gap-6 lg:grid-cols-[3fr_1fr]">
+      <section class="space-y-4">
+        {% comment %} Keep placeholder for future expansions like bulk actions {% endcomment %}
+      </section>
+      <aside class="space-y-4">
+        <div class="card card-body space-y-3">
+          <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-ink-500">Signalements actifs</h2>
+          {% if reports %}
+            <div class="divide-y divide-ink-100">
+              {% for report in reports %}
+                <div class="py-3">
+                  <div class="text-xs uppercase tracking-[0.3em] text-ink-400">{{ report.reason|title }} • {{ report.created_at|date:"d/m/Y H:i" }}</div>
+                <p class="text-sm font-semibold text-ink-900">
+                  {% if report.target_type == "conversation" %}
+                    Conversation liée : {{ report.target_label }}
+                  {% else %}
+                    {{ report.target_label }}
+                  {% endif %}
+                </p>
+                <p class="text-xs text-ink-500">
+                  {% if report.target_type == "listing" and report.target and report.target.seller %}
+                    Pour {{ report.target.seller.get_full_name|default:report.target.seller.email }}
+                  {% elif report.target_type == "conversation" and report.target and report.target.listing %}
+                    Sur l'annonce {{ report.target.listing.title|default:report.target.listing.id }}
+                  {% endif %}
+                </p>
+                  {% if report.details %}
+                    <p class="text-sm text-ink-600">{{ report.details|truncatechars:120 }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-sm text-ink-600">Aucun signalement en attente.</p>
+          {% endif %}
+        </div>
+      </aside>
+    </div>
+  </div>
+{% endblock %}

@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db.models import F, Prefetch
 from django.utils import timezone
@@ -105,6 +106,12 @@ class Listing(models.Model):
         related_name="moderated_listings",
     )
     moderated_at = models.DateTimeField(null=True, blank=True)
+    reports = GenericRelation(
+        "reports.Report",
+        content_type_field="target_content_type",
+        object_id_field="target_object_id",
+        related_query_name="listings",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -442,22 +449,3 @@ class Favorite(models.Model):
     class Meta:
         unique_together = [("user", "listing")]
 
-
-class Report(models.Model):
-    class Reason(models.TextChoices):
-        SCAM = "scam"
-        ILLEGAL = "illegal"
-        INAPPROPRIATE = "inappropriate"
-        SPAM = "spam"
-        OTHER = "other"
-
-    reporter = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reports_made"
-    )
-    listing = models.ForeignKey(
-        Listing, on_delete=models.CASCADE, related_name="reports"
-    )
-    reason = models.CharField(max_length=20, choices=Reason.choices, db_index=True)
-    details = models.TextField(blank=True)
-    is_resolved = models.BooleanField(default=False, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)

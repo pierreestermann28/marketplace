@@ -8,12 +8,14 @@ from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
+from django.views import View
 from django.views.generic import DetailView, RedirectView, TemplateView
 
 from listings.models import Listing, Reservation, ReservationLog
 
 from .forms import MessageForm
 from .models import BlockedUser, Conversation, Message
+from reports.forms import ReportForm
 
 CONVERSATION_RATE_LIMIT = 5
 CONVERSATION_RATE_WINDOW = 3600
@@ -110,6 +112,12 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
         other = conversation.other_user(self.request.user) if conversation else None
         context["other_user"] = other
         context["other_user_blocked"] = _is_blocked(self.request.user, other) if other else False
+        context["report_form"] = ReportForm()
+        context["conversation_report_url"] = (
+            reverse("reports:conversation_report", kwargs={"pk": conversation.pk})
+            if conversation
+            else "#"
+        )
         return context
 
     def get_template_names(self):

@@ -274,11 +274,14 @@ class DetectedItemAdminApproveView(DetectedItemAdminActionMixin, View):
         if item.status != DetectedItem.Status.USER_APPROVED:
             return self.render_admin_card(request)
 
-        with transaction.atomic():
-            listing = publish_detected_item(item)
-            item.status = DetectedItem.Status.ADMIN_APPROVED
-            item.listing = listing
-            item.save(update_fields=["status", "listing", "updated_at"])
+        try:
+            with transaction.atomic():
+                listing = publish_detected_item(item)
+                item.status = DetectedItem.Status.ADMIN_APPROVED
+                item.listing = listing
+                item.save(update_fields=["status", "listing", "updated_at"])
+        except QuotaExceeded as exc:
+            return _render_quota_prompt(request, item, str(exc))
         return self.render_admin_card(request)
 
 

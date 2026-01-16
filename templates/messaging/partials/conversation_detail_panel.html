@@ -54,6 +54,13 @@
       </div>
     </div>
   </div>
+  <div class="card card-body space-y-3">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs uppercase tracking-[0.3em] text-ink-500">Signalement</h3>
+      <span class="text-xs text-ink-400">Réponse rapide</span>
+    </div>
+    {% include "components/reports/report_form.html" with form=report_form action_url=conversation_report_url only %}
+  </div>
   <div class="space-y-2">
     {% for message in conversation.messages.all %}
       <div class="flex {% if message.sender == request.user %}justify-end{% endif %}">

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Offre Premium · StillUseful{% endblock %}
+
+{% block content %}
+  <section class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white">
+    <div class="mx-auto max-w-6xl px-4 py-24 text-center">
+      <p class="text-sm font-semibold uppercase tracking-[0.35em] text-sky-400">StillUseful Premium</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+        Des quotas illimités, une modération accélérée, et des outils pour booster vos ventes.
+      </h1>
+      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-200">
+        Publiez plus, automatisez vos alertes, et déverrouillez les coordonnées en un clic grâce à l’abonnement
+        premium pour les vendeurs.
+      </p>
+      <div class="mt-10 flex flex-col items-center gap-3 text-sm text-slate-200 sm:flex-row sm:justify-center">
+        <span class="rounded-full bg-white/10 px-4 py-2 text-white backdrop-blur">
+          Quotas publication illimités
+        </span>
+        <span class="rounded-full bg-white/10 px-4 py-2 text-white backdrop-blur">
+          Alertes prioritaires + support premium
+        </span>
+        <span class="rounded-full bg-white/10 px-4 py-2 text-white backdrop-blur">
+          Réservations rapides avec badge “Réservé pour vous”
+        </span>
+      </div>
+      <div class="mt-12 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <button
+          id="stripe-subscribe"
+          data-price="{{ price_id }}"
+          class="rounded-full bg-sky-500 px-12 py-4 text-lg font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-500"
+          {% if not stripe_publishable_key or not price_id %}disabled{% endif %}
+        >
+          Activer l’abonnement
+        </button>
+        <a
+          href="{% url 'accounts:personal_profile' %}"
+          class="inline-flex items-center justify-center rounded-full border border-white/40 px-12 py-4 text-lg font-semibold text-white transition hover:border-white"
+        >
+          Revenir à mon compte
+        </a>
+      </div>
+      <p id="stripe-error" class="mt-3 text-sm text-rose-300" aria-live="polite"></p>
+      <p class="mt-4 text-xs uppercase tracking-[0.4em] text-slate-400">Paiement Stripe sécurisé</p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl space-y-8 px-4 py-16">
+    <div class="rounded-3xl border border-slate-200/40 bg-white/80 p-8 shadow-xl shadow-slate-900/10 backdrop-blur">
+      <h2 class="text-2xl font-semibold text-slate-900">Ce qui est inclus</h2>
+      <div class="mt-6 grid gap-6 sm:grid-cols-2">
+        <article class="space-y-1 rounded-2xl border border-slate-200/80 p-6">
+          <h3 class="text-lg font-semibold text-slate-900">Réservations fluides</h3>
+          <p class="text-sm text-slate-600">
+            Oubliez les quotas, accédez à des badges “Réservé pour vous” et gérez des lots multiples depuis vos
+            conversations.
+          </p>
+        </article>
+        <article class="space-y-1 rounded-2xl border border-slate-200/80 p-6">
+          <h3 class="text-lg font-semibold text-slate-900">Fiabilité et sécurité</h3>
+          <p class="text-sm text-slate-600">
+            Détection d’abus, alertes prioritaires et accès aux coordonnées protégé jusqu’à une réservation confirmée.
+          </p>
+        </article>
+        <article class="space-y-1 rounded-2xl border border-slate-200/80 p-6">
+          <h3 class="text-lg font-semibold text-slate-900">Stats et notifications</h3>
+          <p class="text-sm text-slate-600">
+            Suivez vos publications, vos réservations et obtenez des badges “Nouveaux messages” dans votre tableau de bord.
+          </p>
+        </article>
+        <article class="space-y-1 rounded-2xl border border-slate-200/80 p-6">
+          <h3 class="text-lg font-semibold text-slate-900">Assistance prioritaire</h3>
+          <p class="text-sm text-slate-600">
+            Une équipe prête à débloquer vos listes, valider vos lots et vous guider pour garder vos annonces actives.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const publishableKey = "{{ stripe_publishable_key|default:"" }}";
+      const subscribeButton = document.getElementById("stripe-subscribe");
+      const errorEl = document.getElementById("stripe-error");
+      const tokenInput = document.querySelector("meta[name='csrf-token']");
+      const headers = {
+        "Content-Type": "application/json",
+        "X-CSRFToken": tokenInput ? tokenInput.getAttribute("content") : "",
+      };
+
+      const displayError = (message) => {
+        if (errorEl) {
+          errorEl.textContent = message;
+        }
+      };
+
+      if (!publishableKey || !subscribeButton) {
+        displayError("Le mode abonnement n’est pas encore actif.");
+        return;
+      }
+
+      const stripe = Stripe(publishableKey);
+      const endpoint = "{{ checkout_url }}";
+
+      subscribeButton.addEventListener("click", async () => {
+        subscribeButton.disabled = true;
+        displayError("");
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          displayError(payload.error || "Impossible de créer la session Stripe.");
+          subscribeButton.disabled = false;
+          return;
+        }
+        const sessionData = await response.json();
+        const { error } = await stripe.redirectToCheckout({ sessionId: sessionData.id });
+        if (error) {
+          displayError(error.message ?? "Une erreur Stripe est survenue.");
+          subscribeButton.disabled = false;
+        }
+      });
+    });
+  </script>
+{% endblock %}

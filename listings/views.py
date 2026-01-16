@@ -35,6 +35,7 @@ from .models import (
     ReservationLog,
     SearchAlert,
 )
+from reports.forms import ReportForm
 from .utils import user_can_view_contact_info
 from accounts.models import ReputationStats
 from commerce.models import Review
@@ -404,6 +405,10 @@ class ListingDetailView(DetailView):
                 "contact_lock_reason": (
                     "Les coordonnées se débloquent après une réservation ou un paiement validé."
                 ),
+                "report_form": ReportForm(),
+                "report_action_url": reverse(
+                    "reports:listing_report", kwargs={"listing_id": listing.id}
+                ),
             }
         )
         context["page_meta"] = {
@@ -595,6 +600,15 @@ class MyListingsView(LoginRequiredMixin, ListView):
         context["status_cards"] = self._build_status_cards(summary)
         context["status_filters"] = self._build_filter_options(summary)
         context["active_filter"] = self.request.GET.get("filter", "all")
+        context["reserved_statuses"] = [
+            Listing.Status.RESERVED,
+            Listing.Status.RESERVATION_ACCEPTED,
+        ]
+        context["public_visible_statuses"] = [
+            Listing.Status.PUBLISHED,
+            Listing.Status.RESERVED,
+            Listing.Status.RESERVATION_ACCEPTED,
+        ]
         return context
 
     def _build_status_summary(self):

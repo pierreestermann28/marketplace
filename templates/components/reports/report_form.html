@@ -1,0 +1,32 @@
+<form
+  method="post"
+  action="{{ action_url }}"
+  class="space-y-3 bg-ink-50/60 rounded-2xl border border-ink-100 p-4 text-sm text-ink-700"
+>
+  {% csrf_token %}
+    <div class="space-y-1">
+      <label class="text-xs uppercase tracking-[0.3em] text-ink-500" for="report-reason">Pourquoi signaler ?</label>
+    {{ form.reason }}
+    {% if form.reason.errors %}
+      <div class="text-xs text-red-600">
+        {% for error in form.reason.errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+    <div class="space-y-1">
+      <label class="text-xs uppercase tracking-[0.3em] text-ink-500" for="report-details">Détails (facultatif)</label>
+    {{ form.details }}
+    {% if form.details.errors %}
+      <div class="text-xs text-red-600">
+        {% for error in form.details.errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+  <button type="submit" class="btn btn-danger w-full text-xs font-semibold uppercase tracking-[0.3em]">
+    Signaler
+  </button>
+</form>

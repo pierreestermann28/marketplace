@@ -1,0 +1,25 @@
+<div class="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-soft space-y-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-[0.4em] text-amber-700">Quota atteint</p>
+      <h2 class="text-xl font-semibold text-amber-900">Vous avez atteint votre limite</h2>
+    </div>
+    <span class="status-pill status-pill--failed">Quota</span>
+  </div>
+  <p class="text-sm text-amber-900">
+    {{ quota_error_message }}
+  </p>
+  <div class="flex flex-col gap-3">
+    <a
+      href="{{ upgrade_url }}"
+      class="btn btn-primary w-full text-sm"
+      target="_blank"
+      rel="noopener"
+    >
+      Passer en premium
+    </a>
+    <p class="text-xs text-ink-500">
+      Une fois premium, vous publiez autant d’annonces que nécessaire et bénéficiez d’un suivi prioritaire.
+    </p>
+  </div>
+</div>

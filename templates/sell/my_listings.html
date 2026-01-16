@@ -130,7 +130,7 @@
                   </div>
                 {% endif %}
                 <div class="flex flex-wrap items-center gap-2">
-                  {% if listing.status in ["reserved", "reservation_accepted"] %}
+                  {% if listing.status in reserved_statuses %}
                     <div class="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                       Réservé
                     </div>
@@ -140,7 +140,7 @@
                       {{ listing.public_status_display }}
                     </span>
                   {% endif %}
-                  {% if listing.status not in ["published", "reserved", "reservation_accepted"] %}
+                  {% if listing.status not in public_visible_statuses %}
                     {% include "components/ui/badge.html" with label=listing.get_status_display|default:listing.status tone="gray" only %}
                   {% endif %}
                 </div>

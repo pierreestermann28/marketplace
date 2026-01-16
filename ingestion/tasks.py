@@ -1,9 +1,20 @@
 import hashlib
+import logging
 import random
 from decimal import Decimal
 
-from celery import shared_task
 from django.db import transaction
+
+try:
+    from celery import shared_task
+except ImportError:  # pragma: no cover
+    def shared_task(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
+logger = logging.getLogger("ingestion.tasks")
 
 from accounts.entitlements import (
     detected_item_usage_window,
@@ -48,6 +59,7 @@ def _find_cached_detected_item(owner, file_hash):
 
 @shared_task(bind=True, name="ingestion.analyze_batch", max_retries=1)
 def analyze_batch(self, batch_id):
+    logger.info("Celery analyze_batch start", extra={"batch_id": str(batch_id)})
     try:
         batch = (
             BatchUpload.objects.select_related("owner")
@@ -101,6 +113,14 @@ def analyze_batch(self, batch_id):
                     batch.mark_failed(
                         "Quota mensuel d’IA atteint. Passez à l’abonnement pour continuer."
                     )
+                    logger.warning(
+                        "Detected item quota exceeded",
+                        extra={
+                            "batch_id": str(batch.id),
+                            "owner_id": batch.owner_id,
+                            "quota_limit": quota_limit,
+                        },
+                    )
                     return
 
                 price = Decimal("25.00")
@@ -133,6 +153,10 @@ def analyze_batch(self, batch_id):
                 batch.mark_asset_processed()
 
         batch.mark_done()
+        logger.info(
+            "Celery analyze_batch completed",
+            extra={"batch_id": str(batch.id), "processed_count": len(assets)},
+        )
     except Exception as exc:  # pragma: no cover
         batch.mark_failed(str(exc))
         raise
