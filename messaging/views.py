@@ -9,7 +9,6 @@ from django.utils import timezone
 from django.views.generic import DetailView, RedirectView, TemplateView
 
 from listings.models import Listing
-from listings.utils import user_can_message_listing
 
 from .forms import MessageForm
 from .models import Conversation, Message
@@ -130,14 +129,6 @@ class ConversationStartView(LoginRequiredMixin, RedirectView):
         if listing.seller == self.request.user:
             django_messages.error(
                 self.request, "Vous ne pouvez pas vous contacter vous-même."
-            )
-            return reverse(
-                "listing_detail", kwargs={"slug": listing.slug, "uuid": listing.id}
-            )
-        if not user_can_message_listing(self.request.user, listing):
-            django_messages.error(
-                self.request,
-                "Réserve ou complète le paiement pour débloquer la messagerie.",
             )
             return reverse(
                 "listing_detail", kwargs={"slug": listing.slug, "uuid": listing.id}

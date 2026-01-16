@@ -18,6 +18,7 @@ class Listing(models.Model):
         PUBLISHED = "published"
         REJECTED = "rejected"
         RESERVED = "reserved"
+        RESERVATION_ACCEPTED = "reservation_accepted"
         SOLD = "sold"
         ARCHIVED = "archived"
 
@@ -141,10 +142,14 @@ class Listing(models.Model):
             .order_by("-reserved_at")
             .first()
         )
-        if active and self.status != self.Status.RESERVED:
+        reserved_states = {
+            self.Status.RESERVED,
+            self.Status.RESERVATION_ACCEPTED,
+        }
+        if active and self.status not in reserved_states:
             self.status = self.Status.RESERVED
             self.save(update_fields=["status"])
-        if not active and self.status == self.Status.RESERVED:
+        if not active and self.status in reserved_states:
             self.status = self.Status.PUBLISHED
             self.save(update_fields=["status"])
         return active

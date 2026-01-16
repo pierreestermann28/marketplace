@@ -5,7 +5,9 @@ from django.contrib.auth import get_user_model
 from .models import Listing
 
 
-def user_can_message_listing(user: Optional[get_user_model()], listing: Listing) -> bool:
+def user_can_view_contact_info(
+    user: Optional[get_user_model()], listing: Listing
+) -> bool:
     if not user or not user.is_authenticated:
         return False
     if listing.seller == user:

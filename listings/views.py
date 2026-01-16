@@ -32,7 +32,7 @@ from .models import (
     Reservation,
     SearchAlert,
 )
-from .utils import user_can_message_listing
+from .utils import user_can_view_contact_info
 from accounts.models import ReputationStats
 from commerce.models import Review
 from ingestion.models import DetectedItem
@@ -185,7 +185,11 @@ class ListingDetailView(DetailView):
     def get_queryset(self):
         qs = (
             Listing.objects.filter(
-                status__in=[Listing.Status.PUBLISHED, Listing.Status.RESERVED]
+                status__in=[
+                    Listing.Status.PUBLISHED,
+                    Listing.Status.RESERVED,
+                    Listing.Status.RESERVATION_ACCEPTED,
+                ]
             )
             .select_related("category", "seller")
             .prefetch_related("images__image_asset")
@@ -202,10 +206,17 @@ class ListingDetailView(DetailView):
             qs = qs.annotate(is_favorited=Value(False, output_field=BooleanField()))
         return qs
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        canonical_slug = self.object.slug or "item"
+        if kwargs.get("slug") != canonical_slug:
+            return redirect(get_listing_detail_url(self.object))
+        return super().get(request, *args, **kwargs)
+
     def get_object(self, queryset=None):
-        slug = self.kwargs["slug"]
         listing_id = self.kwargs["uuid"]
-        return get_object_or_404(self.get_queryset(), id=listing_id, slug=slug)
+        queryset = queryset or self.get_queryset()
+        return get_object_or_404(queryset, id=listing_id)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -272,11 +283,11 @@ class ListingDetailView(DetailView):
                         user=self.request.user, listing=listing
                     ).exists()
                 ),
-                "can_contact_seller": user_can_message_listing(
+                "can_view_contact_info": user_can_view_contact_info(
                     self.request.user, listing
                 ),
                 "contact_lock_reason": (
-                    "La messagerie se débloque après une réservation ou un paiement validé."
+                    "Les coordonnées se débloquent après une réservation ou un paiement validé."
                 ),
             }
         )
@@ -393,6 +404,7 @@ class MyListingsView(LoginRequiredMixin, ListView):
         Listing.Status.PENDING_REVIEW,
         Listing.Status.PUBLISHED,
         Listing.Status.RESERVED,
+        Listing.Status.RESERVATION_ACCEPTED,
         Listing.Status.SOLD,
         Listing.Status.REJECTED,
         Listing.Status.ARCHIVED,
@@ -403,6 +415,7 @@ class MyListingsView(LoginRequiredMixin, ListView):
         Listing.Status.PENDING_REVIEW: "En relecture",
         Listing.Status.PUBLISHED: "Publiés",
         Listing.Status.RESERVED: "Réservés",
+        Listing.Status.RESERVATION_ACCEPTED: "Réservation acceptée",
         Listing.Status.SOLD: "Vendues",
         Listing.Status.REJECTED: "Refusés",
         Listing.Status.ARCHIVED: "Archivée",
@@ -413,6 +426,7 @@ class MyListingsView(LoginRequiredMixin, ListView):
         Listing.Status.PENDING_REVIEW: "Sous validation équipe",
         Listing.Status.PUBLISHED: "Visibles par tous",
         Listing.Status.RESERVED: "Attente confirmation",
+        Listing.Status.RESERVATION_ACCEPTED: "Réservation validée",
         Listing.Status.SOLD: "Livrées ou payées",
         Listing.Status.REJECTED: "Demande une mise à jour",
         Listing.Status.ARCHIVED: "Conclues ou retirées",
@@ -602,10 +616,37 @@ class ReservationCancelView(LoginRequiredMixin, View):
             django_messages.info(request, "Il n’y a plus de réservation active.")
             return redirect(detail_url)
         reservation.cancel()
-        if listing.status == Listing.Status.RESERVED:
+        if listing.status in {
+            Listing.Status.RESERVED,
+            Listing.Status.RESERVATION_ACCEPTED,
+        }:
             listing.status = Listing.Status.PUBLISHED
             listing.save(update_fields=["status"])
         django_messages.success(request, "La réservation a été annulée.")
+        return redirect(detail_url)
+
+
+class ReservationAcceptView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        listing = get_object_or_404(
+            Listing, id=kwargs["listing_id"], seller=request.user
+        )
+        detail_url = get_listing_detail_url(listing)
+        reservation = listing.refresh_reservation_state()
+        if not reservation:
+            django_messages.info(request, "Il n’y a plus de réservation active.")
+            return redirect(detail_url)
+        if listing.status not in {Listing.Status.RESERVED}:
+            django_messages.info(
+                request, "La réservation a déjà été validée ou le statut a changé."
+            )
+            return redirect(detail_url)
+        listing.status = Listing.Status.RESERVATION_ACCEPTED
+        listing.save(update_fields=["status"])
+        django_messages.success(
+            request,
+            "La réservation a été acceptée et l’objet passe en statut Réservation acceptée.",
+        )
         return redirect(detail_url)
 
 

@@ -102,6 +102,12 @@
                       {% csrf_token %}
                       {% include "components/ui/button.html" with label="Annuler la réservation" variant="danger" size="sm" type="submit" only %}
                     </form>
+                    {% if listing.status == "reserved" %}
+                      <form method="post" action="{% url 'listing_accept_reservation' listing_id=listing.id %}" class="mt-3">
+                        {% csrf_token %}
+                        {% include "components/ui/button.html" with label="Accepter la réservation" variant="primary" size="sm" type="submit" only %}
+                      </form>
+                    {% endif %}
                   </div>
                 {% endif %}
                 <div class="flex items-center gap-2">
@@ -111,6 +117,8 @@
                     {% include "components/ui/badge.html" with label="En relecture" tone="gray" only %}
                   {% elif listing.status == "draft" %}
                     {% include "components/ui/badge.html" with label="Brouillon" tone="gray" only %}
+                  {% elif listing.status == "reservation_accepted" %}
+                    {% include "components/ui/badge.html" with label="Réservation acceptée" tone="amber" only %}
                   {% elif listing.status == "rejected" %}
                     {% include "components/ui/badge.html" with label="Rejeté" tone="red" only %}
                   {% else %}
