@@ -13,8 +13,28 @@
     {% csrf_token %}
     <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>
-      {% block title %}StillUseful{% endblock %}
+      {% block title %}{% if page_meta.title %}{{ page_meta.title }}{% else %}StillUseful{% endif %}{% endblock %}
     </title>
+    {% with meta=page_meta|default_if_none:{} %}
+      <meta
+        name="description"
+        content="{{ meta.description|default:'StillUseful, la place de marché engagée pour donner une seconde vie aux objets du quotidien.' }}"
+      />
+      <meta property="og:title" content="{{ meta.og_title|default:meta.title|default:'StillUseful' }}" />
+      <meta property="og:description" content="{{ meta.og_description|default:meta.description|default:'StillUseful, la place de marché engagée pour donner une seconde vie aux objets du quotidien.' }}" />
+      <meta property="og:type" content="{{ meta.og_type|default:"website" }}" />
+    {% endwith %}
+    {% with canonical_url=canonical_url|default_if_none:"" pagination_links=pagination_links|default:{} %}
+      {% if canonical_url %}
+        <link rel="canonical" href="{{ canonical_url }}" />
+      {% endif %}
+      {% if pagination_links.prev %}
+        <link rel="prev" href="{{ pagination_links.prev }}" />
+      {% endif %}
+      {% if pagination_links.next %}
+        <link rel="next" href="{{ pagination_links.next }}" />
+      {% endif %}
+    {% endwith %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}" />
     <link rel="stylesheet" href="{% static 'vendor/toastify.css' %}" />
     {% progressive_web_app_meta %}

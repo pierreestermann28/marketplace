@@ -20,11 +20,14 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
 
+from stillusefull.views import SitemapView
+
 
 def htmx_ping(request):
     return HttpResponse("HTMX ok")
 
 urlpatterns = [
+    path("sitemap.xml", SitemapView.as_view(), name="sitemap"),
     path("", include("listings.urls")),
     path("batches/", include("ingestion.urls")),
     path("messages/", include("messaging.urls")),

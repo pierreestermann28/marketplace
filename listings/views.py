@@ -5,7 +5,7 @@ from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.mail import send_mail
 from django.db.models import Avg, BooleanField, Count, Exists, F, OuterRef, Prefetch, Q, Value
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -23,6 +23,8 @@ from mediahub.models import ImageAsset
 from catalog.models import Category
 
 from .forms import ListingForm, PhotoUploadForm, SearchAlertForm
+from django.utils.text import slugify
+
 from .models import (
     Favorite,
     Listing,
@@ -48,9 +50,12 @@ class HomeFeedView(ListView):
     template_name = "pages/home.html"
     context_object_name = "listings"
     paginate_by = 24
+    status_filter = [Listing.Status.PUBLISHED]
+    default_title = "Annonces responsables | StillUseful"
+    default_description = "Vendez et achetez localement avec StillUseful : annonces vérifiées, échanges sécurisés et durabilité."
 
     def get_queryset(self):
-        qs = Listing.objects.filter(status=Listing.Status.PUBLISHED)
+        qs = Listing.objects.filter(status__in=self.status_filter)
         q = self.request.GET.get("q", "").strip()
         city = self.request.GET.get("city", "").strip()
         category = self.request.GET.get("category", "").strip()
@@ -95,8 +100,30 @@ class HomeFeedView(ListView):
             category_ids
         )
         context["feed_partial_url"] = self._build_feed_partial_url(context["filters"]["querystring"])
+        context["featured_categories"] = (
+            Category.objects.filter(listings__status__in=self.status_filter)
+            .annotate(count=Count("listings"))
+            .order_by("-count")[:6]
+        )
+        featured_city_qs = (
+            Listing.objects.filter(status__in=self.status_filter)
+            .exclude(city__exact="")
+            .values("city")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:6]
+        )
+        context["featured_cities"] = [
+            {"city": city["city"], "count": city["count"], "slug": slugify(city["city"])}
+            for city in featured_city_qs
+        ]
+        context["page_meta"] = self._default_page_meta()
+        context["page_heading"] = "Annonces locales"
+        context["page_description"] = context["page_meta"]["description"]
+        page_obj = context.get("page_obj")
+        current_page = page_obj.number if page_obj else None
+        context["canonical_url"] = self._build_canonical_url(current_page)
+        context["pagination_links"] = self._build_pagination_links(page_obj)
         return context
-
 
     def _get_filter_querystring(self):
         params = self.request.GET.copy()
@@ -165,6 +192,36 @@ class HomeFeedView(ListView):
         seen_qs = ListingView.objects.filter(user=user, listing=OuterRef("pk"))
         return qs.annotate(is_seen=Exists(seen_qs))
 
+    def _default_page_meta(self):
+        return {
+            "title": self.default_title,
+            "description": self.default_description,
+            "og_title": self.default_title,
+            "og_description": self.default_description,
+            "og_type": "website",
+        }
+
+    def _build_canonical_url(self, page_number=None):
+        query = self._get_filter_querystring()
+        if page_number and page_number > 1:
+            suffix = f"page={page_number}"
+            query = f"{query}&{suffix}" if query else suffix
+        path = self.request.path
+        canonical = self.request.build_absolute_uri(path)
+        if query:
+            return f"{canonical}?{query}"
+        return canonical
+
+    def _build_pagination_links(self, page_obj):
+        links = {}
+        if not page_obj:
+            return links
+        if page_obj.has_previous():
+            links["prev"] = self._build_canonical_url(page_obj.previous_page_number())
+        if page_obj.has_next():
+            links["next"] = self._build_canonical_url(page_obj.next_page_number())
+        return links
+
 
 class HomeFeedPartialView(HomeFeedView):
     template_name = "components/listings/listing_grid.html"
@@ -175,6 +232,68 @@ class HomeFeedPartialView(HomeFeedView):
         self.object_list = self.get_queryset()
         context = self.get_context_data()
         return render(request, self.get_template_names(), context)
+
+
+class CategoryListingView(HomeFeedView):
+    template_name = "pages/listings_feed.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.category = get_object_or_404(Category, slug=kwargs["slug"])
+        query_params = request.GET.copy()
+        query_params["category"] = self.category.slug
+        request.GET = query_params
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        description = f"Explorez toutes les annonces {self.category.name} vérifiées sur StillUseful."
+        context["page_heading"] = f"Catégorie {self.category.name}"
+        context["page_description"] = description
+        context["page_meta"] = {
+            "title": f"{self.category.name} | StillUseful",
+            "description": description,
+            "og_title": f"{self.category.name} – StillUseful",
+            "og_description": description,
+            "og_type": "website",
+        }
+        return context
+
+
+class CityListingView(HomeFeedView):
+    template_name = "pages/listings_feed.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.city_label = self._resolve_city(kwargs["slug"])
+        query_params = request.GET.copy()
+        query_params["city"] = self.city_label
+        request.GET = query_params
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        description = f"Les meilleures annonces disponibles à {self.city_label}."
+        context["page_heading"] = f"{self.city_label}"
+        context["page_description"] = description
+        context["page_meta"] = {
+            "title": f"Annonces à {self.city_label} | StillUseful",
+            "description": description,
+            "og_title": f"Annonces à {self.city_label}",
+            "og_description": description,
+            "og_type": "website",
+        }
+        return context
+
+    def _resolve_city(self, slug):
+        cities = (
+            Listing.objects.filter(city__isnull=False)
+            .exclude(city="")
+            .values_list("city", flat=True)
+            .distinct()
+        )
+        for city in cities:
+            if slugify(city) == slug:
+                return city
+        raise Http404("Ville inconnue")
 
 
 class ListingDetailView(DetailView):
@@ -239,6 +358,7 @@ class ListingDetailView(DetailView):
         if not stats:
             stats = ReputationStats.for_user(listing.seller)
         review_stats = self._build_seller_review_stats(listing.seller)
+        listing_url = get_listing_detail_url(listing)
         context.update(
             {
                 "primary_image": primary_image,
@@ -291,6 +411,15 @@ class ListingDetailView(DetailView):
                 ),
             }
         )
+        context["page_meta"] = {
+            "title": f"{listing.title} | StillUseful",
+            "description": (listing.description or listing.title)[:160],
+            "og_title": listing.title,
+            "og_description": (listing.description or listing.title)[:200],
+            "og_type": "product",
+        }
+        context["canonical_url"] = self.request.build_absolute_uri(listing_url)
+        context["pagination_links"] = {}
         return context
 
     def _build_location_label(self, listing):

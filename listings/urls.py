@@ -1,6 +1,8 @@
 from django.urls import path
 
 from .views import (
+    CategoryListingView,
+    CityListingView,
     HomeFeedView,
     ListingDetailView,
     ListingFavoriteToggleView,
@@ -26,6 +28,8 @@ urlpatterns = [
     path("items/<uuid:listing_id>/cancel-reservation/", ReservationCancelView.as_view(), name="listing_cancel_reservation"),
     path("items/<uuid:listing_id>/remind/", ListingReminderCreateView.as_view(), name="listing_remind"),
     path("alerts/create/", SearchAlertCreateView.as_view(), name="search_alert_create"),
+    path("categories/<slug:slug>/", CategoryListingView.as_view(), name="category_listings"),
+    path("villes/<slug:slug>/", CityListingView.as_view(), name="city_listings"),
     path("items/<slug:slug>-<uuid:uuid>/", ListingDetailView.as_view(), name="listing_detail"),
     path("feed/partial/", HomeFeedPartialView.as_view(), name="home_feed_partial"),
     path("my/listings/", MyListingsView.as_view(), name="my_listings"),
