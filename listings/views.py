@@ -51,7 +51,7 @@ class HomeFeedView(ListView):
     template_name = "pages/home.html"
     context_object_name = "listings"
     paginate_by = 24
-    status_filter = list(Listing.PUBLIC_FEED_STATUSES)
+    status_filter = [Listing.Status.PUBLISHED]
     default_title = "Annonces responsables | StillUseful"
     default_description = "Vendez et achetez localement avec StillUseful : annonces vérifiées, échanges sécurisés et durabilité."
 
@@ -556,9 +556,21 @@ class MyListingsView(LoginRequiredMixin, ListView):
         Listing.Status.ARCHIVED: "Conclues ou retirées",
     }
 
+    STATUS_FILTERS = [
+        ("all", "Toutes", []),
+        ("available", "Disponibles", [Listing.Status.PUBLISHED]),
+        (
+            "reserved",
+            "Réservées",
+            [Listing.Status.RESERVED, Listing.Status.RESERVATION_ACCEPTED],
+        ),
+        ("sold", "Vendues", [Listing.Status.SOLD]),
+        ("archived", "Archivée", [Listing.Status.ARCHIVED]),
+    ]
+
     def get_queryset(self):
         reservation_qs = Reservation.objects.active().select_related("buyer")
-        return (
+        qs = (
             Listing.objects.filter(seller=self.request.user)
             .select_related("category")
             .prefetch_related(
@@ -566,6 +578,10 @@ class MyListingsView(LoginRequiredMixin, ListView):
             )
             .order_by("-updated_at")
         )
+        status_filter = self._get_status_filter()
+        if status_filter:
+            qs = qs.filter(status__in=status_filter)
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -574,14 +590,19 @@ class MyListingsView(LoginRequiredMixin, ListView):
         context["reservation_expiration_hours"] = getattr(
             settings, "RESERVATION_HOLD_HOURS", 24
         )
-        context["status_summary"] = self._build_status_summary(context["listings"])
-        context["status_cards"] = self._build_status_cards(context["status_summary"])
+        summary = self._build_status_summary()
+        context["status_summary"] = summary
+        context["status_cards"] = self._build_status_cards(summary)
+        context["status_filters"] = self._build_filter_options(summary)
+        context["active_filter"] = self.request.GET.get("filter", "all")
         return context
 
-    def _build_status_summary(self, listings):
+    def _build_status_summary(self):
         counts = {
             row["status"]: row["count"]
-            for row in listings.values("status").annotate(count=Count("status"))
+            for row in Listing.objects.filter(seller=self.request.user)
+            .values("status")
+            .annotate(count=Count("status"))
         }
         return counts
 
@@ -599,6 +620,27 @@ class MyListingsView(LoginRequiredMixin, ListView):
                 }
             )
         return cards
+
+    def _get_status_filter(self):
+        filter_key = self.request.GET.get("filter", "all")
+        for key, _, statuses in self.STATUS_FILTERS:
+            if key == filter_key:
+                return statuses
+        return []
+
+    def _build_filter_options(self, summary):
+        total = sum(summary.values())
+        options = []
+        for key, label, statuses in self.STATUS_FILTERS:
+            count = (
+                sum(summary.get(status, 0) for status in statuses)
+                if statuses
+                else total
+            )
+            options.append(
+                {"key": key, "label": label, "count": count},
+            )
+        return options
 
 
 class ListingStartView(LoginRequiredMixin, FormView):

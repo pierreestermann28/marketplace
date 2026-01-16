@@ -52,6 +52,7 @@ from mediahub.models import BatchUpload, ImageAsset, MediaAsset
 
 from .forms import BatchUploadForm
 from .models import DetectedItem
+from accounts.entitlements import QuotaExceeded
 from .tasks import analyze_batch
 from .services.publishing import publish_detected_item
 
@@ -309,3 +310,11 @@ def _build_admin_counts():
             status=DetectedItem.Status.PENDING
         ).count(),
     }
+
+
+def _render_quota_prompt(request, item, message):
+    context = _build_admin_counts()
+    context["current_item"] = item
+    context["quota_error_message"] = message
+    context["upgrade_url"] = getattr(settings, "PREMIUM_UPGRADE_URL", "/pricing")
+    return render(request, "fragments/ingestion/quota_upgrade.html", context)

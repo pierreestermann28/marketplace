@@ -1,11 +1,49 @@
+import hashlib
 import random
 from decimal import Decimal
 
 from celery import shared_task
 from django.db import transaction
 
+from accounts.entitlements import (
+    detected_item_usage_window,
+    get_free_detected_item_quota,
+    is_premium,
+)
 from mediahub.models import BatchUpload
 from .models import DetectedItem
+
+
+def _compute_file_hash(asset):
+    path = asset.image_asset.image.path
+    hasher = hashlib.sha256()
+    with open(path, "rb") as fp:
+        for chunk in iter(lambda: fp.read(8192), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def _ensure_asset_hash(asset):
+    if asset.file_hash:
+        return asset.file_hash
+    file_hash = _compute_file_hash(asset)
+    if file_hash:
+        asset.file_hash = file_hash
+        asset.save(update_fields=["file_hash"])
+    return file_hash
+
+
+def _find_cached_detected_item(owner, file_hash):
+    if not file_hash:
+        return None
+    return (
+        DetectedItem.objects.filter(
+            owner=owner,
+            hero_asset__file_hash=file_hash,
+        )
+        .order_by("-updated_at")
+        .first()
+    )
 
 
 @shared_task(bind=True, name="ingestion.analyze_batch", max_retries=1)
@@ -28,10 +66,43 @@ def analyze_batch(self, batch_id):
         batch.mark_failed("No assets found for batch")
         return
 
-    suggestions = []
+    owner_premium = is_premium(batch.owner)
+    usage = detected_item_usage_window(batch.owner)
+    quota_limit = (
+        None if owner_premium else get_free_detected_item_quota(batch.owner)
+    )
+
     try:
         with transaction.atomic():
             for asset in assets:
+                file_hash = _ensure_asset_hash(asset)
+                cached = _find_cached_detected_item(batch.owner, file_hash)
+                if cached:
+                    metadata = dict(cached.metadata_json or {})
+                    metadata["asset_id"] = str(asset.id)
+                    metadata.setdefault("cached_from", str(cached.id))
+                    DetectedItem.objects.create(
+                        owner=batch.owner,
+                        batch=batch,
+                        hero_asset=asset,
+                        title_suggested=cached.title_suggested,
+                        description_suggested=cached.description_suggested,
+                        category_suggested=cached.category_suggested,
+                        price_low=cached.price_low,
+                        price_high=cached.price_high,
+                        confidence=cached.confidence,
+                        metadata_json=metadata,
+                        is_cached_result=True,
+                    )
+                    batch.mark_asset_processed()
+                    continue
+
+                if quota_limit is not None and usage >= quota_limit:
+                    batch.mark_failed(
+                        "Quota mensuel d’IA atteint. Passez à l’abonnement pour continuer."
+                    )
+                    return
+
                 price = Decimal("25.00")
                 low = price
                 high = price + Decimal("15.00")
@@ -40,6 +111,11 @@ def analyze_batch(self, batch_id):
                     f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
                 )
                 confidence = random.uniform(0.5, 0.98)
+                metadata = {
+                    "asset_id": str(asset.id),
+                    "media_type": asset.media_type,
+                    "confidence": confidence,
+                }
                 DetectedItem.objects.create(
                     owner=batch.owner,
                     batch=batch,
@@ -50,13 +126,12 @@ def analyze_batch(self, batch_id):
                     price_low=low,
                     price_high=high,
                     confidence=confidence,
-                    metadata_json={
-                        "asset_id": str(asset.id),
-                        "media_type": asset.media_type,
-                        "confidence": confidence,
-                    },
+                    metadata_json=metadata,
                 )
+                if quota_limit is not None:
+                    usage += 1
                 batch.mark_asset_processed()
+
         batch.mark_done()
     except Exception as exc:  # pragma: no cover
         batch.mark_failed(str(exc))

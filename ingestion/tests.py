@@ -117,3 +117,31 @@ class IngestionTests(TestCase):
         self.assertEqual(self.batch.error_message, "")
         self.assertEqual(self.batch.detected_items.count(), 0)
         mock_analyze.delay.assert_called_once_with(str(self.batch.id))
+
+    @patch("ingestion.tasks._compute_file_hash", return_value="cached-hash")
+    def test_duplicate_hash_reuses_cached_result(self, mock_hash):
+        self.media_asset.file_hash = "cached-hash"
+        self.media_asset.save(update_fields=["file_hash"])
+        self.detected_item.title_suggested = "Détec cache"
+        self.detected_item.description_suggested = "Détection déjà connue"
+        self.detected_item.metadata_json = {"cached": True}
+        self.detected_item.save(
+            update_fields=["title_suggested", "description_suggested", "metadata_json"]
+        )
+        new_batch = BatchUpload.objects.create(owner=self.user, media_count=1)
+        image_asset = ImageAsset.objects.create(user=self.user, image=make_image_file("copy.png"))
+        new_asset = MediaAsset.objects.create(batch=new_batch, image_asset=image_asset)
+        analyze_batch.__wrapped__(None, str(new_batch.id))
+        cached_item = DetectedItem.objects.filter(hero_asset=new_asset).first()
+        self.assertIsNotNone(cached_item)
+        self.assertTrue(cached_item.is_cached_result)
+        self.assertEqual(cached_item.title_suggested, self.detected_item.title_suggested)
+        self.assertEqual(cached_item.metadata_json.get("cached"), True)
+
+    @override_settings(FREE_DETECTED_ITEM_QUOTA_PER_MONTH=1)
+    def test_quota_limits_new_detections(self):
+        self.client.force_login(self.user)
+        analyze_batch.__wrapped__(None, str(self.batch.id))
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.status, BatchUpload.Status.FAILED)
+        self.assertIn("Quota mensuel d’IA atteint", self.batch.error_message)

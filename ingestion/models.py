@@ -46,6 +46,11 @@ class DetectedItem(models.Model):
         default=Status.PENDING,
         db_index=True,
     )
+    is_cached_result = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="True when suggestions are reused from a previous hash match.",
+    )
 
     # Suggestions IA (persistées, jamais recalculées sans raison)
     title_suggested = models.CharField(max_length=120, blank=True, default="")

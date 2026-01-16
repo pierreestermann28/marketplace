@@ -6,12 +6,14 @@ from django.utils.text import slugify
 from listings.models import Listing, ListingImage
 
 from ..models import DetectedItem
+from accounts.entitlements import ensure_listing_quota, record_listing_publication
 from mediahub.models import MediaAsset
 
 
 def publish_detected_item(item: DetectedItem) -> Listing:
     price_cents = _price_to_cents(item)
     category = _resolve_category(item.category_suggested)
+    ensure_listing_quota(item.owner)
     listing = Listing(
         seller=item.owner,
         title=item.title_suggested or "Objet détecté",
@@ -31,6 +33,7 @@ def publish_detected_item(item: DetectedItem) -> Listing:
         source_item=item,
     )
     listing.save()
+    record_listing_publication(item.owner)
 
     hero_asset = item.hero_asset
     if hero_asset:

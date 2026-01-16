@@ -34,6 +34,20 @@
       </div>
     {% endif %}
 
+    <div class="card card-body border border-ink-200 bg-white/90">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-ink-500">
+        {% for filter in status_filters %}
+          {% url 'my_listings' as my_listings_url %}
+          <a
+            href="{{ my_listings_url }}?filter={{ filter.key }}"
+            class="rounded-full border px-3 py-1 transition {% if active_filter == filter.key %}bg-brand text-white border-brand{% else %}bg-white text-ink-500 border-ink-200{% endif %}"
+          >
+            {{ filter.label }} ({{ filter.count }})
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
     {% if listings %}
       <div class="space-y-4">
         {% for listing in listings %}
@@ -81,8 +95,13 @@
                     </div>
                   </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2 text-xs text-ink-600">
-                  <span class="uppercase tracking-[0.3em]">{{ listing.get_condition_display|default:listing.condition }}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="flex items-center gap-1 text-xs uppercase tracking-[0.3em] text-ink-500">
+                    {{ listing.public_status_display|default:listing.get_status_display|default:listing.status }}
+                  </span>
+                  <span class="uppercase tracking-[0.3em] text-xs text-ink-500">
+                    {{ listing.get_condition_display|default:listing.condition }}
+                  </span>
                   {% if listing.shipping_enabled %}<span class="badge-success">Livraison</span>{% endif %}
                   {% if listing.in_person_enabled %}<span class="badge">Remise</span>{% endif %}
                 </div>
@@ -110,18 +129,18 @@
                     {% endif %}
                   </div>
                 {% endif %}
-                <div class="flex items-center gap-2">
-                  {% if listing.status == "published" %}
-                    {% include "components/ui/badge.html" with label="Publié" tone="green" only %}
-                  {% elif listing.status == "pending_review" %}
-                    {% include "components/ui/badge.html" with label="En relecture" tone="gray" only %}
-                  {% elif listing.status == "draft" %}
-                    {% include "components/ui/badge.html" with label="Brouillon" tone="gray" only %}
-                  {% elif listing.status == "reservation_accepted" %}
-                    {% include "components/ui/badge.html" with label="Réservation acceptée" tone="amber" only %}
-                  {% elif listing.status == "rejected" %}
-                    {% include "components/ui/badge.html" with label="Rejeté" tone="red" only %}
-                  {% else %}
+                <div class="flex flex-wrap items-center gap-2">
+                  {% if listing.status in ["reserved", "reservation_accepted"] %}
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                      Réservé
+                    </div>
+                  {% endif %}
+                  {% if listing.public_status_display %}
+                    <span class="badge badge-{{ listing.public_status_badge_tone }} text-[10px] uppercase tracking-[0.4em]">
+                      {{ listing.public_status_display }}
+                    </span>
+                  {% endif %}
+                  {% if listing.status not in ["published", "reserved", "reservation_accepted"] %}
                     {% include "components/ui/badge.html" with label=listing.get_status_display|default:listing.status tone="gray" only %}
                   {% endif %}
                 </div>
