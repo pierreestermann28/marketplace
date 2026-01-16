@@ -99,4 +99,107 @@
   .nav-inner {
     @apply max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3;
   }
+
+  /* Hero block */
+  .hero {
+    @apply relative overflow-hidden rounded-[32px] bg-gradient-to-br from-brand/90 via-slate-900 to-slate-800 p-8 text-white shadow-[0_25px_40px_rgba(31,42,68,0.45)];
+  }
+  .hero__content {
+    @apply max-w-2xl space-y-4;
+  }
+  .hero__pill {
+    @apply inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em];
+  }
+  .hero__stats {
+    @apply mt-6 grid gap-4 sm:grid-cols-3;
+  }
+  .hero__stat {
+    @apply rounded-2xl border border-white/30 bg-white/10 p-4 text-sm shadow-inner;
+  }
+  .hero__stat strong {
+    @apply block text-2xl font-semibold leading-tight text-white;
+  }
+
+  .feature-grid {
+    @apply grid gap-4 sm:grid-cols-3;
+  }
+  .feature-card {
+    @apply rounded-2xl border border-ink-100 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(15,23,42,0.15)];
+  }
+  .feature-card h3 {
+    @apply text-base font-semibold text-ink-900;
+  }
+  .feature-card p {
+    @apply mt-2 text-sm text-ink-600;
+  }
+  .feature-card svg {
+    @apply h-5 w-5 text-brand;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-[0.5em] text-ink-400;
+  }
+
+  .status-pill {
+    @apply rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em];
+  }
+  .status-pill--processing {
+    @apply bg-brand/10 text-brand;
+  }
+  .status-pill--done {
+    @apply bg-success/10 text-success;
+  }
+  .status-pill--failed {
+    @apply bg-danger/10 text-danger;
+  }
+
+  .status-metric {
+    @apply rounded-2xl border border-ink-100 bg-surface-muted/70 p-4 text-center;
+  }
+
+  .progress-bar {
+    @apply h-2 w-full overflow-hidden rounded-full border border-ink-100 bg-ink-100;
+  }
+  .progress-bar__fill {
+    @apply h-full bg-brand transition-all duration-300;
+  }
+
+  .swipe-card {
+    @apply relative mx-auto max-w-3xl;
+  }
+  .swipe-card-inner {
+    @apply border border-ink-100 bg-white p-6 shadow-xl transition duration-200;
+  }
+  .swipe-form {
+    @apply transition duration-150;
+  }
+  .swipe-form button {
+    @apply transition-colors duration-150;
+  }
+  .swipe-hint {
+    @apply text-center text-xs text-ink-500;
+  }
+
+  .step-card {
+    @apply rounded-2xl border border-ink-100 bg-white p-4 text-sm text-ink-600 shadow-sm transition hover:border-brand hover:-translate-y-0.5 hover:shadow-[0_18px_30px_rgba(15,23,42,0.12)];
+  }
+  .step-card__title {
+    @apply text-base font-semibold text-ink-900;
+  }
+  .step-card__body {
+    @apply text-sm text-ink-600;
+  }
+  .step-pill {
+    @apply inline-flex h-6 w-6 items-center justify-center rounded-full border border-ink-200 bg-surface-muted text-xs font-semibold uppercase tracking-[0.2em] text-ink-500;
+  }
+
+  .drop-zone {
+    @apply relative cursor-pointer rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50/70 px-8 py-10 text-center transition duration-150;
+  }
+  .drop-zone:hover {
+    @apply border-brand bg-white;
+  }
+  .drop-icon {
+    @apply mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-brand/30 bg-brand/10 text-brand transition;
+  }
 }

@@ -9,13 +9,13 @@
         Marketplace responsable pour offrir une seconde vie aux objets du quotidien, avec une expérience de confiance du début à la fin.
       </p>
       <div class="flex items-center gap-3 text-ink-500">
-        <a href="#" class="transition hover:text-brand" aria-label="Instagram">
+        <a href="https://www.instagram.com/stilluseful/" target="_blank" rel="noreferrer" class="transition hover:text-brand" aria-label="Instagram">
           <i data-lucide="instagram" class="h-5 w-5"></i>
         </a>
-        <a href="#" class="transition hover:text-brand" aria-label="LinkedIn">
+        <a href="https://www.linkedin.com/company/stilluseful/" target="_blank" rel="noreferrer" class="transition hover:text-brand" aria-label="LinkedIn">
           <i data-lucide="linkedin" class="h-5 w-5"></i>
         </a>
-        <a href="#" class="transition hover:text-brand" aria-label="Twitter">
+        <a href="https://twitter.com/stilluseful_" target="_blank" rel="noreferrer" class="transition hover:text-brand" aria-label="Twitter">
           <i data-lucide="twitter" class="h-5 w-5"></i>
         </a>
       </div>
@@ -23,7 +23,7 @@
     <div class="space-y-2 text-sm text-ink-600">
       <div class="font-semibold text-ink-900">Explorer</div>
       <a href="/" class="transition hover:text-ink-900">Marketplace</a>
-      <a href="/sell/create/" class="transition hover:text-ink-900">Publier une annonce</a>
+      <a href="{% url 'ingestion:batch_upload' %}" class="transition hover:text-ink-900">Publier une annonce</a>
       <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Wishlist</a>
       <a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a>
     </div>

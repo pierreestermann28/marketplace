@@ -44,6 +44,32 @@
         }
       });
     </script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.analyticsTrack = function (category, action, label) {
+        const eventPayload = {
+          event: "custom_event",
+          category: category || "general",
+          action: action || "click",
+          label: label || "",
+          timestamp: new Date().toISOString(),
+        };
+        if (window.dataLayer && typeof window.dataLayer.push === "function") {
+          window.dataLayer.push(eventPayload);
+        }
+        if (window.console && typeof window.console.debug === "function") {
+          window.console.debug("analyticsTrack", eventPayload);
+        }
+      };
+      document.addEventListener("click", function (event) {
+        const trigger = event.target.closest("[data-analytics-event]");
+        if (!trigger) {
+          return;
+        }
+        const payload = trigger.getAttribute("data-analytics-event");
+        window.analyticsTrack("cta", payload, trigger.dataset.analyticsLabel || trigger.textContent.trim());
+      });
+    </script>
     {% block extra_js %}{% endblock %}
     <script>
       document.addEventListener("htmx:configRequest", function (event) {

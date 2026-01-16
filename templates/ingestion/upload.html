@@ -3,107 +3,133 @@
 {% block title %}Ajouter un lot{% endblock %}
 
 {% block content %}
-<section class="mx-auto max-w-5xl py-12 px-4">
-  <div class="rounded-3xl border border-ink-100 bg-white/80 p-8 shadow-2xl">
-    <div class="flex flex-col gap-4">
-      <p class="text-sm uppercase tracking-[0.4em] text-brand-500">Swipe Machine</p>
-      <h1 class="text-3xl font-semibold text-ink-900">Ajoutez votre lot en un geste</h1>
-      <p class="text-sm text-ink-600">
-        Glissez-déposez vos photos, laissez l'IA extraire les objets et récupérez un swipe board prêt à être validé.
-        Pas de formulaire long : on s'occupe du reste.
-      </p>
-    </div>
+<section class="container-app space-y-8 py-12">
+  <header class="space-y-3">
+    <p class="text-xs uppercase tracking-[0.4em] text-ink-400">Swipe Machine – lots intelligents</p>
+    <h1 class="text-3xl font-semibold text-ink-900">Ajoutez votre lot en une seule étape.</h1>
+    <p class="text-sm text-ink-600">
+      Déposez vos visuels, laissez l’IA détecter les objets et recevez un swipe board prêt à être validé par notre équipe.
+      Aucun formulaire interminable, seulement un flux fluide et transparent.
+    </p>
+  </header>
 
-    <form method="post" enctype="multipart/form-data" class="mt-8 space-y-6">
-      {% csrf_token %}
-      <div class="grid gap-4 rounded-2xl border border-ink-100 bg-white px-6 py-6 text-sm text-ink-600 mb-6">
-        <p class="font-semibold text-ink-900">Déroulé rapide</p>
-        <ul class="grid gap-2">
-          <li class="flex items-start gap-2">
-            <span class="badge badge-success">1</span>
-            <span>Upload de vos visuels ou vidéos (multi fichiers acceptés).</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <span class="badge badge-success">2</span>
-            <span>Analyse IA en quelques secondes avec rapport de confiance.</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <span class="badge badge-success">3</span>
-            <span>Swipez vos cartes, puis l'équipe valide et publie.</span>
-          </li>
-        </ul>
+  <div class="grid gap-10 lg:grid-cols-[3fr_2fr]">
+    <div class="space-y-6 rounded-3xl border border-ink-100 bg-white/80 p-8 shadow-2xl">
+      <div class="space-y-3">
+        <p class="section-label">Étapes rapides</p>
+        <div class="grid gap-3 sm:grid-cols-3">
+          {% include "components/ui/step_card.html" with number="01" title="Déposez vos fichiers" description="Envoyez jusqu’à 30 photos ou vidéos depuis votre ordinateur ou votre téléphone." only %}
+          {% include "components/ui/step_card.html" with number="02" title="IA & vérification" description="Analyse automatique, suggestions d’objets et détection de doublons." only %}
+          {% include "components/ui/step_card.html" with number="03" title="Swipez et publiez" description="Interactez avec le swipe board, confirmez ce qui est prêt et on s’occupe du reste." only %}
+        </div>
       </div>
 
-      <div class="rounded-2xl border border-ink-100 bg-white/80 p-6 shadow-sm">
-        <label
-          for="media-input"
-          id="drop-zone"
-          class="group relative cursor-pointer rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50/70 px-8 py-14 text-center transition hover:border-brand-400 hover:bg-white"
-          data-target="dropzone"
-        >
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        <div class="grid gap-4 rounded-2xl border border-ink-100 bg-white px-6 py-6 text-sm text-ink-600">
+          <p class="font-semibold text-ink-900">Ce que nous gardons en tête</p>
+          <ul class="grid gap-2">
+            <li class="flex items-start gap-2">
+              <span class="requirement-dot is-met"></span>
+              <span>PNG, JPEG, HEIC & MP4 supportés.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="requirement-dot is-met"></span>
+              <span>Qualité minimale 800 x 600 px, pas d’objets flous.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="requirement-dot is-met"></span>
+              <span>Étiquettes claires ou notes internes pour chaque lot.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="drop-zone relative rounded-2xl border border-dashed border-ink-200 bg-ink-50/70 p-10 text-center transition group hover:border-brand hover:bg-white">
+          <label for="media-input" class="flex flex-col items-center gap-3 text-center">
+            <div class="drop-icon">
+              <i data-lucide="cloud-upload" class="h-10 w-10 text-brand"></i>
+            </div>
+            <p class="text-lg font-semibold text-ink-900">Déposez vos photos ici</p>
+            <p class="text-sm text-ink-600">
+              1 à 30 fichiers. Drag & drop ou cliquez pour ouvrir votre explorateur.
+            </p>
+            <p id="drop-zone-info" class="text-xs uppercase tracking-[0.3em] text-ink-500">Aucun fichier sélectionné</p>
+          </label>
           <input
             id="media-input"
             name="media_files"
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             class="sr-only"
             required
           />
-          <div class="relative flex flex-col items-center justify-center gap-3">
-            <div class="h-12 w-12 rounded-full border border-dashed border-brand-400 bg-brand-50 text-brand-600 flex items-center justify-center text-xl font-semibold transition group-hover:bg-brand-100">
-              ⬆
-            </div>
-            <p class="text-lg font-semibold text-ink-900">Déposez vos photos ici</p>
-            <p class="text-sm text-ink-600">
-              1 à 30 fichiers. Drag & drop, ou cliquez pour ouvrir votre explorateur.
-            </p>
-            <p id="drop-zone-info" class="text-xs uppercase tracking-[0.4em] text-ink-500">Aucun fichier sélectionné</p>
-          </div>
-        </label>
+        </div>
+
+        {% if form.media_files.errors %}
+          <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
+        {% endif %}
+
+        <button
+          type="submit"
+          class="btn btn-primary w-full py-3 text-base font-semibold"
+          data-analytics-event="upload:submit"
+        >
+          Lancer l’analyse
+        </button>
+      </form>
+    </div>
+
+    <aside class="space-y-6">
+      <div class="rounded-2xl border border-ink-100 bg-white/90 p-6 shadow-soft">
+        <p class="section-label">Besoin d’assistance ?</p>
+        <p class="text-xs text-ink-500">Notre équipe vérifie chaque lot en quelques minutes et vous accompagne jusqu’à la publication.</p>
+        <ul class="mt-4 space-y-2 text-sm text-ink-600">
+          <li>📸 Préparez des visuels nets, bien cadrés et sans watermark.</li>
+          <li>📝 Ajoutez des commentaires pour contextualiser les objets rares.</li>
+          <li>⏱️ La première analyse est gratuite : pas de frais tant que rien n’est publié.</li>
+        </ul>
+        <div class="mt-6 space-y-2 text-sm">
+          <p class="font-semibold text-ink-900">Détection en direct</p>
+          <p class="text-ink-600">Recevez un rapport de confiance, passez en revue les éléments détectés et ajustez le swipe board.</p>
+        </div>
       </div>
-
-      {% if form.media_files.errors %}
-        <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
-      {% endif %}
-
-      <button
-        type="submit"
-        class="btn btn-primary w-full py-3 text-base font-semibold"
-      >
-        Lancer l’analyse
-      </button>
-    </form>
-
+      <div class="rounded-2xl border border-ink-100 bg-white/90 p-6 shadow-soft">
+        <p class="section-label">Statistiques</p>
+        <p class="text-3xl font-semibold text-ink-900">+95 %</p>
+        <p class="text-sm text-ink-600">Lots analysés avec succès par notre IA en moins de 40 secondes.</p>
+        <p class="mt-4 text-xs uppercase tracking-[0.4em] text-ink-400">Support continu</p>
+      </div>
+    </aside>
   </div>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const dropZone = document.querySelector("[data-target='dropzone']");
-      const input = document.querySelector("#media-input");
-      const info = document.querySelector("#drop-zone-info");
-
-      const updateInfo = () => {
-        const count = input.files.length;
-        info.textContent =
-          count === 0 ? "Aucun fichier sélectionné" : `${count} fichier${count > 1 ? "s" : ""} prêt${count > 1 ? "s" : ""}`;
-      };
-
-      if (dropZone && input) {
-        ["dragenter", "dragover"].forEach((event) => {
-          dropZone.addEventListener(event, (e) => {
-            e.preventDefault();
-            dropZone.classList.add("border-brand-400", "bg-white");
-          });
-        });
-        ["dragleave", "drop"].forEach((event) => {
-          dropZone.addEventListener(event, () => {
-            dropZone.classList.remove("border-brand-400", "bg-white");
-          });
-        });
-        input.addEventListener("change", updateInfo);
-      }
-    });
-  </script>
 </section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.querySelector("#media-input");
+    const info = document.querySelector("#drop-zone-info");
+    const dropZone = document.querySelector(".drop-zone");
+
+    const updateInfo = () => {
+      const count = input.files.length;
+      info.textContent =
+        count === 0 ? "Aucun fichier sélectionné" : `${count} fichier${count > 1 ? "s" : ""} prêt${count > 1 ? "s" : ""}`;
+    };
+
+    if (input) {
+      ["dragenter", "dragover"].forEach((event) => {
+        dropZone?.addEventListener(event, (e) => {
+          e.preventDefault();
+          dropZone?.classList.add("border-brand", "bg-white");
+        });
+      });
+      ["dragleave", "drop"].forEach((event) => {
+        dropZone?.addEventListener(event, () => {
+          dropZone?.classList.remove("border-brand", "bg-white");
+        });
+      });
+      input.addEventListener("change", updateInfo);
+    }
+  });
+</script>
 {% endblock %}

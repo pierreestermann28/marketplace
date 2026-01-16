@@ -1,0 +1,8 @@
+{# Props: value, label, subtext (optional) #}
+<div class="hero__stat">
+  <strong>{{ value }}</strong>
+  <span>{{ label }}</span>
+  {% if subtext %}
+    <p class="text-xs text-white/70">{{ subtext }}</p>
+  {% endif %}
+</div>

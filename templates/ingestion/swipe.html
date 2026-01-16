@@ -26,3 +26,73 @@
   </div>
 </section>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const threshold = 60;
+
+    const submitForm = (card, selector) => {
+      const form = card?.querySelector(selector);
+      if (!form) {
+        return;
+      }
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        form.submit();
+      }
+    };
+    const trackSwipe = (card, direction) => {
+      const title = card?.dataset.itemTitle || "item";
+      if (typeof window.analyticsTrack === "function") {
+        window.analyticsTrack("swipe", direction, title);
+      }
+    };
+
+    const connectSwipe = () => {
+      const card = document.querySelector(".swipe-card-inner");
+      if (!card || card.dataset.swipeBound === "1") {
+        return;
+      }
+      card.dataset.swipeBound = "1";
+      let startX = null;
+
+      const onPointerStart = (event) => {
+        startX = event.touches ? event.touches[0].clientX : event.clientX;
+      };
+
+      const onPointerEnd = (event) => {
+        if (startX === null) {
+          return;
+        }
+        const endX = event.changedTouches ? event.changedTouches[0].clientX : event.clientX;
+        const delta = endX - startX;
+        startX = null;
+        if (Math.abs(delta) < threshold) {
+          return;
+        }
+        if (delta > 0) {
+          trackSwipe(card, "approve");
+          submitForm(card, ".form-approve");
+        } else {
+          trackSwipe(card, "reject");
+          submitForm(card, ".form-reject");
+        }
+      };
+
+      card.addEventListener("pointerdown", onPointerStart, { passive: true });
+      card.addEventListener("pointerup", onPointerEnd, { passive: true });
+      card.addEventListener("touchstart", onPointerStart, { passive: true });
+      card.addEventListener("touchend", onPointerEnd, { passive: true });
+    };
+
+    document.addEventListener("DOMContentLoaded", connectSwipe);
+    document.addEventListener("htmx:afterSwap", function (event) {
+      if (event.detail.target && event.detail.target.id === "swipe-card") {
+        connectSwipe();
+      }
+    });
+  })();
+</script>
+{% endblock %}
