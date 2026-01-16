@@ -22,15 +22,26 @@
         <p class="text-2xl font-semibold text-ink-900">{{ pending_count }}</p>
       </div>
       <div class="status-metric">
-        <p class="text-xs uppercase tracking-[0.3em] text-ink-400">Analysées</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-ink-400">Fichiers</p>
         <p class="text-2xl font-semibold text-brand">{{ batch.media_count }}</p>
       </div>
     </div>
 
     <div class="progress-bar">
-      <div class="progress-bar__fill" style="width: {{ batch.progress|default:25 }}%;"></div>
+      <div
+        class="progress-bar__fill"
+        style="width: {{ progress|default:0 }}%;"
+      ></div>
     </div>
+    <p class="text-sm text-ink-600">{{ status_hint }}</p>
     <p class="text-xs uppercase tracking-[0.4em] text-ink-400">Mise à jour toutes les 3 secondes</p>
+
+    {% if batch.status == 'FAILED' %}
+      <div class="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+        <p class="font-semibold mb-1">Erreur détectée</p>
+        <p>{{ batch.error_message|default:"Une erreur est survenue. Contactez l’équipe." }}</p>
+      </div>
+    {% endif %}
 
     {% if batch.status == 'DONE' %}
       <a
@@ -39,15 +50,20 @@
       >
         Voir les cartes
       </a>
-    {% elif batch.status == 'FAILED' %}
-      <div class="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
-        <p class="font-semibold">Erreur détectée</p>
-        <p>{{ batch.error_message|default:"Une erreur est survenue. Contactez l’équipe." }}</p>
-      </div>
-    {% else %}
-      <p class="text-sm text-ink-600">
-        Analyse en cours... actualisation automatique toutes les 3 secondes.
-      </p>
+    {% endif %}
+
+    {% if can_retry %}
+      <form
+        hx-post="{% url 'ingestion:batch_processing_retry' batch_id=batch.id %}"
+        hx-target="#batch-status"
+        hx-swap="outerHTML"
+        class="mt-4"
+      >
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary w-full text-sm">
+          Relancer l’analyse
+        </button>
+      </form>
     {% endif %}
   </div>
 </div>

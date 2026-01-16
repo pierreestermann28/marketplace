@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.conf import settings
@@ -109,9 +107,7 @@ class BatchProcessingView(BatchOwnerMixin, TemplateView):
     def get_context_data(self, **kwargs):
         batch = self.get_batch()
         context = super().get_context_data(**kwargs)
-        context["batch"] = batch
-        context["pending_count"] = self.get_pending_items(batch).count()
-        context["detected_count"] = batch.detected_items.count()
+        context.update(_build_batch_status_context(batch))
         return context
 
 
@@ -121,14 +117,30 @@ class BatchStatusFragmentView(BatchOwnerMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         batch = self.get_batch()
-        context.update(
-            {
-                "batch": batch,
-                "pending_count": self.get_pending_items(batch).count(),
-                "detected_count": batch.detected_items.count(),
-            }
-        )
+        context.update(_build_batch_status_context(batch))
         return context
+
+
+class BatchProcessingRetryView(BatchOwnerMixin, View):
+    def post(self, request, *args, **kwargs):
+        batch = self.get_batch()
+        stuck = _is_batch_stuck(batch)
+        if batch.status == BatchUpload.Status.RUNNING and not stuck:
+            django_messages.info(
+                request,
+                "Le traitement est déjà lancé. Patientez ou attendez la fin.",
+            )
+        else:
+            batch.reset_for_retry()
+            analyze_batch.delay(str(batch.id))
+            django_messages.success(
+                request,
+                "Analyse relancée. Les résultats seront disponibles sous peu.",
+            )
+        context = _build_batch_status_context(batch)
+        if request.headers.get("HX-Request"):
+            return render(request, "fragments/ingestion/processing_status.html", context)
+        return redirect("ingestion:batch_processing", batch_id=batch.id)
 
 
 class BatchSwipeView(BatchOwnerMixin, TemplateView):

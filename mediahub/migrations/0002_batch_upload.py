@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[
                             ("PENDING", "Pending"),
-                            ("PROCESSING", "Processing"),
+                            ("RUNNING", "Running"),
                             ("DONE", "Done"),
                             ("FAILED", "Failed"),
                         ],

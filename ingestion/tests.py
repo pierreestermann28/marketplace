@@ -1,6 +1,7 @@
 import shutil
 import tempfile
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -101,3 +102,18 @@ class IngestionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.detected_item.refresh_from_db()
         self.assertEqual(self.detected_item.status, DetectedItem.Status.ADMIN_REJECTED)
+
+    @patch("ingestion.views.analyze_batch")
+    def test_batch_retry_clears_items_and_requeues(self, mock_analyze):
+        self.batch.status = BatchUpload.Status.FAILED
+        self.batch.error_message = "boom"
+        self.batch.save(update_fields=["status", "error_message"])
+        self.client.force_login(self.user)
+        url = reverse("ingestion:batch_processing_retry", kwargs={"batch_id": self.batch.id})
+        response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 200)
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.status, BatchUpload.Status.PENDING)
+        self.assertEqual(self.batch.error_message, "")
+        self.assertEqual(self.batch.detected_items.count(), 0)
+        mock_analyze.delay.assert_called_once_with(str(self.batch.id))

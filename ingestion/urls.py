@@ -5,6 +5,7 @@ from .views import (
     AdminSwipeView,
     BatchProcessingView,
     BatchStatusFragmentView,
+    BatchProcessingRetryView,
     BatchSwipeView,
     BatchUploadCreateView,
     DetectedItemAdminApproveView,
@@ -26,6 +27,11 @@ urlpatterns = [
         "<uuid:batch_id>/processing/status/",
         BatchStatusFragmentView.as_view(),
         name="batch_status_fragment",
+    ),
+    path(
+        "<uuid:batch_id>/processing/retry/",
+        BatchProcessingRetryView.as_view(),
+        name="batch_processing_retry",
     ),
     path(
         "<uuid:batch_id>/swipe/",

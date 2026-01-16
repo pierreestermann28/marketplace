@@ -146,8 +146,11 @@
   .status-pill {
     @apply rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em];
   }
-  .status-pill--processing {
-    @apply bg-brand/10 text-brand;
+  .status-pill--pending {
+    @apply bg-ink-100 text-ink-700;
+  }
+  .status-pill--running {
+    @apply bg-brand/10 text-brand-600;
   }
   .status-pill--done {
     @apply bg-success/10 text-success;
