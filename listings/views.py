@@ -50,7 +50,7 @@ class HomeFeedView(ListView):
     template_name = "pages/home.html"
     context_object_name = "listings"
     paginate_by = 24
-    status_filter = [Listing.Status.PUBLISHED]
+    status_filter = list(Listing.PUBLIC_FEED_STATUSES)
     default_title = "Annonces responsables | StillUseful"
     default_description = "Vendez et achetez localement avec StillUseful : annonces vérifiées, échanges sécurisés et durabilité."
 

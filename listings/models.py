@@ -78,6 +78,13 @@ class Listing(models.Model):
 
     shipping_enabled = models.BooleanField(default=True, db_index=True)
     in_person_enabled = models.BooleanField(default=True, db_index=True)
+    source_item = models.OneToOneField(
+        "ingestion.DetectedItem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="published_listing",
+    )
 
     # moderation
     moderation_notes = models.TextField(blank=True)
@@ -100,6 +107,25 @@ class Listing(models.Model):
             models.Index(fields=["city", "status", "created_at"]),
             models.Index(fields=["postal_code", "status", "created_at"]),
         ]
+
+    class PublicStatus(models.TextChoices):
+        AVAILABLE = "available", "Disponible"
+        RESERVED = "reserved", "Réservée"
+        SOLD = "sold", "Vendue"
+        ARCHIVED = "archived", "Archivée"
+
+    PUBLIC_STATUS_TONES = {
+        PublicStatus.AVAILABLE: "success",
+        PublicStatus.RESERVED: "warning",
+        PublicStatus.SOLD: "danger",
+        PublicStatus.ARCHIVED: "secondary",
+    }
+
+    PUBLIC_FEED_STATUSES = {
+        Status.PUBLISHED,
+        Status.RESERVED,
+        Status.RESERVATION_ACCEPTED,
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -157,6 +183,33 @@ class Listing(models.Model):
     def increment_view_count(self):
         Listing.objects.filter(pk=self.pk).update(view_count=F("view_count") + 1)
         self.refresh_from_db(fields=["view_count"])
+
+    def get_public_status(self):
+        if self.status == self.Status.PUBLISHED:
+            return self.PublicStatus.AVAILABLE
+        if self.status in {self.Status.RESERVED, self.Status.RESERVATION_ACCEPTED}:
+            return self.PublicStatus.RESERVED
+        if self.status == self.Status.SOLD:
+            return self.PublicStatus.SOLD
+        if self.status == self.Status.ARCHIVED:
+            return self.PublicStatus.ARCHIVED
+        return None
+
+    @property
+    def public_status_display(self):
+        status = self.get_public_status()
+        return status.label if status else ""
+
+    @property
+    def public_status_badge_tone(self):
+        status = self.get_public_status()
+        return self.PUBLIC_STATUS_TONES.get(status, "secondary")
+
+    def is_listed_publicly(self):
+        return self.get_public_status() in {
+            self.PublicStatus.AVAILABLE,
+            self.PublicStatus.RESERVED,
+        }
 
 
 class ListingView(models.Model):

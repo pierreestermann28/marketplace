@@ -28,6 +28,7 @@ def publish_detected_item(item: DetectedItem) -> Listing:
             "confidence": item.confidence,
             "metadata": item.metadata_json or {},
         },
+        source_item=item,
     )
     listing.save()
 

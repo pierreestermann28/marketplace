@@ -131,6 +131,32 @@ class ListingViewTests(TestCase):
         self.assertIn(self.listing_other, listings)
         self.assertNotIn(self.listing_draft, listings)
 
+    def test_home_feed_filters_by_status(self):
+        sold = Listing.objects.create(
+            seller=self.seller,
+            title="Sold item",
+            status=Listing.Status.SOLD,
+            currency="EUR",
+        )
+        archived = Listing.objects.create(
+            seller=self.seller,
+            title="Archived item",
+            status=Listing.Status.ARCHIVED,
+            currency="EUR",
+        )
+        reserved = Listing.objects.create(
+            seller=self.seller,
+            title="Reserved item",
+            status=Listing.Status.RESERVED,
+            currency="EUR",
+        )
+
+        response = self.client.get(reverse("home"))
+        listings = get_listings_from_response(response)
+        self.assertNotIn(sold, listings)
+        self.assertNotIn(archived, listings)
+        self.assertIn(reserved, listings)
+
     def test_listing_detail_requires_matching_slug(self):
         url = reverse(
             "listing_detail",

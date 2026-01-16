@@ -64,6 +64,7 @@ class IngestionTests(TestCase):
         self.assertTrue(listing.images.exists())
         primary = listing.images.first()
         self.assertEqual(primary.image_asset, self.media_asset.image_asset)
+        self.assertEqual(listing.source_item, self.detected_item)
 
     def test_user_can_approve_swipe_sets_status(self):
         self.client.force_login(self.user)

@@ -1,0 +1,50 @@
+# V1.1 Audit
+
+## Objectif
+Cartographier l’existant par rapport aux besoins de la V1.1 afin d’identifier les zones à compléter (à faire) ou à remettre à plat (refactor). Ce document couvre les modèles, les endpoints clés, les droits et l’infrastructure.
+
+## 1. Modèles
+
+| Modèle | Existant | À faire pour V1.1 | Refactor / Attention |
+| --- | --- | --- | --- |
+| `mediahub.BatchUpload` | Stocke le propriétaire, le statut (pending/processing/done/failed), les compteurs, méthodes `mark_*`. | Ajouter des champs de validation (IA), verrou de traitement + notifications des erreurs, meilleure visibilité sur les fichiers rejetés. | Le mixin `BatchOwnerMixin` centralise l’accès, mais on pourrait grouper les `detected_items` par lot + état pour réduire les `count`. |
+| `mediahub.MediaAsset` | Lie chaque upload d’image à son lot, conserve les métadonnées/empreinte. | Gérer les videos & keyframes comme ressources first-class (actuellement commentées), indexer les hashes pour éviter les doublons. | Unifier les métadonnées JSON, documenter `source`. |
+| `ingestion.DetectedItem` | Status évoluent de PENDING -> USER_* -> ADMIN_* -> EDITED, stocke IA (title, description, category), metadata JSON, lien listing. | Suivre les propositions qui n’aboutissent pas à une instance `Listing`, déclencher alerte quand trop de USER_REJECTED, capturer raison admin. | Peut-être séparer `confidence`/`price` en objet, ajouter event logging pour audit. |
+| `listings.Listing` | Statuts, vues, réservations, vues, favoris, search alert, réservation/réservé/reservation accepted, contacts. | Documenter `available_from`/`view_count`, consolider `ListingReminder`/`SearchAlert`, ajouter “public status” (AVAILABLE/RESERVED/SOLD/ARCHIVED) pour gouverner la visibilité IA-to-Listing. | Certains champs (AI summary, source_type) sont déjà prêts pour V1.1 ; surveiller les triggers `refresh_reservation_state`. |
+| `messaging.Conversation` & `Message` | Convo en lien listing, message simple text/attachment, HTMX-friendly. | Ajouter signal pour blocages anti-spam (déjà en place), générer log d’acceptation pour stats. | Possibilité de transformer `Message` en thread + tags (spam détecté). |
+| `Subscription` | **Non implémenté**. | Créer un modèle (user + plan + statut + next_billing) si on veut ajouter un “subscribe” service plus tard. | Bloqueurs : définir stratégie pricing/tiers avant implémentation. |
+
+## 2. Endpoints / Processus
+
+| Endpoint | Vue / Route | Existant | À faire / Notes |
+| --- | --- | --- | --- |
+| `POST /batches/create/` | `BatchUploadCreateView` | Upload de plusieurs fichiers, création `BatchUpload`, `ImageAsset` et `MediaAsset`, déclenchement `analyze_batch` celery. | Ajouter feedback UX (état d’analyse) et validation des formats “V1.1 ready”. |
+| `GET /batches/<uuid>/processing/` | `BatchProcessingView` (+fragment) | Vue du statut + compteurs (pending/traité). | Ajouter websocket/HTMX polling plus riche, dédupliquer via `BatchStatusFragmentView`. |
+| `GET /batches/<uuid>/swipe/` & `POST /items/<int>/approve|reject/` | `BatchSwipeView`, `BatchOwnerMixin`, `DetectedItemActionMixin` | Propriétaire seul, pagination + fragment, statuts USER_APPROVED/REJECTED. | Introduire `bulk-approve`, signaler items bloqués, ajouter logs. |
+| `/batches/admin/swipe/` & fragments | `AdminSwipeView` + `DetectedItemAdminActionMixin` | Équipe staff peut approuver une fois que le vendeur a approuvé; `publish_detected_item` crée Listing. | Documenter workflow (stack `publish_detected_item`), ajouter tests de charge / quotas. |
+| `/` (feed) | `HomeFeedView` | Filtre `Listing` published/reserved/reservation accepted; pagination + HTMX partial. | SEO friendly (canonical, metadata, categories/cities) déjà en cours. Prévoir filtre par `city/category` + sticky CTA. |
+| `/items/<slug>-<uuid>/` | `ListingDetailView` | Détail, `increment_view_count`, contact/médiation, seller info. | Maintenir slug canonique, car metadata SEO. Ajouter “coordonnées débloquées” et CTA “Contacter”. |
+| `/messages/start/<uuid>/`, `/messages/<pk>/` | `ConversationStartView`, `ConversationDetailView` | Démarrage/détail de conversation (HTMX). Validation anti-spam/rate limit. | Ajouter journaux d’erreur, notifier admin en cas d’abus, prévoir webhooks. |
+
+## 3. Permissions
+
+- **Owner-only swipe** : `BatchOwnerMixin` / `DetectedItemActionMixin` restreint `batch` aux uploads du `request.user`; usages admin utilisent `UserPassesTestMixin`.
+- **Admin swipe** et approbations (`DetectedItemAdminApproveView/RejectView`) exigent `is_staff`.
+- **Feed** : `HomeFeedView` ne montre que les statuts `PUBLISHED`, `RESERVED`, `RESERVATION_ACCEPTED` (flag `status_filter` à 3 états). Les autres statuts (draft/rejected) sont exclus, la pagination REST est publique.
+- **Listing detail / contact** : seules les annonces `PUBLISHED|RESERVED|RESERVATION_ACCEPTED` sont accessibles. Les coordonnées sont verrouillées jusqu’à réservation ou paiement (`user_can_view_contact_info`).
+
+## 4. Settings / Infrastructure
+
+- Docker Compose (`docker-compose.yml`) orchestre : PostgreSQL 16, Redis 7, service `web` Django/HTMX, worker Celery, worker `flower`, loader `tailwind:watch`.
+- Celery utilise `redis` en backend (via `.env` non exposé ici) et la commande `celery -A stillusefull worker --pool=solo`.
+- `tailwind` service lance `npm run tailwind:watch`, liant les volumes `.:/app` + `/app/node_modules`.
+- `docker/entrypoint.sh` assure un bootstrap commun (migrations/collectstatic). À valider pour V1.1 : mettre en place des seeders, ajouter healthchecks (web?). Déjà en place pour postgres/redis.
+
+## 5. Tickets bloquants
+
+1. **Canonical slug fail** : certaines URLs sans slug (ex `items/<id>/`) provoquent 404; besoin d’un redirect canonique.  
+2. **Subscription model** : aucun dispositif ne suit les abonnements. Ajouter le modèle + vues avant d’activer un plan payant.  
+3. **Messaging contact gating** : coordonnés + spams doivent être rejoints dès qu’on passe en production (v1.1). Validation déjà partiellement en place, mais il faut plus d’alertes.  
+4. **Sitemap + SEO** : s’assurer que toutes les routes clés entrent dans `sitemap.xml` (ajout des pages catégories/villes + listings).  
+
+Ce document peut servir de base pour découper les tickets V1.1. Besoin d’infos sur des sous-processus spécifiques ? On peut enchaîner une analyse plus détaillée (ex : `publish_detected_item`).

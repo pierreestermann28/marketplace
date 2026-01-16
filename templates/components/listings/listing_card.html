@@ -28,6 +28,13 @@
           <span>Vendeur :</span>
           <span class="text-ink-800">{{ listing.seller.get_full_name|default:listing.seller.email }}</span>
         </div>
+        {% if listing.public_status_display %}
+          <div>
+            <span class="badge badge-{{ listing.public_status_badge_tone }} text-[10px] uppercase tracking-[0.4em]">
+              {{ listing.public_status_display }}
+            </span>
+          </div>
+        {% endif %}
       <div class="flex items-center gap-2 text-xs">
         {% with rating=listing.seller.trust_score|default:0 %}
           <span class="flex items-center gap-0.5">
