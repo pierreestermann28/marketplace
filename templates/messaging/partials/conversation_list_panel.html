@@ -26,15 +26,15 @@
             {% endif %}
           </p>
           <div class="flex flex-wrap items-center gap-1 text-xs font-semibold uppercase tracking-[0.3em] text-ink-500">
-            {% with badge=listing.reservation_badge_label(request.user) %}
-              {% if badge %}
-                <span
-                  class="badge {% if badge == 'Réservé pour vous' %}badge-success{% else %}bg-amber-50 text-amber-800{% endif %}"
-                >
-                  {{ badge }}
-                </span>
-              {% endif %}
-            {% endwith %}
+            {% load conversation_tags %}
+            {% reservation_badge listing request.user as badge %}
+            {% if badge %}
+              <span
+                class="badge {% if badge == 'Réservé pour vous' %}badge-success{% else %}bg-amber-50 text-amber-800{% endif %}"
+              >
+                {{ badge }}
+              </span>
+            {% endif %}
             {% if request.user == conversation.buyer and listing.is_reserved_state and listing.reserved_for_id and listing.reserved_for_id != request.user.id %}
               <span class="badge bg-amber-50 text-amber-800">En attente</span>
             {% endif %}

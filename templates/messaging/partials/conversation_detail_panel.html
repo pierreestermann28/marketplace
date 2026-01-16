@@ -4,16 +4,16 @@
         <h1 class="h2">Conversation</h1>
         <span class="text-sm text-ink-500">{{ conversation.listing.title }}</span>
       </div>
-      <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-ink-500">
-        {% with status_label=conversation.listing.reservation_badge_label(request.user) %}
-          {% if status_label %}
-            <span
-              class="badge {% if status_label == 'Réservé pour vous' %}badge-success{% else %}bg-amber-50 text-amber-800{% endif %}"
-            >
-              {{ status_label }}
-            </span>
-          {% endif %}
-        {% endwith %}
+    {% load conversation_tags %}
+    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-ink-500">
+      {% reservation_badge conversation.listing request.user as status_label %}
+      {% if status_label %}
+        <span
+          class="badge {% if status_label == 'Réservé pour vous' %}badge-success{% else %}bg-amber-50 text-amber-800{% endif %}"
+        >
+          {{ status_label }}
+        </span>
+      {% endif %}
         {% if request.user == conversation.buyer and conversation.listing.is_reserved_state and conversation.listing.reserved_for_id and conversation.listing.reserved_for_id != request.user.id %}
           <span class="badge bg-amber-50 text-amber-800">En attente</span>
         {% endif %}
