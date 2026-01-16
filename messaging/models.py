@@ -23,6 +23,19 @@ class Conversation(models.Model):
     class Meta:
         unique_together = [("listing", "buyer")]
 
+    def other_user(self, user):
+        return self.seller if self.buyer == user else self.buyer
+
+    def mark_messages_read_for(self, user):
+        if not user:
+            return
+        self.messages.exclude(sender=user).filter(is_read=False).update(is_read=True)
+
+    def unread_messages_count_for(self, user):
+        if not user:
+            return 0
+        return self.messages.exclude(sender=user).filter(is_read=False).count()
+
 
 class Message(models.Model):
     conversation = models.ForeignKey(
@@ -35,3 +48,20 @@ class Message(models.Model):
     attachment = models.FileField(upload_to="chat_attachments/%Y/%m/%d/", blank=True)
     is_read = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class BlockedUser(models.Model):
+    blocker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocks",
+    )
+    blocked = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocked_by",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("blocker", "blocked")]

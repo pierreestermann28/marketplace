@@ -32,6 +32,7 @@ from .models import (
     ListingReminder,
     ListingView,
     Reservation,
+    ReservationLog,
     SearchAlert,
 )
 from .utils import user_can_view_contact_info
@@ -379,15 +380,9 @@ class ListingDetailView(DetailView):
                 "reservation_expiration_hours": getattr(
                     settings, "RESERVATION_HOLD_HOURS", 24
                 ),
-                "reserve_url": reverse(
-                    "listing_reserve", kwargs={"listing_id": listing.id}
-                ),
                 "cancel_reservation_url": reverse(
                     "listing_cancel_reservation", kwargs={"listing_id": listing.id}
                 ),
-                "can_reserve": listing.status == Listing.Status.PUBLISHED
-                and self.request.user.is_authenticated
-                and self.request.user != listing.seller,
                 "available_from": listing.available_from,
                 "view_count": listing.view_count,
                 "remind_url": (
@@ -707,33 +702,6 @@ class ReviewQueueView(UserPassesTestMixin, ListView):
         return context
 
 
-class ReservationCreateView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
-        listing = get_object_or_404(Listing, id=kwargs["listing_id"])
-        detail_url = get_listing_detail_url(listing)
-        if listing.seller == request.user:
-            django_messages.error(
-                request, "Vous ne pouvez pas réserver votre propre annonce."
-            )
-            return redirect(detail_url)
-        active_reservation = listing.refresh_reservation_state()
-        if listing.status != Listing.Status.PUBLISHED or active_reservation:
-            django_messages.error(
-                request, "Cette annonce n’est pas disponible à la réservation."
-            )
-            return redirect(detail_url)
-        expires_at = timezone.now() + timedelta(
-            hours=getattr(settings, "RESERVATION_HOLD_HOURS", 24)
-        )
-        Reservation.objects.create(
-            listing=listing, buyer=request.user, expires_at=expires_at
-        )
-        listing.status = Listing.Status.RESERVED
-        listing.save(update_fields=["status"])
-        django_messages.success(request, "L’annonce a bien été réservée.")
-        return redirect(detail_url)
-
-
 class ReservationCancelView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         listing = get_object_or_404(
@@ -750,7 +718,23 @@ class ReservationCancelView(LoginRequiredMixin, View):
             Listing.Status.RESERVATION_ACCEPTED,
         }:
             listing.status = Listing.Status.PUBLISHED
-            listing.save(update_fields=["status"])
+            listing.reserved_for = None
+            listing.reserved_at = None
+            listing.reservation_note = ""
+            listing.save(
+                update_fields=[
+                    "status",
+                    "reserved_for",
+                    "reserved_at",
+                    "reservation_note",
+                ]
+            )
+            ReservationLog.objects.create(
+                listing=listing,
+                user=request.user,
+                action=ReservationLog.Action.CANCELLED,
+                note="Annulation manuelle",
+            )
         django_messages.success(request, "La réservation a été annulée.")
         return redirect(detail_url)
 
@@ -776,7 +760,44 @@ class ReservationAcceptView(LoginRequiredMixin, View):
             request,
             "La réservation a été acceptée et l’objet passe en statut Réservation acceptée.",
         )
+        ReservationLog.objects.create(
+            listing=listing,
+            user=request.user,
+            action=ReservationLog.Action.ACCEPTED,
+            note="Acceptation manuelle.",
+        )
         return redirect(detail_url)
+
+
+class ListingActionView(LoginRequiredMixin, View):
+    target_status = None
+    success_message = ""
+
+    def post(self, request, *args, **kwargs):
+        listing = get_object_or_404(
+            Listing, id=kwargs["listing_id"], seller=request.user
+        )
+        if not self.target_status:
+            return redirect(get_listing_detail_url(listing))
+        listing.status = self.target_status
+        listing.save(update_fields=["status", "updated_at"])
+        django_messages.success(request, self.success_message)
+        return redirect(get_listing_detail_url(listing))
+
+
+class ListingMarkSoldView(ListingActionView):
+    target_status = Listing.Status.SOLD
+    success_message = "Annonce marquée comme vendue."
+
+
+class ListingArchiveView(ListingActionView):
+    target_status = Listing.Status.ARCHIVED
+    success_message = "Annonce archivée."
+
+
+class ListingUnarchiveView(ListingActionView):
+    target_status = Listing.Status.PUBLISHED
+    success_message = "Annonce réactivée."
 
 
 class ListingModerationDetailView(UserPassesTestMixin, DetailView):

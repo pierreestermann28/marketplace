@@ -1,8 +1,54 @@
+from datetime import timedelta
+
+from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views import View
 from django.views.generic import FormView, TemplateView
+
+BATCH_STUCK_THRESHOLD_SECONDS = getattr(
+    settings, "BATCH_STUCK_THRESHOLD_SECONDS", 600
+)
+
+
+def _is_batch_stuck(batch):
+    if batch.status != BatchUpload.Status.RUNNING or not batch.processing_started_at:
+        return False
+    return (
+        timezone.now() - batch.processing_started_at
+    ).total_seconds() > BATCH_STUCK_THRESHOLD_SECONDS
+
+
+def _batch_status_hint(batch, is_stuck):
+    if batch.status == BatchUpload.Status.PENDING:
+        return "Traitement programmé. Préparez-vous à voir vos cartes."
+    if batch.status == BatchUpload.Status.RUNNING:
+        if is_stuck:
+            return "L’analyse semble bloquée. Vous pouvez la relancer."
+        return f"Analyse en cours ({batch.progress_percentage}%)."
+    if batch.status == BatchUpload.Status.DONE:
+        return "Analyse terminée. Vous pouvez passer au swipe."
+    if batch.status == BatchUpload.Status.FAILED:
+        return batch.error_message or "Une erreur est survenue. Relancez l’analyse."
+    return ""
+
+
+def _build_batch_status_context(batch):
+    pending_count = batch.detected_items.filter(status=DetectedItem.Status.PENDING).count()
+    detected_count = batch.detected_items.count()
+    is_stuck = _is_batch_stuck(batch)
+    return {
+        "batch": batch,
+        "pending_count": pending_count,
+        "detected_count": detected_count,
+        "progress": batch.progress_percentage,
+        "is_stuck": is_stuck,
+        "status_hint": _batch_status_hint(batch, is_stuck),
+        "can_retry": batch.status in {BatchUpload.Status.FAILED} or is_stuck,
+    }
 
 from mediahub.models import BatchUpload, ImageAsset, MediaAsset
 

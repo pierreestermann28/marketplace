@@ -30,17 +30,17 @@ def analyze_batch(self, batch_id):
 
     suggestions = []
     try:
-        for asset in assets:
-            price = Decimal("25.00")
-            low = price
-            high = price + Decimal("15.00")
-            title = asset.image_asset.image.name.split("/")[-1]
-            description = (
-                f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
-            )
-            confidence = random.uniform(0.5, 0.98)
-            suggestions.append(
-                DetectedItem(
+        with transaction.atomic():
+            for asset in assets:
+                price = Decimal("25.00")
+                low = price
+                high = price + Decimal("15.00")
+                title = asset.image_asset.image.name.split("/")[-1]
+                description = (
+                    f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
+                )
+                confidence = random.uniform(0.5, 0.98)
+                DetectedItem.objects.create(
                     owner=batch.owner,
                     batch=batch,
                     hero_asset=asset,
@@ -56,11 +56,8 @@ def analyze_batch(self, batch_id):
                         "confidence": confidence,
                     },
                 )
-            )
+                batch.mark_asset_processed()
+        batch.mark_done()
     except Exception as exc:  # pragma: no cover
         batch.mark_failed(str(exc))
         raise
-
-    with transaction.atomic():
-        DetectedItem.objects.bulk_create(suggestions)
-        batch.mark_done()

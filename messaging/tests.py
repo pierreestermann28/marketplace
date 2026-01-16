@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from listings.models import Listing
+from listings.models import Listing, Reservation, ReservationLog
 
 from .models import Conversation, Message
 
@@ -114,3 +114,28 @@ class MessagingViewsTests(TestCase):
                 buyer=self.seller,
             ).exists()
         )
+
+    def test_seller_can_reserve_from_conversation(self):
+        url = reverse("messages:reserve", kwargs={"pk": self.conversation.pk})
+        self.client.force_login(self.seller)
+        response = self.client.post(url, data={"reservation_note": "Test note"})
+
+        self.listing.refresh_from_db()
+        self.assertEqual(self.listing.status, Listing.Status.RESERVED)
+        self.assertEqual(self.listing.reserved_for, self.buyer)
+        self.assertTrue(Reservation.objects.active().filter(listing=self.listing).exists())
+        self.assertTrue(
+            ReservationLog.objects.filter(
+                listing=self.listing, action=ReservationLog.Action.RESERVED
+            ).exists()
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_non_seller_cannot_reserve(self):
+        url = reverse("messages:reserve", kwargs={"pk": self.conversation.pk})
+        self.client.force_login(self.buyer)
+        response = self.client.post(url)
+
+        self.listing.refresh_from_db()
+        self.assertNotEqual(self.listing.status, Listing.Status.RESERVED)
+        self.assertEqual(response.status_code, 302)

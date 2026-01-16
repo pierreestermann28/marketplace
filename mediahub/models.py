@@ -1,6 +1,8 @@
 import uuid
+
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+from django.db.models import F
 from django.utils import timezone
 
 
@@ -8,7 +10,7 @@ from django.utils import timezone
 class BatchUpload(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
-        PROCESSING = "PROCESSING", "Processing"
+        RUNNING = "RUNNING", "Running"
         DONE = "DONE", "Done"
         FAILED = "FAILED", "Failed"
 
@@ -25,6 +27,7 @@ class BatchUpload(models.Model):
         db_index=True,
     )
     media_count = models.PositiveIntegerField(default=0)
+    processed_count = models.PositiveIntegerField(default=0)
     processing_started_at = models.DateTimeField(null=True, blank=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     error_message = models.TextField(blank=True)
@@ -38,9 +41,19 @@ class BatchUpload(models.Model):
         ]
 
     def mark_processing(self):
-        self.status = self.Status.PROCESSING
+        self.status = self.Status.RUNNING
         self.processing_started_at = timezone.now()
-        self.save(update_fields=["status", "processing_started_at", "updated_at"])
+        self.processed_count = 0
+        self.error_message = ""
+        self.save(
+            update_fields=[
+                "status",
+                "processing_started_at",
+                "processed_count",
+                "error_message",
+                "updated_at",
+            ]
+        )
 
     def mark_done(self):
         self.status = self.Status.DONE
@@ -51,6 +64,45 @@ class BatchUpload(models.Model):
         self.status = self.Status.FAILED
         self.error_message = message or ""
         self.save(update_fields=["status", "error_message", "updated_at"])
+
+    def mark_asset_processed(self):
+        BatchUpload.objects.filter(pk=self.pk).update(
+            processed_count=F("processed_count") + 1
+        )
+        self.refresh_from_db(fields=["processed_count"])
+
+    @property
+    def progress_percentage(self):
+        if not self.media_count:
+            return 0
+        return min(
+            100,
+            int(
+                round(
+                    (self.processed_count / self.media_count) * 100,
+                    0,
+                )
+            ),
+        )
+
+    def reset_for_retry(self):
+        with transaction.atomic():
+            self.detected_items.all().delete()
+            self.status = self.Status.PENDING
+            self.processed_count = 0
+            self.processing_started_at = None
+            self.processed_at = None
+            self.error_message = ""
+            self.save(
+                update_fields=[
+                    "status",
+                    "processed_count",
+                    "processing_started_at",
+                    "processed_at",
+                    "error_message",
+                    "updated_at",
+                ]
+            )
 
 
 class ImageAsset(models.Model):

@@ -1,28 +1,53 @@
 {% for conversation in conversations %}
-  <button
-    id="conversation-row-{{ conversation.pk }}"
-    class="conversation-row {% if selected_conversation_pk == conversation.pk %}conversation-row--active{% endif %}"
-    data-conversation-id="{{ conversation.pk }}"
-    hx-get="{% url 'messages:detail' conversation.pk %}"
-    hx-target="#conversation-detail"
-    hx-swap="innerHTML"
-  >
-    <div class="flex items-center justify-between text-sm font-semibold">
-      <span>{{ conversation.listing.title }}</span>
-      {% if conversation.messages.last %}
-        <span class="text-xs text-ink-500">
-          {{ conversation.messages.last.created_at|date:"H:i" }}
-        </span>
-      {% endif %}
-    </div>
-    <p class="text-xs text-ink-500">
-      {% if request.user == conversation.buyer %}
-        Avec {{ conversation.seller.get_full_name|default:conversation.seller.email }}
-      {% else %}
-        Avec {{ conversation.buyer.get_full_name|default:conversation.buyer.email }}
-      {% endif %}
-    </p>
-  </button>
+  {% with listing=conversation.listing %}
+    <button
+      id="conversation-row-{{ conversation.pk }}"
+      class="conversation-row {% if selected_conversation_pk == conversation.pk %}conversation-row--active{% endif %}"
+      data-conversation-id="{{ conversation.pk }}"
+      hx-get="{% url 'messages:detail' conversation.pk %}"
+      hx-target="#conversation-detail"
+      hx-swap="innerHTML"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 space-y-1 text-left">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-ink-900 line-clamp-1">{{ listing.title }}</span>
+            {% if conversation.messages.last %}
+              <span class="text-xs text-ink-500">
+                {{ conversation.messages.last.created_at|date:"H:i" }}
+              </span>
+            {% endif %}
+          </div>
+          <p class="text-xs text-ink-500">
+            {% if request.user == conversation.buyer %}
+              Avec {{ conversation.seller.get_full_name|default:conversation.seller.email }}
+            {% else %}
+              Avec {{ conversation.buyer.get_full_name|default:conversation.buyer.email }}
+            {% endif %}
+          </p>
+          <div class="flex flex-wrap items-center gap-1 text-xs font-semibold uppercase tracking-[0.3em] text-ink-500">
+            {% with badge=listing.reservation_badge_label(request.user) %}
+              {% if badge %}
+                <span
+                  class="badge {% if badge == 'Réservé pour vous' %}badge-success{% else %}bg-amber-50 text-amber-800{% endif %}"
+                >
+                  {{ badge }}
+                </span>
+              {% endif %}
+            {% endwith %}
+            {% if request.user == conversation.buyer and listing.is_reserved_state and listing.reserved_for_id and listing.reserved_for_id != request.user.id %}
+              <span class="badge bg-amber-50 text-amber-800">En attente</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex flex-col items-end gap-1">
+          {% if conversation.new_messages_count %}
+            <span class="badge badge-success conversation-unread-badge text-[10px] leading-none">Nouveaux messages</span>
+          {% endif %}
+        </div>
+      </div>
+    </button>
+  {% endwith %}
 {% empty %}
   <div class="rounded-2xl border border-ink-100 p-4 text-sm text-ink-600">
     Pas de conversations pour l'instant.

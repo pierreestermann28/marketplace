@@ -8,7 +8,9 @@ from django.urls import reverse
 
 from catalog.models import Category
 
-from .models import Favorite, Listing, Reservation
+from messaging.models import Conversation
+
+from .models import Favorite, Listing, Reservation, ReservationLog
 
 
 PNG_BYTES = (
@@ -192,6 +194,30 @@ class ListingViewTests(TestCase):
         self.assertIn(self.listing_draft, listings)
         self.assertEqual(len(listings), 3)
 
+    def test_seller_can_mark_sold_and_archive(self):
+        sold_listing = Listing.objects.create(
+            seller=self.seller,
+            title="Sale ready",
+            status=Listing.Status.PUBLISHED,
+            currency="EUR",
+        )
+        self.client.force_login(self.seller)
+        sold_url = reverse("listing_mark_sold", kwargs={"listing_id": sold_listing.id})
+        response = self.client.post(sold_url)
+        self.assertEqual(response.status_code, 302)
+        sold_listing.refresh_from_db()
+        self.assertEqual(sold_listing.status, Listing.Status.SOLD)
+
+        archive_url = reverse("listing_archive", kwargs={"listing_id": sold_listing.id})
+        response = self.client.post(archive_url)
+        sold_listing.refresh_from_db()
+        self.assertEqual(sold_listing.status, Listing.Status.ARCHIVED)
+
+        unarchive_url = reverse("listing_unarchive", kwargs={"listing_id": sold_listing.id})
+        response = self.client.post(unarchive_url)
+        sold_listing.refresh_from_db()
+        self.assertEqual(sold_listing.status, Listing.Status.PUBLISHED)
+
 
 class ListingWorkflowTests(TestCase):
     @classmethod
@@ -342,16 +368,29 @@ class MarketplaceFlowTests(TestCase):
         listing.refresh_from_db()
         self.assertEqual(listing.status, Listing.Status.PUBLISHED)
 
-        reserve_url = reverse("listing_reserve", kwargs={"listing_id": listing.id})
-        self.client.force_login(self.buyer)
-        response = self.client.post(reserve_url)
+        conversation = Conversation.objects.create(
+            listing=listing,
+            buyer=self.buyer,
+            seller=self.seller,
+        )
+        reserve_url = reverse("messages:reserve", kwargs={"pk": conversation.pk})
+        self.client.force_login(self.seller)
+        response = self.client.post(reserve_url, data={"reservation_note": "Noter la réservation"})
+        self.assertEqual(response.status_code, 302)
         listing.refresh_from_db()
 
         self.assertEqual(listing.status, Listing.Status.RESERVED)
-        self.assertTrue(Reservation.objects.active().filter(listing=listing, buyer=self.buyer).exists())
+        self.assertEqual(listing.reserved_for, self.buyer)
+        self.assertEqual(listing.reservation_note, "Noter la réservation")
+        self.assertTrue(Reservation.objects.active().filter(listing=listing).exists())
+        self.assertTrue(
+            ReservationLog.objects.filter(
+                listing=listing, action=ReservationLog.Action.RESERVED
+            ).exists()
+        )
 
         self.client.force_login(self.other_buyer)
-        response = self.client.post(reserve_url)
+        response = self.client.post(reserve_url, data={"reservation_note": "Commande clé"})
         self.assertEqual(
             Reservation.objects.active().filter(listing=listing).count(),
             1,
@@ -363,4 +402,6 @@ class MarketplaceFlowTests(TestCase):
         listing.refresh_from_db()
 
         self.assertEqual(listing.status, Listing.Status.PUBLISHED)
+        self.assertIsNone(listing.reserved_for)
+        self.assertEqual(listing.reservation_note, "")
         self.assertFalse(Reservation.objects.active().filter(listing=listing).exists())

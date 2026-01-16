@@ -138,6 +138,25 @@
                 {% url "listing_detail" slug=listing.slug uuid=listing.id as listing_url %}
                 {% include "components/ui/button.html" with label="Voir la fiche" variant="ghost" size="sm" href=listing_url only %}
               {% endif %}
+              {% if listing.seller == request.user %}
+                {% if listing.status != "sold" %}
+                  <form method="post" action="{% url 'listing_mark_sold' listing_id=listing.id %}">
+                    {% csrf_token %}
+                    {% include "components/ui/button.html" with label="Marquer comme vendu" variant="danger" size="sm" type="submit" only %}
+                  </form>
+                {% endif %}
+                {% if listing.status != "archived" %}
+                  <form method="post" action="{% url 'listing_archive' listing_id=listing.id %}">
+                    {% csrf_token %}
+                    {% include "components/ui/button.html" with label="Archiver" variant="ghost" size="sm" type="submit" only %}
+                  </form>
+                {% else %}
+                  <form method="post" action="{% url 'listing_unarchive' listing_id=listing.id %}">
+                    {% csrf_token %}
+                    {% include "components/ui/button.html" with label="Réactiver" variant="secondary" size="sm" type="submit" only %}
+                  </form>
+                {% endif %}
+              {% endif %}
             </div>
           </article>
         {% endfor %}

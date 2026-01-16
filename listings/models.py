@@ -85,6 +85,15 @@ class Listing(models.Model):
         blank=True,
         related_name="published_listing",
     )
+    reserved_for = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reserved_listings",
+    )
+    reserved_at = models.DateTimeField(null=True, blank=True)
+    reservation_note = models.TextField(blank=True)
 
     # moderation
     moderation_notes = models.TextField(blank=True)
@@ -196,6 +205,17 @@ class Listing(models.Model):
         return None
 
     @property
+    def is_reserved_state(self):
+        return self.status in {self.Status.RESERVED, self.Status.RESERVATION_ACCEPTED}
+
+    def reservation_badge_label(self, user):
+        if not self.is_reserved_state:
+            return None
+        if user and self.reserved_for_id == getattr(user, "id", None):
+            return "Réservé pour vous"
+        return "Réservé"
+
+    @property
     def public_status_display(self):
         status = self.get_public_status()
         return status.label if status else ""
@@ -294,6 +314,30 @@ class Reservation(models.Model):
         if not self.cancelled_at:
             self.cancelled_at = timezone.now()
             self.save(update_fields=["cancelled_at"])
+
+
+class ReservationLog(models.Model):
+    class Action(models.TextChoices):
+        RESERVED = "reserved", "Réservé"
+        CANCELLED = "cancelled", "Annulé"
+        ACCEPTED = "accepted", "Accepté"
+
+    listing = models.ForeignKey(
+        Listing, on_delete=models.CASCADE, related_name="reservation_logs"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reservation_logs",
+    )
+    action = models.CharField(
+        max_length=16, choices=Action.choices, db_index=True
+    )
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
 
 class ListingReminder(models.Model):

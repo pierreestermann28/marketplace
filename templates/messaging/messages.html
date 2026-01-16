@@ -28,6 +28,10 @@
       }
       document.querySelectorAll(".conversation-row--active").forEach((el) => el.classList.remove("conversation-row--active"));
       event.target.classList.add("conversation-row--active");
+      const badge = event.target.querySelector(".conversation-unread-badge");
+      if (badge) {
+        badge.remove();
+      }
     });
 
     document.addEventListener("htmx:afterSwap", (event) => {
