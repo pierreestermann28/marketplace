@@ -2,6 +2,12 @@
 <div class="relative">
   <a class="listing-card"
      href="{% url 'listing_detail' slug=listing.slug|default:'item' uuid=listing.id %}">
+    {% if listing.is_seen %}
+      <span class="seen-badge absolute left-3 top-3 flex items-center gap-1 tracking-[0.3em] uppercase">
+        <i data-lucide="eye" class="h-3.5 w-3.5 stroke-[2]" aria-hidden="true"></i>
+        Vu
+      </span>
+    {% endif %}
     {% with primary=listing.get_primary_image %}
       {% if primary %}
         <div class="overflow-hidden rounded-2xl">

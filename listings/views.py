@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.mail import send_mail
-from django.db.models import Avg, BooleanField, Exists, F, OuterRef, Prefetch, Q, Value
+from django.db.models import Avg, BooleanField, Count, Exists, F, OuterRef, Prefetch, Q, Value
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -22,17 +22,20 @@ from mediahub.models import ImageAsset
 
 from catalog.models import Category
 
-from .forms import ListingForm, PhotoUploadForm
-from accounts.models import ReputationStats
-from commerce.models import Review
-from ingestion.models import DetectedItem
+from .forms import ListingForm, PhotoUploadForm, SearchAlertForm
 from .models import (
     Favorite,
     Listing,
     ListingImage,
     ListingReminder,
+    ListingView,
     Reservation,
+    SearchAlert,
 )
+from .utils import user_can_message_listing
+from accounts.models import ReputationStats
+from commerce.models import Review
+from ingestion.models import DetectedItem
 
 
 def get_listing_detail_url(listing):
@@ -66,8 +69,10 @@ class HomeFeedView(ListView):
                     )
                 )
             )
+            qs = self._annotate_with_seen(qs)
         else:
             qs = qs.annotate(is_favorited=Value(False, output_field=BooleanField()))
+            qs = qs.annotate(is_seen=Value(False, output_field=BooleanField()))
         return (
             qs.select_related("category", "seller")
             .prefetch_related(Prefetch("images", queryset=image_qs))
@@ -83,12 +88,15 @@ class HomeFeedView(ListView):
             "category": self.request.GET.get("category", ""),
             "querystring": self._get_filter_querystring(),
         }
+        context["search_alert_form"] = SearchAlertForm()
         recommended, category_ids = self._get_recommendations()
         context["recommended_listings"] = recommended
         context["recommendation_reason"] = self._build_recommendation_reason(
             category_ids
         )
+        context["feed_partial_url"] = self._build_feed_partial_url(context["filters"]["querystring"])
         return context
+
 
     def _get_filter_querystring(self):
         params = self.request.GET.copy()
@@ -131,6 +139,7 @@ class HomeFeedView(ListView):
             )
             .order_by("-created_at")
         )
+        qs = self._annotate_with_seen(qs)
         return list(qs[:6]), category_ids
 
     def _build_recommendation_reason(self, category_ids):
@@ -142,6 +151,30 @@ class HomeFeedView(ListView):
         if category:
             return f"vos favoris dans {category.name}"
         return "vos favoris"
+
+    def _build_feed_partial_url(self, querystring):
+        base = reverse("home_feed_partial")
+        if querystring:
+            return f"{base}?{querystring}"
+        return base
+
+    def _annotate_with_seen(self, qs):
+        user = self.request.user
+        if not user.is_authenticated:
+            return qs
+        seen_qs = ListingView.objects.filter(user=user, listing=OuterRef("pk"))
+        return qs.annotate(is_seen=Exists(seen_qs))
+
+
+class HomeFeedPartialView(HomeFeedView):
+    template_name = "components/listings/listing_grid.html"
+    paginate_by = 24
+    context_object_name = "listings"
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        context = self.get_context_data()
+        return render(request, self.get_template_names(), context)
 
 
 class ListingDetailView(DetailView):
@@ -178,6 +211,12 @@ class ListingDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         listing = context["listing"]
         listing.increment_view_count()
+        if self.request.user.is_authenticated:
+            ListingView.objects.update_or_create(
+                user=self.request.user,
+                listing=listing,
+                defaults={"viewed_at": timezone.now()},
+            )
         primary_image = listing.get_primary_image()
         gallery_images = list(listing.images.all())
         secondary_images = [image for image in gallery_images if image != primary_image]
@@ -232,6 +271,12 @@ class ListingDetailView(DetailView):
                     and ListingReminder.objects.filter(
                         user=self.request.user, listing=listing
                     ).exists()
+                ),
+                "can_contact_seller": user_can_message_listing(
+                    self.request.user, listing
+                ),
+                "contact_lock_reason": (
+                    "La messagerie se débloque après une réservation ou un paiement validé."
                 ),
             }
         )
@@ -298,6 +343,8 @@ class WishlistView(LoginRequiredMixin, TemplateView):
             listing.is_favorited = True
         context["listings"] = listings
         context["wishlist_url"] = reverse("wishlist")
+        context["search_alerts"] = SearchAlert.objects.filter(user=self.request.user).order_by("-created_at")
+        context["search_alert_form"] = SearchAlertForm()
         return context
 
     def render_to_response(self, context, **response_kwargs):
@@ -310,10 +357,66 @@ class WishlistView(LoginRequiredMixin, TemplateView):
         return super().render_to_response(context, **response_kwargs)
 
 
+class SearchAlertCreateView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        form = SearchAlertForm(request.POST)
+        if form.is_valid():
+            alert, created = SearchAlert.objects.get_or_create(
+                user=request.user,
+                keyword=form.cleaned_data["keyword"],
+                city=form.cleaned_data["city"],
+                category=form.cleaned_data["category"],
+                defaults={"is_active": True},
+            )
+            if created:
+                django_messages.success(
+                    request,
+                    "Alerte créée ! On vous envoie un email dès qu’une annonce correspond.",
+                )
+            else:
+                django_messages.info(
+                    request, "Une alerte identique existe déjà pour vous."
+                )
+        else:
+            for error in form.errors.values():
+                django_messages.error(request, " ".join(error))
+        return redirect("wishlist")
+
+
 class MyListingsView(LoginRequiredMixin, ListView):
     model = Listing
     template_name = "sell/my_listings.html"
     context_object_name = "listings"
+ 
+    STATUS_ORDER = [
+        Listing.Status.DRAFT,
+        Listing.Status.PENDING_REVIEW,
+        Listing.Status.PUBLISHED,
+        Listing.Status.RESERVED,
+        Listing.Status.SOLD,
+        Listing.Status.REJECTED,
+        Listing.Status.ARCHIVED,
+    ]
+
+    STATUS_LABELS = {
+        Listing.Status.DRAFT: "Brouillons",
+        Listing.Status.PENDING_REVIEW: "En relecture",
+        Listing.Status.PUBLISHED: "Publiés",
+        Listing.Status.RESERVED: "Réservés",
+        Listing.Status.SOLD: "Vendues",
+        Listing.Status.REJECTED: "Refusés",
+        Listing.Status.ARCHIVED: "Archivée",
+    }
+
+    STATUS_DESCRIPTIONS = {
+        Listing.Status.DRAFT: "Complète les infos",
+        Listing.Status.PENDING_REVIEW: "Sous validation équipe",
+        Listing.Status.PUBLISHED: "Visibles par tous",
+        Listing.Status.RESERVED: "Attente confirmation",
+        Listing.Status.SOLD: "Livrées ou payées",
+        Listing.Status.REJECTED: "Demande une mise à jour",
+        Listing.Status.ARCHIVED: "Conclues ou retirées",
+    }
 
     def get_queryset(self):
         reservation_qs = Reservation.objects.active().select_related("buyer")
@@ -333,7 +436,31 @@ class MyListingsView(LoginRequiredMixin, ListView):
         context["reservation_expiration_hours"] = getattr(
             settings, "RESERVATION_HOLD_HOURS", 24
         )
+        context["status_summary"] = self._build_status_summary(context["listings"])
+        context["status_cards"] = self._build_status_cards(context["status_summary"])
         return context
+
+    def _build_status_summary(self, listings):
+        counts = {
+            row["status"]: row["count"]
+            for row in listings.values("status").annotate(count=Count("status"))
+        }
+        return counts
+
+    def _build_status_cards(self, summary):
+        cards = []
+        total = sum(summary.values())
+        for status in self.STATUS_ORDER:
+            cards.append(
+                {
+                    "status": status,
+                    "label": self.STATUS_LABELS.get(status, status.title()),
+                    "description": self.STATUS_DESCRIPTIONS.get(status, ""),
+                    "count": summary.get(status, 0),
+                    "ratio": f"{int(summary.get(status, 0) / total * 100) if total else 0}%",
+                }
+            )
+        return cards
 
 
 class ListingStartView(LoginRequiredMixin, FormView):

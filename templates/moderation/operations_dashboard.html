@@ -1,0 +1,69 @@
+{% extends "layouts/app.html" %}
+{% block page_content %}
+  <div class="container-app py-10 space-y-8">
+    <header class="space-y-2">
+      <h1 class="h1">Supervision</h1>
+      <p class="muted">Suivez les commandes en attente, les litiges et le flux IA depuis un même tableau de bord.</p>
+    </header>
+
+    <div class="grid gap-4 md:grid-cols-4">
+      <div class="card card-body space-y-2">
+        <div class="text-xs uppercase tracking-[0.4em] text-ink-400">Commandes en attente</div>
+        <div class="text-3xl font-semibold text-ink-900">{{ orders_pending }}</div>
+        <p class="text-sm text-ink-500">Attentes de paiement ou confirmation</p>
+      </div>
+      <div class="card card-body space-y-2">
+        <div class="text-xs uppercase tracking-[0.4em] text-ink-400">Commandes à surveiller</div>
+        <div class="text-3xl font-semibold text-danger">{{ orders_attention }}</div>
+        <p class="text-sm text-ink-500">Litiges, annulations ou expirations récentes</p>
+      </div>
+      <div class="card card-body space-y-2">
+        <div class="text-xs uppercase tracking-[0.4em] text-ink-400">Litiges ouverts</div>
+        <div class="text-3xl font-semibold text-ink-900">{{ open_disputes }}</div>
+        <p class="text-sm text-ink-500">En attente d’un retour client/service</p>
+      </div>
+      <div class="card card-body space-y-2">
+        <div class="text-xs uppercase tracking-[0.4em] text-ink-400">Détections pendantes</div>
+        <div class="text-3xl font-semibold text-brand">{{ pending_detected_items }}</div>
+        <p class="text-sm text-ink-500">Propositions IA en attente de swipe</p>
+      </div>
+    </div>
+
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="section-label">Top annonces vues</p>
+          <h2 class="h2">Vues récentes & signalées</h2>
+        </div>
+        <a href="{% url 'wishlist' %}" class="text-sm font-semibold text-brand hover:underline">Voir la liste</a>
+      </div>
+      <div class="grid gap-4 md:grid-cols-3">
+        {% for listing in trending_listings %}
+          <article class="feature-card space-y-2">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-semibold text-ink-900">{{ listing.title|default:"- sans titre -" }}</h3>
+              <span class="text-xs uppercase tracking-[0.3em] text-ink-400">{{ listing.view_count }} vues</span>
+            </div>
+            <p class="text-sm text-ink-600">
+              {% if listing.category %}
+                {{ listing.category.name }}
+              {% else %}
+                Catégorie inconnue
+              {% endif %}
+            </p>
+            <p class="text-xs text-ink-500">Seller: {{ listing.seller.get_full_name|default:listing.seller.email }}</p>
+            <div class="flex items-center gap-2 text-xs text-ink-500">
+              <span class="rounded-full border border-ink-200 px-3 py-1">
+                {{ listing.get_status_display }}
+              </span>
+              {% url 'review_listing' pk=listing.id as listing_review_url %}
+              {% include "components/ui/button.html" with label="Id" variant="ghost" size="sm" href=listing_review_url attrs='data-analytics-event=uit:trending_inspect' only %}
+            </div>
+          </article>
+        {% empty %}
+          <p class="text-sm text-ink-600">Pas encore de données.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+{% endblock %}

@@ -1,14 +1,14 @@
 import uuid
+from datetime import timedelta
+
 from django.conf import settings
 from django.db import models
-
-from catalog.models import Category
-from django.db.models import Prefetch
-
-from django.conf import settings
-from django.db.models import F
+from django.db.models import F, Prefetch
 from django.utils import timezone
 from django.utils.text import slugify
+
+from catalog.models import Category
+from mediahub.models import ImageAsset, Keyframe, VideoUpload
 
 
 class Listing(models.Model):
@@ -108,7 +108,9 @@ class Listing(models.Model):
         return self.title
 
     def get_primary_image(self):
-        primary = self.images.filter(is_primary=True).select_related("image_asset").first()
+        primary = (
+            self.images.filter(is_primary=True).select_related("image_asset").first()
+        )
         if primary:
             return primary
         return self.images.select_related("image_asset").order_by("sort_order").first()
@@ -150,6 +152,24 @@ class Listing(models.Model):
     def increment_view_count(self):
         Listing.objects.filter(pk=self.pk).update(view_count=F("view_count") + 1)
         self.refresh_from_db(fields=["view_count"])
+
+
+class ListingView(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="listing_views"
+    )
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="views")
+    viewed_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        unique_together = [("user", "listing")]
+        indexes = [
+            models.Index(fields=["user", "listing"]),
+            models.Index(fields=["viewed_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} viewed {self.listing} at {self.viewed_at}"
 
 
 class ListingImage(models.Model):
@@ -240,10 +260,74 @@ class ListingReminder(models.Model):
         if not self.notify_at:
             available = self.listing.available_from
             if available:
-                self.notify_at = available - timezone.timedelta(hours=6)
+                self.notify_at = available - timedelta(hours=6)
             else:
                 self.notify_at = timezone.now()
         super().save(*args, **kwargs)
+
+
+class SearchAlert(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="search_alerts",
+    )
+    keyword = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=80, blank=True)
+    category = models.ForeignKey(
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="search_alerts",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_sent = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = [("user", "keyword", "city", "category")]
+
+    def matches(self, listing):
+        if listing.seller == self.user:
+            return False
+        if self.keyword:
+            text = f"{listing.title} {listing.description}".lower()
+            if self.keyword.lower() not in text:
+                return False
+        if self.city and self.city.strip():
+            if self.city.lower() != listing.city.lower():
+                return False
+        if self.category and listing.category_id != self.category_id:
+            return False
+        return True
+
+    def __str__(self):
+        parts = [self.keyword or "mot-clé libre"]
+        if self.city:
+            parts.append(self.city)
+        if self.category:
+            parts.append(self.category.name)
+        return " · ".join(parts)
+
+
+class SearchAlertNotification(models.Model):
+    alert = models.ForeignKey(
+        SearchAlert,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    listing = models.ForeignKey(
+        Listing,
+        on_delete=models.CASCADE,
+        related_name="alert_notifications",
+    )
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("alert", "listing")]
+
+
 class Favorite(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites"

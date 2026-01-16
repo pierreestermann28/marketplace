@@ -30,6 +30,7 @@ urlpatterns = [
     path("messages/", include("messaging.urls")),
     path("commerce/", include("commerce.urls")),
     path("accounts/", include("accounts.urls")),
+    path("", include("operations.urls")),
     path("", include("pwa.urls")),
     path("htmx/ping/", htmx_ping, name="htmx_ping"),
     path("admin/", admin.site.urls),

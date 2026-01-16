@@ -15,8 +15,41 @@
         </div>
       </div>
     </div>
-    <div class="mt-4" id="wishlist-panel">
-      {% include "fragments/listings/wishlist_panel.html" %}
+    <div class="mt-4 grid gap-6 lg:grid-cols-[3fr_1fr]">
+      <div id="wishlist-panel">
+        {% include "fragments/listings/wishlist_panel.html" %}
+      </div>
+      <aside class="space-y-4">
+        <div class="card card-body space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="section-label">Alertes de recherche</p>
+              <h3 class="text-lg font-semibold text-ink-900">Suivez vos filtres</h3>
+            </div>
+            <span class="text-xs uppercase tracking-[0.4em] text-ink-400">Email</span>
+          </div>
+          <div class="space-y-3 text-sm text-ink-600">
+            {% if search_alerts %}
+              {% for alert in search_alerts %}
+                <div class="rounded-2xl border border-ink-100 bg-ink-50 p-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <span>{{ alert }}</span>
+                    <span class="text-xs text-ink-500">
+                      {{ alert.last_sent|default:alert.created_at|date:"d M Y" }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-ink-500 mt-1">
+                    Dernier email : {{ alert.last_sent|default:"Jamais" }}
+                  </p>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p>Créez une alerte depuis la page d’accueil pour recevoir un email dès qu’une annonce correspond à vos critères.</p>
+            {% endif %}
+          </div>
+          <a href="/" class="text-sm font-semibold text-brand hover:underline">Créer une alerte</a>
+        </div>
+      </aside>
     </div>
     <div
       id="wishlist-refresher"

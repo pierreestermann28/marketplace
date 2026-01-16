@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "mediahub",
     "listings",
     "commerce",
+    "operations",
     "ingestion",
     "messaging",
 ]

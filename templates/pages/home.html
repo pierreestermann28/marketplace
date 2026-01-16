@@ -47,6 +47,32 @@
           {% include "components/ui/button.html" with label="Rechercher" variant="primary" type="submit" only %}
         </form>
       </div>
+      <div class="card card-body space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="section-label">Alertes de recherche</p>
+            <h2 class="text-lg font-semibold text-ink-900">Soyez alerté dès qu’un objet vous correspond</h2>
+          </div>
+          <span class="text-xs uppercase tracking-[0.4em] text-ink-400">Mot-clé + ville + catégorie</span>
+        </div>
+        <form method="post" action="{% url 'search_alert_create' %}" class="grid gap-3 sm:grid-cols-4">
+          {% csrf_token %}
+          <div>
+            {{ search_alert_form.keyword }}
+          </div>
+          <div>
+            {{ search_alert_form.city }}
+          </div>
+          <div>
+            {{ search_alert_form.category }}
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="btn btn-secondary w-full py-3 text-sm font-semibold">
+              Créer l’alerte
+            </button>
+          </div>
+        </form>
+      </div>
       <div class="feature-grid" aria-label="Points forts">
         <article class="feature-card">
           <div class="flex items-center gap-3">
@@ -93,7 +119,7 @@
     {% endif %}
 
     <div class="space-y-6">
-        <div class="card card-body space-y-4" id="listings-feed">
+        <div class="card card-body space-y-4" id="listings-feed" data-feed-url="{{ feed_partial_url }}">
         <div class="flex flex-col gap-1 text-sm text-ink-500 sm:flex-row sm:items-center sm:justify-between">
           <p>
             {% if page_obj %}
@@ -111,4 +137,27 @@
       {% include "components/ui/pagination.html" with page_obj=page_obj is_paginated=is_paginated query_params=filters.querystring only %}
     </div>
   </div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    (function () {
+      const feed = document.getElementById("listings-feed");
+      if (!feed) return;
+      const refreshFeed = () => {
+        const url = feed.dataset.feedUrl;
+        if (!url || typeof htmx === "undefined") return;
+        htmx.ajax("GET", url, { target: feed, swap: "outerHTML" });
+      };
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          refreshFeed();
+        }
+      });
+
+      feed.dataset.refreshed = "1";
+    })();
+  </script>
 {% endblock %}

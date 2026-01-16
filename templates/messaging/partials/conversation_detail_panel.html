@@ -70,8 +70,23 @@
         hx-swap="innerHTML"
         hx-on::afterSwap="if (window.lucide && window.lucide.createIcons) { window.lucide.createIcons(); }">
     {% csrf_token %}
-    {{ form.non_field_errors }}
-    {{ form.text }}
+    {% if form.non_field_errors %}
+      <div class="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <div class="space-y-1">
+      {{ form.text }}
+      {% if form.text.errors %}
+        <div class="text-xs text-red-700">
+          {% for error in form.text.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
     <div class="flex items-center justify-between">
       <button type="submit" class="btn btn-primary" aria-label="Envoyer le message">
         <i data-lucide="send" class="h-4 w-4" aria-hidden="true"></i>

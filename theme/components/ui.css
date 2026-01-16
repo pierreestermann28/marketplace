@@ -91,6 +91,9 @@
   .badge-danger {
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800;
   }
+  .seen-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold bg-success text-white shadow-sm;
+  }
 
   /* Nav */
   .nav {

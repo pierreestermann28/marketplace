@@ -1,7 +1,9 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Listing
+from catalog.models import Category
+
+from .models import Listing, SearchAlert
 
 
 class ListingForm(forms.ModelForm):
@@ -71,3 +73,29 @@ class MultiFileField(forms.Field):
 
 class PhotoUploadForm(forms.Form):
     images = MultiFileField(required=True, widget=MultiFileInput(attrs={"multiple": True}))
+
+
+class SearchAlertForm(forms.ModelForm):
+    class Meta:
+        model = SearchAlert
+        fields = ["keyword", "city", "category"]
+        widgets = {
+            "keyword": forms.TextInput(attrs={"class": "input", "placeholder": "Mot-clé"}),
+            "city": forms.TextInput(attrs={"class": "input", "placeholder": "Ville"}),
+            "category": forms.Select(attrs={"class": "input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = Category.objects.all()
+
+    def clean(self):
+        cleaned = super().clean()
+        keyword = cleaned.get("keyword", "").strip()
+        city = cleaned.get("city", "").strip()
+        category = cleaned.get("category")
+        if not (keyword or city or category):
+            raise ValidationError("Ajoutez au moins un critère pour créer une alerte.")
+        cleaned["keyword"] = keyword
+        cleaned["city"] = city
+        return cleaned

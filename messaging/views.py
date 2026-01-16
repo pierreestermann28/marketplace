@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.views.generic import DetailView, RedirectView, TemplateView
 
 from listings.models import Listing
+from listings.utils import user_can_message_listing
 
 from .forms import MessageForm
 from .models import Conversation, Message
@@ -48,7 +49,10 @@ class ConversationDashboardView(LoginRequiredMixin, TemplateView):
         context["selected_conversation_pk"] = (
             selected_conversation.pk if selected_conversation else None
         )
-        context["message_form"] = MessageForm()
+        context["message_form"] = MessageForm(
+            conversation=selected_conversation,
+            sender=self.request.user,
+        )
         return context
 
 
@@ -67,7 +71,10 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.setdefault("form", MessageForm())
+        context["form"] = MessageForm(
+            conversation=context.get("conversation"),
+            sender=self.request.user,
+        )
         return context
 
     def get_template_names(self):
@@ -78,7 +85,11 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
     def post(self, request, *args, **kwargs):
         conversation = self.get_object()
         self.object = conversation
-        form = MessageForm(request.POST)
+        form = MessageForm(
+            request.POST,
+            conversation=conversation,
+            sender=request.user,
+        )
         if form.is_valid():
             now = timezone.now()
             message = form.save(commit=False)
@@ -92,7 +103,10 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
                 conversation = self.get_queryset().get(pk=conversation.pk)
                 self.object = conversation
                 context = self.get_context_data()
-                context["form"] = MessageForm()
+                context["form"] = MessageForm(
+                    conversation=conversation,
+                    sender=self.request.user,
+                )
                 return self.render_to_response(
                     context,
                 )
@@ -116,6 +130,14 @@ class ConversationStartView(LoginRequiredMixin, RedirectView):
         if listing.seller == self.request.user:
             django_messages.error(
                 self.request, "Vous ne pouvez pas vous contacter vous-même."
+            )
+            return reverse(
+                "listing_detail", kwargs={"slug": listing.slug, "uuid": listing.id}
+            )
+        if not user_can_message_listing(self.request.user, listing):
+            django_messages.error(
+                self.request,
+                "Réserve ou complète le paiement pour débloquer la messagerie.",
             )
             return reverse(
                 "listing_detail", kwargs={"slug": listing.slug, "uuid": listing.id}

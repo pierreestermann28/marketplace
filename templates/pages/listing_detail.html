@@ -139,7 +139,19 @@
           </div>
           {% include "components/reputation/summary.html" with stats=seller_reputation_stats only %}
           <div class="flex flex-wrap gap-2 pt-4">
-            {% include "components/ui/button.html" with label="Contacter le vendeur" variant="primary" href=contact_url only %}
+            {% if can_contact_seller %}
+              {% include "components/ui/button.html" with label="Contacter le vendeur" variant="primary" href=contact_url only %}
+            {% else %}
+              <div class="flex-1 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div class="flex items-center gap-1 text-xs uppercase tracking-[0.4em] text-amber-700">
+                  <i data-lucide="lock" class="h-3 w-3"></i>
+                  Informations verrouillées
+                </div>
+                <p class="mt-2 text-sm">
+                  {{ contact_lock_reason }}
+                </p>
+              </div>
+            {% endif %}
             <a
               href="{% url 'accounts:public_profile' pk=listing.seller.pk %}"
               class="btn btn-ghost flex items-center gap-2"

@@ -17,6 +17,23 @@
       </div>
     </div>
 
+    {% if status_cards %}
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {% for card in status_cards %}
+          <div class="card card-body space-y-2 border border-ink-100 bg-white/80">
+            <div class="flex items-center justify-between text-xs text-ink-500">
+              <span class="uppercase tracking-[0.3em]">{{ card.label }}</span>
+              <span class="text-ink-400">{{ card.ratio }}</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-semibold text-ink-900">{{ card.count }}</span>
+              <span class="text-sm text-ink-500">{{ card.description }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     {% if listings %}
       <div class="space-y-4">
         {% for listing in listings %}
@@ -109,11 +126,9 @@
             {% endif %}
             <div class="flex flex-wrap gap-2">
               {% include "components/ui/button.html" with label="Modifier les infos" variant="secondary" size="sm" href=edit_url only %}
-              {% include "components/ui/button.html" with label="Ajouter des photos" variant="ghost" size="sm" href=photos_url only %}
-              {% include "components/ui/button.html" with label="Soumettre pour validation" variant="primary" size="sm" href=submit_url only %}
               {% if listing.status == "published" and listing.slug %}
                 {% url "listing_detail" slug=listing.slug uuid=listing.id as listing_url %}
-                {% include "components/ui/button.html" with label="Publier" variant="ghost" size="sm" href=listing_url only %}
+                {% include "components/ui/button.html" with label="Voir la fiche" variant="ghost" size="sm" href=listing_url only %}
               {% endif %}
             </div>
           </article>

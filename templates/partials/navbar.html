@@ -16,8 +16,12 @@
         <a href="{% url 'ingestion:batch_upload' %}" class="transition hover:text-ink-900">Vendre</a>
         <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Wishlist</a>
         <a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'my_listings' %}" class="transition hover:text-ink-900">Mes annonces</a>
+        {% endif %}
         {% if user.is_staff %}
           <a href="{% url 'ingestion:admin_swipe' %}" class="transition hover:text-ink-900">Modération</a>
+          <a href="{% url 'operations:dashboard' %}" class="transition hover:text-ink-900">Supervision</a>
         {% endif %}
       </nav>
     </div>
@@ -97,6 +101,7 @@
       <a href="{% url 'messages:list' %}" class="transition hover:text-brand">Messages</a>
       {% if user.is_staff %}
         <a href="{% url 'ingestion:admin_swipe' %}" class="transition hover:text-brand">Modération</a>
+        <a href="{% url 'operations:dashboard' %}" class="transition hover:text-brand">Supervision</a>
       {% endif %}
       {% if user.is_authenticated %}
         <a href="{% url 'accounts:personal_profile' %}" class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">
