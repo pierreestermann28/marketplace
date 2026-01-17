@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -22,9 +23,6 @@ from django.urls import include, path
 
 from stillusefull.views import HealthCheckView, SitemapView
 
-
-def htmx_ping(request):
-    return HttpResponse("HTMX ok")
 
 urlpatterns = [
     path("sitemap.xml", SitemapView.as_view(), name="sitemap"),
@@ -37,7 +35,6 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("", include("operations.urls")),
     path("", include("pwa.urls")),
-    path("htmx/ping/", htmx_ping, name="htmx_ping"),
     path("admin/", admin.site.urls),
 ]
 
