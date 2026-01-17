@@ -1,0 +1,10 @@
+@layer components {
+  .search-alert-remove {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full border border-danger bg-danger text-white shadow-sm transition hover:bg-danger-700 hover:border-danger-700;
+    @apply cursor-pointer;
+  }
+
+  .search-alert-remove i {
+    @apply h-3 w-3;
+  }
+}

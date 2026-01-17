@@ -19,6 +19,7 @@ from .views import (
     ReservationCancelView,
     ReviewQueueView,
     SearchAlertCreateView,
+    SearchAlertDeleteView,
     SubmitForReviewView,
     WishlistView,
 )
@@ -29,6 +30,7 @@ urlpatterns = [
     path("items/<uuid:listing_id>/cancel-reservation/", ReservationCancelView.as_view(), name="listing_cancel_reservation"),
     path("items/<uuid:listing_id>/remind/", ListingReminderCreateView.as_view(), name="listing_remind"),
     path("alerts/create/", SearchAlertCreateView.as_view(), name="search_alert_create"),
+    path("alerts/<int:pk>/delete/", SearchAlertDeleteView.as_view(), name="search_alert_delete"),
     path("categories/<slug:slug>/", CategoryListingView.as_view(), name="category_listings"),
     path("villes/<slug:slug>/", CityListingView.as_view(), name="city_listings"),
     path("items/<slug:slug>-<uuid:uuid>/", ListingDetailView.as_view(), name="listing_detail"),

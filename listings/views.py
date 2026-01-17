@@ -564,6 +564,29 @@ class SearchAlertCreateView(LoginRequiredMixin, View):
         return redirect("wishlist")
 
 
+class SearchAlertDeleteView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        return self._delete(request, kwargs["pk"])
+
+    def delete(self, request, *args, **kwargs):
+        return self._delete(request, kwargs["pk"])
+
+    def _delete(self, request, pk):
+        alert = get_object_or_404(SearchAlert, pk=pk, user=request.user)
+        alert.delete()
+        if not request.headers.get("HX-Request"):
+            django_messages.success(request, "Alerte supprimée.")
+            return redirect("wishlist")
+        search_alerts = SearchAlert.objects.filter(user=request.user).order_by(
+            "-created_at"
+        )
+        return render(
+            request,
+            "fragments/search_alerts/container.html",
+            {"search_alerts": search_alerts},
+        )
+
+
 class MyListingsView(LoginRequiredMixin, ListView):
     model = Listing
     template_name = "sell/my_listings.html"

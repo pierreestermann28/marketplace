@@ -61,25 +61,7 @@
             </div>
             <button type="submit" class="btn btn-primary w-full py-3 text-sm font-semibold">Créer une alerte</button>
           </form>
-          <div class="space-y-3 text-sm text-ink-600">
-            {% if search_alerts %}
-              {% for alert in search_alerts %}
-                <div class="rounded-2xl border border-ink-100 bg-ink-50 p-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <span>{{ alert }}</span>
-                    <span class="text-xs text-ink-500">
-                      {{ alert.last_sent|default:alert.created_at|date:"d M Y" }}
-                    </span>
-                  </div>
-                  <p class="text-xs text-ink-500 mt-1">
-                    Dernier email : {{ alert.last_sent|default:"Jamais" }}
-                  </p>
-                </div>
-              {% endfor %}
-            {% else %}
-              <p>Créez une alerte via le formulaire ci-dessus pour recevoir un email dès qu’une annonce correspond à vos critères.</p>
-            {% endif %}
-          </div>
+          {% include "fragments/search_alerts/container.html" %}
         </div>
       </section>
     </div>
