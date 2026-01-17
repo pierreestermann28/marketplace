@@ -331,5 +331,75 @@
         document.addEventListener("htmx:afterSwap", init);
       })();
     </script>
+    <script>
+      (function () {
+        function initCategoryFilters() {
+          document
+            .querySelectorAll("[data-category-filter]")
+            .forEach(function (root) {
+              if (root.dataset.categoryFilterInit === "true") {
+                return;
+              }
+              const chipList = root.querySelector("[data-category-chip-list]");
+              const hiddenWrapper = root.querySelector("[data-category-hidden-wrapper]");
+              if (!chipList || !hiddenWrapper) {
+                return;
+              }
+
+              chipList.addEventListener("click", function (event) {
+          const chip = event.target.closest("[data-category-chip]");
+          if (!chip) {
+            return;
+          }
+          const slug = chip.dataset.categorySlug;
+          if (!slug) {
+            return;
+          }
+          const isSelected = chip.classList.toggle("category-chip--selected");
+          if (isSelected) {
+            const inputEl = document.createElement("input");
+            inputEl.type = "hidden";
+            inputEl.name = "category_slugs";
+            inputEl.value = slug;
+            inputEl.dataset.categorySlugInput = slug;
+            hiddenWrapper.appendChild(inputEl);
+          } else {
+            const existing = hiddenWrapper.querySelector(
+              '[data-category-slug-input="' + slug + '"]'
+            );
+            if (existing) {
+              existing.remove();
+            }
+          }
+              const form = root.querySelector("form");
+              if (form) {
+                form.dispatchEvent(new Event("change", { bubbles: true }));
+              }
+              });
+
+              const clearButton = root.querySelector("[data-category-clear]");
+              if (clearButton) {
+                clearButton.addEventListener("click", function () {
+                  hiddenWrapper
+                    .querySelectorAll("[data-category-slug-input]")
+                    .forEach(function (inputEl) {
+                      inputEl.remove();
+                    });
+                  chipList
+                    .querySelectorAll(".category-chip--selected")
+                    .forEach(function (chip) {
+                      chip.classList.remove("category-chip--selected");
+                    });
+                });
+              }
+
+              root.dataset.categoryFilterInit = "true";
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", initCategoryFilters);
+        document.addEventListener("htmx:afterSwap", initCategoryFilters);
+      })();
+    </script>
   </body>
 </html>

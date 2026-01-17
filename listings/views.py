@@ -71,6 +71,11 @@ class HomeFeedView(ListView):
                 city_ids.append(int(value))
             except ValueError:
                 continue
+        category_slugs = [
+            slug.strip()
+            for slug in self.request.GET.getlist("category_slugs")
+            if slug.strip()
+        ]
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
         if city_ids:
@@ -79,7 +84,9 @@ class HomeFeedView(ListView):
             qs = qs.filter(location_city__slug=city_slug)
         elif city:
             qs = qs.filter(city__icontains=city)
-        if category:
+        if category_slugs:
+            qs = qs.filter(category__slug__in=category_slugs)
+        elif category:
             qs = qs.filter(category__slug=category)
         image_qs = self._image_prefetch_queryset()
         if self.request.user.is_authenticated:
@@ -111,13 +118,20 @@ class HomeFeedView(ListView):
                 selected_city_ids.append(int(value))
             except ValueError:
                 continue
+        category_slugs = [
+            slug.strip()
+            for slug in self.request.GET.getlist("category_slugs")
+            if slug.strip()
+        ]
         filters = {
             "q": self.request.GET.get("q", ""),
             "city": self.request.GET.get("city", ""),
             "category": self.request.GET.get("category", ""),
             "querystring": self._get_filter_querystring(),
             "city_ids": [str(cid) for cid in selected_city_ids],
+            "category_slugs": category_slugs,
         }
+        context["selected_categories"] = self._resolve_selected_categories(category_slugs)
         context["filters"] = filters
         context["selected_cities"] = self._resolve_selected_cities(selected_city_ids)
         recommended, category_ids = self._get_recommendations()
@@ -131,20 +145,6 @@ class HomeFeedView(ListView):
             .annotate(count=Count("listings"))
             .order_by("-count")[:6]
         )
-        featured_city_qs = (
-            Listing.objects.filter(status__in=self.status_filter, location_city__isnull=False)
-            .values("location_city__name", "location_city__slug")
-            .annotate(count=Count("id"))
-            .order_by("-count")[:6]
-        )
-        context["featured_cities"] = [
-            {
-                "city": city["location_city__name"],
-                "count": city["count"],
-                "slug": city["location_city__slug"],
-            }
-            for city in featured_city_qs
-        ]
         context["page_meta"] = self._default_page_meta()
         context["page_heading"] = "Annonces locales"
         context["page_description"] = context["page_meta"]["description"]
@@ -175,6 +175,17 @@ class HomeFeedView(ListView):
             }
             for city in cities
         ]
+
+    def _resolve_selected_categories(self, category_slugs):
+        if not category_slugs:
+            return []
+        unique_slugs = list(dict.fromkeys(category_slugs))
+        categories = (
+            Category.objects.filter(slug__in=unique_slugs)
+            .order_by("name")
+            .values("name", "slug")
+        )
+        return [{"name": category["name"], "slug": category["slug"]} for category in categories]
 
     def _get_filter_querystring(self):
         params = self.request.GET.copy()
@@ -275,7 +286,7 @@ class HomeFeedView(ListView):
 
 
 class HomeFeedPartialView(HomeFeedView):
-    template_name = "components/listings/listing_grid.html"
+    template_name = "fragments/home/listings_feed.html"
     paginate_by = 24
     context_object_name = "listings"
 

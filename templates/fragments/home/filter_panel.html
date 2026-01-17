@@ -1,0 +1,87 @@
+<div class="card card-body space-y-4" data-category-filter>
+  <div>
+    <p class="section-label">Filtres</p>
+    <h2 class="text-xl font-semibold text-ink-900">Affinez vos résultats</h2>
+  </div>
+  <form id="home-filter-form"
+        method="get"
+        action="{% url 'home' %}"
+        hx-get="{% url 'home_feed_partial' %}"
+        hx-target="#listings-feed-wrapper"
+        hx-swap="outerHTML"
+        hx-trigger="keyup delay:600ms, change delay:600ms, submit"
+        class="space-y-4">
+    <div>
+      <label class="label sr-only" for="id_home_search">Rechercher</label>
+      {% include "components/ui/input.html" with name="q" placeholder="Rechercher un objet ..." value=filters.q id="id_home_search" only %}
+    </div>
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <p class="label text-sm text-ink-900">Catégories</p>
+        <button type="button"
+                class="text-xs font-semibold text-brand hover:underline"
+                data-category-clear>Effacer</button>
+      </div>
+      <div class="flex flex-wrap gap-2" data-category-chip-list>
+        {% for cat in featured_categories %}
+          {% with slug=cat.slug %}
+            <button type="button"
+                    class="category-chip {% if slug in filters.category_slugs %}category-chip--selected{% endif %}"
+                    data-category-chip
+                    data-category-slug="{{ slug }}">{{ cat.name }}</button>
+          {% endwith %}
+        {% endfor %}
+        {% if featured_categories|length == 0 %}
+          <p class="text-xs text-ink-500">Toutes les catégories seront bientôt mises en lumière.</p>
+        {% endif %}
+      </div>
+      <div class="hidden" data-category-hidden-wrapper>
+        {% for slug in filters.category_slugs %}
+          <input type="hidden"
+                 name="category_slugs"
+                 value="{{ slug }}"
+                 data-category-slug-input="{{ slug }}">
+        {% endfor %}
+      </div>
+    </div>
+    <div class="relative"
+         data-location-autocomplete
+         data-location-mode="multi"
+         data-location-field-name="city_ids">
+      <label class="label sr-only" for="id_search_city">Ville</label>
+      <input type="text"
+             id="id_search_city"
+             name="city"
+             value="{{ filters.city }}"
+             placeholder="Ville"
+             class="input"
+             data-location-city-input="true"
+             autocomplete="off" />
+      <div data-location-results class="location-autocomplete-results"></div>
+      <div class="mt-2 flex flex-wrap gap-2" data-location-selected>
+        {% for city in selected_cities %}
+          <span class="location-autocomplete-chip"
+                data-location-chip
+                data-city-id="{{ city.id }}">
+            {{ city.display_name }}
+            <button type="button"
+                    class="location-autocomplete-chip-remove"
+                    aria-label="Retirer {{ city.name }}"
+                    data-location-chip-remove>&times;</button>
+          </span>
+        {% endfor %}
+      </div>
+      <div class="hidden" data-location-hidden-wrapper>
+        {% for city in selected_cities %}
+          <input type="hidden"
+                 name="city_ids"
+                 value="{{ city.id }}"
+                 data-location-city-id="{{ city.id }}" />
+        {% endfor %}
+      </div>
+    </div>
+    <div class="flex justify-end">
+      {% include "components/ui/button.html" with label="Afficher les résultats" variant="primary" type="submit" class="w-full" only %}
+    </div>
+  </form>
+</div>

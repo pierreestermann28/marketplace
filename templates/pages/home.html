@@ -1,5 +1,4 @@
 {% extends "layouts/app.html" %}
-{% url 'ingestion:batch_upload' as ingestion_upload_url %}
 {% block title %}{{ page_meta.title|default:"StillUseful" }}{% endblock %}
 {% block page_content %}
   <div class="container-app py-10 space-y-10">
@@ -11,183 +10,51 @@
           Sélectionnez des pièces vérifiées, discutez en direct avec les vendeurs et limitez votre impact en donnant une seconde vie à vos objets.
         </p>
       </div>
-      <div class="hero__stats">
-        {% include "components/ui/hero_stat.html" with value=listings|length label="Annonces actives" only %}
-        {% include "components/ui/hero_stat.html" with value=categories|length label="Catégories engagées" only %}
-        {% include "components/ui/hero_stat.html" with value="150+" label="Villes couvertes en France" only %}
-      </div>
     </section>
-    <section class="space-y-6">
-      <div class="card card-body">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="section-label">Recherche multi-critères</p>
-            <p class="text-sm text-ink-600">Affinez vos résultats par ville, marque ou catégorie.</p>
-          </div>
-          <div class="text-xs font-semibold uppercase tracking-[0.4em] text-ink-400">↺ Filtrer à tout moment</div>
-        </div>
-        <form method="get" class="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-          <div class="grid gap-3 sm:grid-cols-3">
-            {% include "components/ui/input.html" with name="q" placeholder="Rechercher un objet, une marque..." value=filters.q only %}
-            <div class="relative"
-                 data-location-autocomplete
-                 data-location-mode="multi"
-                 data-location-field-name="city_ids">
-              <label class="label sr-only" for="id_search_city">Ville</label>
-              <input type="text"
-                     id="id_search_city"
-                     name="city"
-                     value="{{ filters.city }}"
-                     placeholder="Ville"
-                     class="input"
-                     data-location-city-input="true"
-                     autocomplete="off" />
-              <div data-location-results class="location-autocomplete-results"></div>
-              <div class="mt-2 flex flex-wrap gap-2" data-location-selected>
-                {% for city in selected_cities %}
-                  <span class="location-autocomplete-chip"
-                        data-location-chip
-                        data-city-id="{{ city.id }}">
-                    {{ city.display_name }}
-                    <button type="button"
-                            class="location-autocomplete-chip-remove"
-                            aria-label="Retirer {{ city.name }}"
-                            data-location-chip-remove>&times;</button>
-                  </span>
-                {% endfor %}
+
+    <section class="grid gap-6 lg:grid-cols-[minmax(280px,1fr)_3fr]">
+      <aside class="space-y-6">
+        {% include "fragments/home/filter_panel.html" %}
+      </aside>
+
+      <div class="space-y-6">
+        {% include "fragments/home/listings_feed.html" %}
+
+        {% if recommended_listings %}
+          <section class="space-y-4">
+            <div class="flex items-end justify-between gap-4">
+              <div>
+                <p class="section-label">Suggestions personnalisées</p>
+                <h2 class="h2">Basées sur {{ recommendation_reason }}</h2>
               </div>
-              <div class="hidden" data-location-hidden-wrapper>
-                {% for city in selected_cities %}
-                  <input type="hidden"
-                         name="city_ids"
-                         value="{{ city.id }}"
-                         data-location-city-id="{{ city.id }}" />
-                {% endfor %}
-              </div>
+              <a href="#listings-feed-wrapper"
+                 class="text-sm font-semibold text-brand hover:underline">Voir tout</a>
             </div>
-            <div>
-              <label class="label sr-only">Categorie</label>
-              <select name="category" class="input">
-                <option value="">Toutes les categories</option>
-                {% for cat in categories %}
-                  <option value="{{ cat.slug }}"
-                          {% if cat.slug == filters.category %}selected{% endif %}>{{ cat.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          {% include "components/ui/button.html" with label="Rechercher" variant="primary" type="submit" only %}
-        </form>
-      </div>
-      <div class="feature-grid" aria-label="Points forts">
-        <article class="feature-card">
-          <div class="flex items-center gap-3">
-            <i data-lucide="shield" aria-hidden="true"></i>
-            <h3>Confiance renforcée</h3>
-          </div>
-          <p>Profils vérifiés, conversations sécurisées et modération humaine pour garder la place de marché propre.</p>
-        </article>
-        <article class="feature-card">
-          <div class="flex items-center gap-3">
-            <i data-lucide="repeat" aria-hidden="true"></i>
-            <h3>Durabilité</h3>
-          </div>
-          <p>Moins de déchets, plus de recyclage : chaque transaction récompense la seconde vie.</p>
-        </article>
-        <article class="feature-card">
-          <div class="flex items-center gap-3">
-            <i data-lucide="users" aria-hidden="true"></i>
-            <h3>Communauté locale</h3>
-          </div>
-          <p>Paiements suivis, avis transparents et un support prêt à répondre à vos questions.</p>
-        </article>
+            {% include "components/listings/listing_grid.html" with listings=recommended_listings request=request only %}
+          </section>
+        {% endif %}
       </div>
     </section>
-    <section class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-ink-900">Explorer par catégorie</h2>
-          <p class="text-sm text-ink-500">Déroulez les univers les plus demandés.</p>
-        </div>
-        <a href="{% url 'home' %}" class="text-sm text-brand hover:underline">Voir toutes les catégories</a>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-4">
-        {% for cat in featured_categories %}
-          <a href="{% url 'category_listings' slug=cat.slug %}"
-             class="rounded-2xl border border-ink-100 bg-white/80 p-4 text-sm font-semibold text-ink-900 hover:border-brand">
-            {{ cat.name }}
-            <span class="block text-xs text-ink-500">{{ cat.count }} annonces</span>
-          </a>
-        {% empty %}
-          <p class="text-sm text-ink-500">Plus de catégories à venir.</p>
-        {% endfor %}
-      </div>
-    </section>
-    <section class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-ink-900">Par ville</h2>
-          <p class="text-sm text-ink-500">Les objets disponibles près de chez vous.</p>
-        </div>
-        <a href="{% url 'home' %}" class="text-sm text-brand hover:underline">Voir toutes les villes</a>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-4">
-        {% for city in featured_cities %}
-          <a href="{% url 'city_listings' slug=city.slug %}"
-             class="rounded-2xl border border-ink-100 bg-white/80 p-4 text-sm font-semibold text-ink-900 hover:border-brand">
-            {{ city.city }}
-            <span class="block text-xs text-ink-500">{{ city.count }} annonces</span>
-          </a>
-        {% empty %}
-          <p class="text-sm text-ink-500">Bientôt plus de villes présentées.</p>
-        {% endfor %}
-      </div>
-    </section>
-    {% if recommended_listings %}
-      <section class="space-y-4">
-        <div class="flex items-end justify-between gap-4">
-          <div>
-            <p class="section-label">Suggestions personnalisées</p>
-            <h2 class="h2">Basées sur {{ recommendation_reason }}</h2>
-          </div>
-          <a href="#listings-feed"
-             class="text-sm font-semibold text-brand hover:underline">Voir tout</a>
-        </div>
-        {% include "components/listings/listing_grid.html" with listings=recommended_listings request=request only %}
-      </section>
-    {% endif %}
-    <div class="space-y-6">
-      <div class="card card-body space-y-4"
-           id="listings-feed"
-           data-feed-url="{{ feed_partial_url }}">
-        <div class="flex flex-col gap-1 text-sm text-ink-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            {% if page_obj %}
-              Affichage de {{ page_obj.start_index }} à {{ page_obj.end_index }} sur {{ page_obj.paginator.count }} annonces
-            {% else %}
-              {{ listings|length }} annonces trouvées
-            {% endif %}
-          </p>
-          <p class="text-xs uppercase tracking-[0.4em] text-ink-400">Mises à jour en temps réel</p>
-        </div>
-        <div class="mt-2">
-          {% include "components/listings/listing_grid.html" with listings=listings request=request only %}
-        </div>
-      </div>
-      {% include "components/ui/pagination.html" with page_obj=page_obj is_paginated=is_paginated query_params=filters.querystring only %}
-    </div>
   </div>
 {% endblock %}
+
 {% block extra_js %}
   {{ block.super }}
   <script>
     (function () {
-      const feed = document.getElementById("listings-feed");
-      if (!feed) return;
+      const getFeedWrapper = () => document.getElementById("listings-feed-wrapper");
       const refreshFeed = () => {
-        const url = feed.dataset.feedUrl;
+        const wrapper = getFeedWrapper();
+        if (!wrapper) return;
+        const url = wrapper.dataset.feedUrl;
         if (!url || typeof htmx === "undefined") return;
-        htmx.ajax("GET", url, { target: feed, swap: "outerHTML" });
+        htmx.ajax("GET", url, { target: "#listings-feed-wrapper", swap: "outerHTML" });
+      };
+      const markRefreshed = () => {
+        const wrapper = getFeedWrapper();
+        if (wrapper) {
+          wrapper.dataset.refreshed = "1";
+        }
       };
 
       document.addEventListener("visibilitychange", () => {
@@ -196,7 +63,11 @@
         }
       });
 
-      feed.dataset.refreshed = "1";
+      document.body.addEventListener("htmx:afterSwap", () => {
+        markRefreshed();
+      });
+
+      markRefreshed();
     })();
   </script>
 {% endblock %}

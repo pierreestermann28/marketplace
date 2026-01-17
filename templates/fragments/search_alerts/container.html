@@ -1,8 +1,8 @@
 <div id="search-alerts-list" hx-target="this" hx-swap="outerHTML">
-  <div class="space-y-3 text-sm text-ink-600">
-    {% if search_alerts %}
+  {% if search_alerts %}
+    <div class="grid gap-3 text-sm text-ink-600">
       {% for alert in search_alerts %}
-        <div class="relative rounded-2xl border border-ink-100 bg-ink-50 p-3">
+        <article class="relative overflow-hidden rounded-2xl border border-ink-100 bg-white/90 p-4 shadow-sm">
           <button type="button"
                   class="search-alert-remove absolute right-3 top-3"
                   aria-label="Supprimer l’alerte"
@@ -11,15 +11,19 @@
                   hx-swap="outerHTML">
             <i data-lucide="x"></i>
           </button>
-          <div class="flex items-center justify-between gap-3">
-            <span>{{ alert }}</span>
-            <span class="text-xs text-ink-500">{{ alert.last_sent|default:alert.created_at|date:"d M Y" }}</span>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-base font-semibold text-ink-900">{{ alert }}</span>
+              <span class="text-xs uppercase tracking-[0.3em] text-ink-400">
+                {{ alert.last_sent|default:alert.created_at|date:"d M Y" }}
+              </span>
+            </div>
+            <p class="text-xs text-ink-500">Dernier email : {{ alert.last_sent|default:"Jamais" }}</p>
           </div>
-          <p class="text-xs text-ink-500 mt-1">Dernier email : {{ alert.last_sent|default:"Jamais" }}</p>
-        </div>
+        </article>
       {% endfor %}
-    {% else %}
-      <p>Pas encore d'alertes.</p>
-    {% endif %}
-  </div>
+    </div>
+  {% else %}
+    <p class="text-sm text-ink-500">Pas encore d'alertes, créez-en une pour être informé dès qu'une annonce correspond.</p>
+  {% endif %}
 </div>

@@ -7,51 +7,43 @@
       <h1 class="h2">{{ page_heading }}</h1>
       <p class="text-sm text-ink-600">{{ page_description }}</p>
     </section>
-
     <div class="card card-body">
       <form method="get" class="grid gap-3 sm:grid-cols-[1fr_auto]">
         <div class="grid gap-3 sm:grid-cols-3">
-          {% include "components/ui/input.html" with name="q" placeholder="Rechercher un objet, une marque..." value=filters.q only %}
-          <div class="relative" data-location-autocomplete data-location-mode="multi" data-location-field-name="city_ids">
+          {% include "components/ui/input.html" with name="q" placeholder="Rechercher un objet ..." value=filters.q only %}
+          <div class="relative"
+               data-location-autocomplete
+               data-location-mode="multi"
+               data-location-field-name="city_ids">
             <label class="label sr-only" for="id_listings_city">Ville</label>
-            <input
-              type="text"
-              id="id_listings_city"
-              name="city"
-              value="{{ filters.city }}"
-              placeholder="Ville"
-              class="input"
-              data-location-city-input="true"
-              autocomplete="off"
-            />
+            <input type="text"
+                   id="id_listings_city"
+                   name="city"
+                   value="{{ filters.city }}"
+                   placeholder="Ville"
+                   class="input"
+                   data-location-city-input="true"
+                   autocomplete="off" />
             <div data-location-results class="location-autocomplete-results"></div>
             <div class="mt-2 flex flex-wrap gap-2" data-location-selected>
               {% for city in selected_cities %}
-                <span
-                  class="location-autocomplete-chip"
-                  data-location-chip
-                  data-city-id="{{ city.id }}"
-                >
+                <span class="location-autocomplete-chip"
+                      data-location-chip
+                      data-city-id="{{ city.id }}">
                   {{ city.display_name }}
-                  <button
-                    type="button"
-                    class="location-autocomplete-chip-remove"
-                    aria-label="Retirer {{ city.name }}"
-                    data-location-chip-remove
-                  >
-                    &times;
-                  </button>
+                  <button type="button"
+                          class="location-autocomplete-chip-remove"
+                          aria-label="Retirer {{ city.name }}"
+                          data-location-chip-remove>&times;</button>
                 </span>
               {% endfor %}
             </div>
             <div class="hidden" data-location-hidden-wrapper>
               {% for city in selected_cities %}
-                <input
-                  type="hidden"
-                  name="city_ids"
-                  value="{{ city.id }}"
-                  data-location-city-id="{{ city.id }}"
-                />
+                <input type="hidden"
+                       name="city_ids"
+                       value="{{ city.id }}"
+                       data-location-city-id="{{ city.id }}" />
               {% endfor %}
             </div>
           </div>
@@ -60,7 +52,8 @@
             <select name="category" class="input">
               <option value="">Toutes les categories</option>
               {% for cat in categories %}
-                <option value="{{ cat.slug }}" {% if cat.slug == filters.category %}selected{% endif %}>{{ cat.name }}</option>
+                <option value="{{ cat.slug }}"
+                        {% if cat.slug == filters.category %}selected{% endif %}>{{ cat.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -68,9 +61,10 @@
         {% include "components/ui/button.html" with label="Filtrer" variant="primary" type="submit" only %}
       </form>
     </div>
-
     <div class="space-y-4">
-      <div class="card card-body space-y-2" id="listings-feed" data-feed-url="{{ feed_partial_url }}">
+      <div class="card card-body space-y-2"
+           id="listings-feed"
+           data-feed-url="{{ feed_partial_url }}">
         <div class="flex items-center justify-between text-sm text-ink-500">
           <p>
             {% if page_obj %}
@@ -79,7 +73,6 @@
               {{ listings|length }} annonces trouvées
             {% endif %}
           </p>
-          <span class="text-xs uppercase tracking-[0.4em] text-ink-400">Résultats mis à jour</span>
         </div>
         <div class="mt-3">
           {% include "components/listings/listing_grid.html" with listings=listings request=request only %}
@@ -87,7 +80,6 @@
       </div>
       {% include "components/ui/pagination.html" with page_obj=page_obj is_paginated=is_paginated query_params=filters.querystring only %}
     </div>
-
     <section class="space-y-4">
       <div class="flex items-center justify-between">
         <div>
@@ -98,7 +90,8 @@
       </div>
       <div class="grid gap-3 sm:grid-cols-3">
         {% for cat in featured_categories %}
-          <a href="{% url 'category_listings' slug=cat.slug %}" class="rounded-2xl border border-ink-100 bg-white/80 p-4 hover:border-brand">
+          <a href="{% url 'category_listings' slug=cat.slug %}"
+             class="rounded-2xl border border-ink-100 bg-white/80 p-4 hover:border-brand">
             <div class="text-sm font-semibold text-ink-900">{{ cat.name }}</div>
             <p class="text-xs text-ink-500">{{ cat.count }} annonces</p>
           </a>
@@ -107,29 +100,8 @@
         {% endfor %}
       </div>
     </section>
-
-    <section class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-ink-900">Par ville</h2>
-          <p class="text-sm text-ink-500">Trouvez les objets les plus proches de chez vous.</p>
-        </div>
-        <a href="{% url 'home' %}?city=" class="text-sm text-brand hover:underline">Voir toutes les villes</a>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-3">
-        {% for city in featured_cities %}
-          <a href="{% url 'city_listings' slug=city.slug %}" class="rounded-2xl border border-ink-100 bg-white/80 p-4 hover:border-brand">
-            <div class="text-sm font-semibold text-ink-900">{{ city.city }}</div>
-            <p class="text-xs text-ink-500">{{ city.count }} annonces</p>
-          </a>
-        {% empty %}
-          <p class="text-sm text-ink-500">Aucune ville mise en avant pour le moment.</p>
-        {% endfor %}
-      </div>
-    </section>
   </div>
 {% endblock %}
-
 {% block extra_js %}
   {{ block.super }}
   <script>

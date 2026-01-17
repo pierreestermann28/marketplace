@@ -1,10 +1,17 @@
 @layer components {
   .search-alert-remove {
-    @apply inline-flex h-8 w-8 items-center justify-center rounded-full border border-danger bg-danger text-white shadow-sm transition hover:bg-danger-700 hover:border-danger-700;
-    @apply cursor-pointer;
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white shadow-sm transition hover:bg-rose-500 focus-visible:outline focus-visible:ring focus-visible:ring-rose-200 cursor-pointer;
   }
 
   .search-alert-remove i {
-    @apply h-3 w-3;
+    @apply h-4 w-4;
+  }
+
+  .category-chip {
+    @apply rounded-full border border-ink-200 bg-white px-3 py-1 text-sm font-semibold text-ink-900 transition duration-150 hover:bg-ink-50;
+  }
+
+  .category-chip--selected {
+    @apply border-transparent bg-brand text-white shadow-sm hover:bg-brand-600;
   }
 }

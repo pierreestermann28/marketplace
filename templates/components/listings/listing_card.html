@@ -5,13 +5,14 @@
     {% if listing.is_seen %}
       <span class="seen-badge absolute left-3 top-3 flex items-center gap-1 tracking-[0.3em] uppercase">
         <i data-lucide="eye" class="h-3.5 w-3.5 stroke-[2]" aria-hidden="true"></i>
-        Vu
       </span>
     {% endif %}
     {% with primary=listing.get_primary_image %}
       {% if primary %}
         <div class="overflow-hidden rounded-2xl">
-          <img class="listing-img" src="{{ primary.image_asset.image.url }}" alt="{{ listing.title }}" />
+          <img class="listing-img"
+               src="{{ primary.image_asset.image.url }}"
+               alt="{{ listing.title }}" />
         </div>
       {% else %}
         <div class="listing-img bg-ink-50"></div>
@@ -22,19 +23,19 @@
         <span>{{ listing.city }}</span>
         <span>{{ listing.get_condition_display|default:listing.condition }}</span>
       </div>
-        <div class="text-xs uppercase tracking-[0.2em] text-ink-500">{{ listing.category }}</div>
-        <div class="line-clamp-2 text-sm font-medium text-ink-900">{{ listing.title }}</div>
-        <div class="flex items-center gap-1 text-xs text-ink-500">
-          <span>Vendeur :</span>
-          <span class="text-ink-800">{{ listing.seller.get_full_name|default:listing.seller.email }}</span>
+      <div class="text-xs uppercase tracking-[0.2em] text-ink-500">{{ listing.category }}</div>
+      <div class="line-clamp-2 text-sm font-medium text-ink-900">{{ listing.title }}</div>
+      <div class="flex items-center gap-1 text-xs text-ink-500">
+        <span>Vendeur :</span>
+        <span class="text-ink-800">{{ listing.seller.get_full_name|default:listing.seller.email }}</span>
+      </div>
+      {% if listing.public_status_display %}
+        <div>
+          <span class="badge badge-{{ listing.public_status_badge_tone }} text-[10px] uppercase tracking-[0.4em]">
+            {{ listing.public_status_display }}
+          </span>
         </div>
-        {% if listing.public_status_display %}
-          <div>
-            <span class="badge badge-{{ listing.public_status_badge_tone }} text-[10px] uppercase tracking-[0.4em]">
-              {{ listing.public_status_display }}
-            </span>
-          </div>
-        {% endif %}
+      {% endif %}
       <div class="flex items-center gap-2 text-xs">
         {% with rating=listing.seller.trust_score|default:0 %}
           <span class="flex items-center gap-0.5">
@@ -42,7 +43,9 @@
               {% if rating >= forloop.counter %}
                 <i data-lucide="star" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
               {% elif rating >= forloop.counter|add:"-0.5" %}
-                <i data-lucide="star-half" class="h-4 w-4 text-yellow-500" aria-hidden="true"></i>
+                <i data-lucide="star-half"
+                   class="h-4 w-4 text-yellow-500"
+                   aria-hidden="true"></i>
               {% else %}
                 <i data-lucide="star" class="h-4 w-4 text-ink-300" aria-hidden="true"></i>
               {% endif %}

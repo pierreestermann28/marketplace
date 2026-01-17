@@ -45,7 +45,18 @@
             <div class="space-y-4">
               <div class="flex items-center justify-between gap-3">
                 <div>
-                  {% include "components/listings/favorite_button.html" with listing=listing request=request only %}
+                  <div class="flex items-center gap-2">
+                    {% include "components/listings/favorite_button.html" with listing=listing request=request only %}
+                    <button
+                      type="button"
+                      class="signal-button"
+                      data-report-toggle
+                      aria-expanded="false"
+                      aria-label="Ouvrir le formulaire de signalement"
+                    >
+                      <i data-lucide="bell" class="h-4 w-4"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="space-y-1">
@@ -179,13 +190,16 @@
               </p>
             {% endif %}
           </div>
-          <div class="mt-4">
+          <div class="mt-4 space-y-4 hidden" data-report-panel>
             <div class="rounded-2xl border border-ink-100 bg-white/80 p-4">
               <div class="flex items-center justify-between">
                 <h3 class="text-xs uppercase tracking-[0.3em] text-ink-500">Signalement</h3>
                 <span class="text-xs text-ink-400">Nous examinons sous 24h</span>
               </div>
-              {% include "components/reports/report_form.html" with form=report_form action_url=report_action_url only %}
+              <p class="mt-2 text-xs text-ink-400">Merci de partager les détails, nous vous tenons informé.</p>
+              <div class="mt-4 space-y-4">
+                {% include "components/reports/report_form.html" with form=report_form action_url=report_action_url only %}
+              </div>
             </div>
           </div>
           {% if user == listing.seller %}
@@ -276,6 +290,8 @@
       var mainImage = document.getElementById("photo-main-image");
       var mainPrev = document.querySelector("[data-main-prev]");
       var mainNext = document.querySelector("[data-main-next]");
+      var reportToggle = document.querySelector("[data-report-toggle]");
+      var reportPanel = document.querySelector("[data-report-panel]");
       var photoGallery = [
         {% for image in photo_gallery %}
           {
@@ -333,6 +349,14 @@
       mainNext?.addEventListener("click", function () {
         updateMainImage(activeIndex + 1);
       });
+
+      if (reportToggle && reportPanel) {
+        reportToggle.addEventListener("click", function () {
+          var isExpanded = this.getAttribute("aria-expanded") === "true";
+          this.setAttribute("aria-expanded", isExpanded ? "false" : "true");
+          reportPanel.classList.toggle("hidden");
+        });
+      }
 
       if (photoGallery.length) {
         updateMainImage(activeIndex);
