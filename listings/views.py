@@ -41,6 +41,7 @@ from accounts.models import ReputationStats
 from commerce.models import Review
 from ingestion.models import DetectedItem
 from location.models import City as LocationCity
+from .recommendations import ListingRecommendationEngine
 
 
 def get_listing_detail_url(listing):
@@ -134,11 +135,9 @@ class HomeFeedView(ListView):
         context["selected_categories"] = self._resolve_selected_categories(category_slugs)
         context["filters"] = filters
         context["selected_cities"] = self._resolve_selected_cities(selected_city_ids)
-        recommended, category_ids = self._get_recommendations()
+        recommended, reason = self._get_recommendations()
         context["recommended_listings"] = recommended
-        context["recommendation_reason"] = self._build_recommendation_reason(
-            category_ids
-        )
+        context["recommendation_reason"] = reason
         context["feed_partial_url"] = self._build_feed_partial_url(context["filters"]["querystring"])
         context["featured_categories"] = (
             Category.objects.filter(listings__status__in=self.status_filter)
@@ -198,48 +197,19 @@ class HomeFeedView(ListView):
         )
 
     def _get_recommendations(self):
-        user = self.request.user
-        if not user.is_authenticated:
-            return [], []
-
-        fav_categories = list(
-            Favorite.objects.filter(user=user)
-            .exclude(listing__category__isnull=True)
-            .values_list("listing__category", flat=True)
-        )
-        reserved_categories = list(
-            Reservation.objects.filter(
-                buyer=user, cancelled_at__isnull=True
-            )
-            .exclude(listing__category__isnull=True)
-            .values_list("listing__category", flat=True)
-        )
-        category_ids = list({*fav_categories, *reserved_categories})
-        if not category_ids:
-            return [], []
-
+        engine = ListingRecommendationEngine(self.request.user)
+        recommended_ids, reason = engine.recommend(limit=6)
+        if not recommended_ids:
+            return [], reason
+        image_qs = self._image_prefetch_queryset()
         qs = (
-            Listing.objects.filter(
-                status=Listing.Status.PUBLISHED, category_id__in=category_ids
-            )
+            Listing.objects.filter(id__in=recommended_ids)
             .select_related("category", "seller")
-            .prefetch_related(
-                Prefetch("images", queryset=self._image_prefetch_queryset())
-            )
-            .order_by("-created_at")
+            .prefetch_related(Prefetch("images", queryset=image_qs))
         )
-        qs = self._annotate_with_seen(qs)
-        return list(qs[:6]), category_ids
-
-    def _build_recommendation_reason(self, category_ids):
-        if not category_ids:
-            return "vos favoris"
-        category = (
-            Category.objects.filter(id__in=category_ids).order_by("name").first()
-        )
-        if category:
-            return f"vos favoris dans {category.name}"
-        return "vos favoris"
+        listings_by_id = {listing.id: listing for listing in qs}
+        ordered = [listings_by_id[lid] for lid in recommended_ids if lid in listings_by_id]
+        return ordered, reason
 
     def _build_feed_partial_url(self, querystring):
         base = reverse("home_feed_partial")
@@ -805,7 +775,13 @@ class SubmitForReviewView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         listing = form.save(commit=False)
         listing.status = Listing.Status.PENDING_REVIEW
+        listing.needs_review = True
         listing.save()
+        listing.record_history(
+            self.request.user,
+            Listing.ChangeEvent.SUBMITTED,
+            "Annonce soumise pour validation.",
+        )
         return HttpResponseRedirect(reverse("my_listings"))
 
 
@@ -819,17 +795,75 @@ class ReviewQueueView(UserPassesTestMixin, ListView):
 
     def get_queryset(self):
         return (
-            Listing.objects.filter(status=Listing.Status.PENDING_REVIEW)
+            Listing.objects.filter(
+                Q(status=Listing.Status.PENDING_REVIEW) | Q(needs_review=True)
+            )
             .select_related("seller", "category")
             .order_by("created_at")
         )
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        listing_id = request.POST.get("listing_id")
+        listing = get_object_or_404(Listing, pk=listing_id)
+        if action == "approve":
+            listing.status = Listing.Status.PUBLISHED
+            listing.moderation_notes = ""
+            listing.needs_review = False
+            listing.moderated_by = request.user
+            listing.moderated_at = timezone.now()
+            listing.save(
+                update_fields=[
+                    "status",
+                    "moderation_notes",
+                    "moderated_by",
+                    "moderated_at",
+                    "needs_review",
+                ]
+            )
+            listing.record_history(
+                request.user,
+                Listing.ChangeEvent.APPROVED,
+                "Annonce validée depuis la file de modération.",
+            )
+            django_messages.success(
+                request,
+                f"L'annonce «{listing.title or listing.id}» est validée et repasse en ligne.",
+            )
+        elif action == "reject":
+            note = request.POST.get("note", "").strip()
+            listing.status = Listing.Status.REJECTED
+            listing.moderation_notes = note
+            listing.needs_review = False
+            listing.moderated_by = request.user
+            listing.moderated_at = timezone.now()
+            listing.save(
+                update_fields=[
+                    "status",
+                    "moderation_notes",
+                    "moderated_by",
+                    "moderated_at",
+                    "needs_review",
+                ]
+            )
+            listing.record_history(
+                request.user,
+                Listing.ChangeEvent.REJECTED,
+                f"Annonce rejetée depuis la file ({note or 'sans motif'}).",
+            )
+            django_messages.success(
+                request, f"L'annonce «{listing.title or listing.id}» est refusée."
+            )
+        else:
+            django_messages.error(request, "Action inconnue.")
+        return redirect("review_queue")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["pending_ia_count"] = DetectedItem.objects.filter(
             status=DetectedItem.Status.USER_APPROVED
         ).count()
-        context["admin_swipe_url"] = reverse("ingestion:admin_swipe")
+        context["admin_swipe_url"] = reverse("operations:dashboard")
         return context
 
 
@@ -912,6 +946,11 @@ class ListingActionView(LoginRequiredMixin, View):
             return redirect(get_listing_detail_url(listing))
         listing.status = self.target_status
         listing.save(update_fields=["status", "updated_at"])
+        listing.record_history(
+            self.request.user,
+            Listing.ChangeEvent.STATUS_UPDATED,
+            f"Annonce passée en statut {listing.get_status_display()}",
+        )
         django_messages.success(request, self.success_message)
         return redirect(get_listing_detail_url(listing))
 
@@ -953,14 +992,27 @@ class ListingModerationDetailView(UserPassesTestMixin, DetailView):
         if action == "approve":
             listing.status = Listing.Status.PUBLISHED
             listing.moderation_notes = ""
+            listing.needs_review = False
         elif action == "reject":
             listing.status = Listing.Status.REJECTED
             listing.moderation_notes = notes
+            listing.needs_review = False
         listing.moderated_by = request.user
         listing.moderated_at = timezone.now()
-        listing.save(
-            update_fields=["status", "moderation_notes", "moderated_by", "moderated_at"]
-        )
+        update_fields = ["status", "moderation_notes", "moderated_by", "moderated_at", "needs_review"]
+        listing.save(update_fields=update_fields)
+        if action in {"approve", "reject"}:
+            event = (
+                Listing.ChangeEvent.APPROVED
+                if action == "approve"
+                else Listing.ChangeEvent.REJECTED
+            )
+            details = (
+                "Publication validée"
+                if action == "approve"
+                else f"Rejetée : {notes}" if notes else "Rejetée sans note"
+            )
+            listing.record_history(request.user, event, details)
         return HttpResponseRedirect(reverse("review_queue"))
 
 

@@ -130,6 +130,7 @@
               {% if listing.description %}
                 <p class="text-sm text-ink-700 leading-relaxed">{{ listing.description }}</p>
               {% endif %}
+              {% include "fragments/listings/history.html" with history=listing.change_history only %}
             </div>
           </div>
         </div>

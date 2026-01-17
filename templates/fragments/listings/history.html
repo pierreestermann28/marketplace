@@ -1,0 +1,27 @@
+{% if history %}
+  <div class="card card-body space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="section-label">Historique des modifications</p>
+        <h3 class="text-lg font-semibold text-ink-900">Suivi des changements</h3>
+      </div>
+      <span class="badge badge-sm uppercase tracking-[0.4em] text-ink-500">{{ history|length }} modification{% if history|length|pluralize %}s{% endif %}</span>
+    </div>
+    <ul class="space-y-3 text-sm text-ink-600">
+      {% for entry in history %}
+        <li class="space-y-1">
+          <div class="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-ink-400">
+            <span>{{ entry.get_event_display }}</span>
+            <span>{{ entry.created_at|date:"d M Y H:i" }}</span>
+          </div>
+          <p class="text-sm text-ink-700">{{ entry.details }}</p>
+          {% if entry.user %}
+            <p class="text-xs text-ink-400">
+              {{ entry.get_actor_role_display }} : {{ entry.user.get_full_name|default:entry.user.email }}
+            </p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

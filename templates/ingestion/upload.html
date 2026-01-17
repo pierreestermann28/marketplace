@@ -13,43 +13,47 @@
     </p>
   </header>
 
-  <div class="grid gap-10 lg:grid-cols-[3fr_2fr]">
+  <form method="post" enctype="multipart/form-data" class="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
     <div class="space-y-6 rounded-3xl border border-ink-100 bg-white/80 p-8 shadow-2xl">
-      <div class="space-y-3">
-        <p class="section-label">Étapes rapides</p>
-        <div class="grid gap-3 sm:grid-cols-3">
-          {% include "components/ui/step_card.html" with number="01" title="Déposez vos fichiers" description="Envoyez jusqu’à 30 photos ou vidéos depuis votre ordinateur ou votre téléphone." only %}
-          {% include "components/ui/step_card.html" with number="02" title="IA & vérification" description="Analyse automatique, suggestions d’objets et détection de doublons." only %}
-          {% include "components/ui/step_card.html" with number="03" title="Swipez et publiez" description="Interactez avec le swipe board, confirmez ce qui est prêt et on s’occupe du reste." only %}
+      {% csrf_token %}
+      <p class="section-label text-ink-500">Contexte du lot</p>
+      <p class="text-sm text-ink-600">
+        Filtrez l’analyse : indiquez où l’objet sera vendu et ce que l’équipe doit vérifier. Pas d’informations superflues, juste l’essentiel.
+      </p>
+      <div class="space-y-5">
+        <div class="space-y-2 text-sm">
+          <label for="{{ form.sale_location.id_for_label }}" class="text-xs uppercase tracking-[0.4em] text-ink-500">Lieu de vente</label>
+          {{ form.sale_location }}
+          {% if form.sale_location.help_text %}
+            <p class="text-xs text-ink-400">{{ form.sale_location.help_text }}</p>
+          {% endif %}
         </div>
-      </div>
-
-      <form method="post" enctype="multipart/form-data" class="space-y-6">
-        {% csrf_token %}
-        <div class="grid gap-4 rounded-2xl border border-ink-100 bg-white px-6 py-6 text-sm text-ink-600">
-          <p class="font-semibold text-ink-900">Ce que nous gardons en tête</p>
-          <ul class="grid gap-2">
-            <li class="flex items-start gap-2">
-              <span class="requirement-dot is-met"></span>
-              <span>PNG, JPEG, HEIC & MP4 supportés.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="requirement-dot is-met"></span>
-              <span>Qualité minimale 800 x 600 px, pas d’objets flous.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="requirement-dot is-met"></span>
-              <span>Étiquettes claires ou notes internes pour chaque lot.</span>
-            </li>
+        <div class="space-y-2 text-sm">
+          <label for="{{ form.seller_notes.id_for_label }}" class="text-xs uppercase tracking-[0.4em] text-ink-500">Contexte rapide</label>
+          {{ form.seller_notes }}
+          {% if form.seller_notes.help_text %}
+            <p class="text-xs text-ink-400">{{ form.seller_notes.help_text }}</p>
+          {% endif %}
+        </div>
+        <div class="rounded-2xl border border-ink-100 bg-ink-50/80 p-4 text-xs text-ink-500">
+          <p class="font-semibold text-ink-900">Prévisualiser</p>
+          <ul class="mt-2 list-disc space-y-1 pl-4">
+            <li>Chemin de vente (ville, boutique, pop-up)</li>
+            <li>Notes rapides (matériaux, rareté, finition)</li>
+            <li>Pas besoin de réécrire le titre ou la catégorie.</li>
           </ul>
         </div>
+      </div>
+    </div>
 
-        <div class="drop-zone relative rounded-2xl border border-dashed border-ink-200 bg-ink-50/70 p-10 text-center transition group hover:border-brand hover:bg-white">
+    <div class="rounded-3xl border border-dashed border-ink-200 bg-ink-50/70 p-6 text-center shadow-2xl">
+      <div class="space-y-4">
+        <div class="drop-zone relative rounded-2xl border border-dashed border-ink-200 bg-white/80 p-10 text-center transition group hover:border-brand hover:bg-white">
           <label for="media-input" class="flex flex-col items-center gap-3 text-center">
             <div class="drop-icon">
               <i data-lucide="cloud-upload" class="h-10 w-10 text-brand"></i>
             </div>
-            <p class="text-lg font-semibold text-ink-900">Déposez vos photos ici</p>
+            <p class="text-xl font-semibold text-ink-900">Déposez vos photos ici</p>
             <p class="text-sm text-ink-600">
               1 à 30 fichiers. Drag & drop ou cliquez pour ouvrir votre explorateur.
             </p>
@@ -65,11 +69,9 @@
             required
           />
         </div>
-
         {% if form.media_files.errors %}
-          <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
+        <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
         {% endif %}
-
         <button
           type="submit"
           class="btn btn-primary w-full py-3 text-base font-semibold"
@@ -77,31 +79,9 @@
         >
           Lancer l’analyse
         </button>
-      </form>
+      </div>
     </div>
-
-    <aside class="space-y-6">
-      <div class="rounded-2xl border border-ink-100 bg-white/90 p-6 shadow-soft">
-        <p class="section-label">Besoin d’assistance ?</p>
-        <p class="text-xs text-ink-500">Notre équipe vérifie chaque lot en quelques minutes et vous accompagne jusqu’à la publication.</p>
-        <ul class="mt-4 space-y-2 text-sm text-ink-600">
-          <li>📸 Préparez des visuels nets, bien cadrés et sans watermark.</li>
-          <li>📝 Ajoutez des commentaires pour contextualiser les objets rares.</li>
-          <li>⏱️ La première analyse est gratuite : pas de frais tant que rien n’est publié.</li>
-        </ul>
-        <div class="mt-6 space-y-2 text-sm">
-          <p class="font-semibold text-ink-900">Détection en direct</p>
-          <p class="text-ink-600">Recevez un rapport de confiance, passez en revue les éléments détectés et ajustez le swipe board.</p>
-        </div>
-      </div>
-      <div class="rounded-2xl border border-ink-100 bg-white/90 p-6 shadow-soft">
-        <p class="section-label">Statistiques</p>
-        <p class="text-3xl font-semibold text-ink-900">+95 %</p>
-        <p class="text-sm text-ink-600">Lots analysés avec succès par notre IA en moins de 40 secondes.</p>
-        <p class="mt-4 text-xs uppercase tracking-[0.4em] text-ink-400">Support continu</p>
-      </div>
-    </aside>
-  </div>
+  </form>
 </section>
 
 <script>

@@ -121,6 +121,7 @@ class Listing(models.Model):
         object_id_field="target_object_id",
         related_query_name="listings",
     )
+    needs_review = models.BooleanField(default=False, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -214,6 +215,32 @@ class Listing(models.Model):
             self.save(update_fields=["status"])
         return active
 
+    class ChangeEvent(models.TextChoices):
+        SUBMITTED = "submitted", "Annonce soumise"
+        APPROVED = "approved", "Annonce validée"
+        REJECTED = "rejected", "Annonce rejetée"
+        STATUS_UPDATED = "status_updated", "Statut modifié"
+        DETAILS_UPDATED = "details_updated", "Détails mis à jour"
+        OTHER = "other", "Autre modification"
+
+    def record_history(self, user, event, details):
+        actor_role = (
+            ListingChangeLog.ActorRole.ADMIN
+            if user and user.is_staff
+            else ListingChangeLog.ActorRole.SELLER
+        )
+        ListingChangeLog.objects.create(
+            listing=self,
+            user=user if user and user.is_authenticated else None,
+            actor_role=actor_role,
+            event=event,
+            details=details,
+        )
+
+    @property
+    def change_history(self):
+        return self.change_logs.order_by("-created_at")
+
     def increment_view_count(self):
         Listing.objects.filter(pk=self.pk).update(view_count=F("view_count") + 1)
         self.refresh_from_db(fields=["view_count"])
@@ -255,6 +282,32 @@ class Listing(models.Model):
             self.PublicStatus.AVAILABLE,
             self.PublicStatus.RESERVED,
         }
+
+
+class ListingChangeLog(models.Model):
+    class ActorRole(models.TextChoices):
+        SELLER = "seller", "Vendeur"
+        ADMIN = "admin", "Admin"
+        SYSTEM = "system", "Système"
+
+    listing = models.ForeignKey(
+        "Listing", on_delete=models.CASCADE, related_name="change_logs"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    actor_role = models.CharField(
+        max_length=16, choices=ActorRole.choices, default=ActorRole.SELLER
+    )
+    event = models.CharField(max_length=24, choices=Listing.ChangeEvent.choices)
+    details = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_event_display()} ({self.listing_id})"
 
 
 class ListingView(models.Model):

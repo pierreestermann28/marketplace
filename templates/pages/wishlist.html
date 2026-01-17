@@ -1,7 +1,7 @@
 {% extends "layouts/app.html" %}
 {% block page_content %}
   <div class="container-app py-10 space-y-8">
-    <section class="rounded-[32px] bg-gradient-to-br from-slate-900/95 via-slate-900 to-brand/80 p-8 text-white shadow-[0_40px_60px_rgba(15,23,42,0.65)]">
+    {% comment %} <section class="rounded-[32px] bg-gradient-to-br from-slate-900/95 via-slate-900 to-brand/80 p-8 text-white shadow-[0_40px_60px_rgba(15,23,42,0.65)]">
       <div class="flex flex-wrap items-start justify-between gap-6">
         <div class="space-y-3 max-w-2xl">
           <p class="uppercase tracking-[0.4em] text-xs text-white/70">Favoris</p>
@@ -36,8 +36,7 @@
           <p class="text-xs text-white/60">Ajoutez une alerte en complétant le formulaire ci-dessous.</p>
         </div>
       </div>
-    </section>
-
+    </section> {% endcomment %}
     <div class="grid gap-6 lg:grid-cols-[3fr_1fr]">
       <section class="space-y-4">
         <div class="card card-body space-y-5">
@@ -45,16 +44,12 @@
             <div class="space-y-1">
               <p class="section-label">Favoris</p>
               <h2 class="text-2xl font-semibold text-ink-900">Annonces suivies</h2>
-              <p class="text-sm text-ink-500">Les objets que vous suivez apparaissent ici. Tout est mis à jour automatiquement via HTMX.</p>
             </div>
             <span class="text-xs uppercase tracking-[0.4em] text-ink-400">Actualisé</span>
           </div>
-          <div id="wishlist-panel">
-            {% include "fragments/listings/wishlist_panel.html" %}
-          </div>
+          <div id="wishlist-panel">{% include "fragments/listings/wishlist_panel.html" %}</div>
         </div>
       </section>
-
       <section class="space-y-4">
         <div class="card card-body space-y-6">
           <div class="flex items-start justify-between gap-4">
@@ -64,39 +59,41 @@
             </div>
             <span class="text-xs uppercase tracking-[0.4em] text-ink-400">Email 🚀</span>
           </div>
-          <form method="post" action="{% url 'search_alert_create' %}" class="space-y-4">
+          <form method="post"
+                action="{% url 'search_alert_create' %}"
+                class="space-y-4">
             {% csrf_token %}
             <div class="grid gap-3">
               <div>
-                <label class="label sr-only" for="{{ search_alert_form.keyword.id_for_label }}">Mot-clé</label>
+                <label class="label sr-only"
+                       for="{{ search_alert_form.keyword.id_for_label }}">Mot-clé</label>
                 {{ search_alert_form.keyword }}
               </div>
-              <div class="relative" data-location-autocomplete data-location-mode="single">
+              <div class="relative"
+                   data-location-autocomplete
+                   data-location-mode="single">
                 <label class="label sr-only" for="{{ search_alert_form.city.id_for_label }}">Ville</label>
                 {{ search_alert_form.city }}
                 <div data-location-results class="location-autocomplete-results"></div>
-                <div class="hidden">
-                  {{ search_alert_form.location_city }}
-                </div>
+                <div class="hidden">{{ search_alert_form.location_city }}</div>
               </div>
               <div>
-                <label class="label sr-only" for="{{ search_alert_form.category.id_for_label }}">Catégorie</label>
+                <label class="label sr-only"
+                       for="{{ search_alert_form.category.id_for_label }}">Catégorie</label>
                 {{ search_alert_form.category }}
               </div>
             </div>
-            <button type="submit" class="btn btn-primary w-full py-3 text-sm font-semibold">Créer une alerte</button>
+            <button type="submit"
+                    class="btn btn-primary w-full py-3 text-sm font-semibold">Créer une alerte</button>
           </form>
           {% include "fragments/search_alerts/container.html" %}
         </div>
       </section>
     </div>
-
-    <div
-      id="wishlist-refresher"
-      hx-trigger="wishlist-updated from:body"
-      hx-get="{% url 'wishlist' %}"
-      hx-target="#wishlist-panel"
-      hx-swap="outerHTML"
-    ></div>
+    <div id="wishlist-refresher"
+         hx-trigger="wishlist-updated from:body"
+         hx-get="{% url 'wishlist' %}"
+         hx-target="#wishlist-panel"
+         hx-swap="outerHTML"></div>
   </div>
 {% endblock %}

@@ -27,6 +27,9 @@ class BatchUpload(models.Model):
         default=Status.PENDING,
         db_index=True,
     )
+    sale_location = models.CharField(max_length=140, blank=True, db_index=True)
+
+    seller_notes = models.TextField(blank=True)
     media_count = models.PositiveIntegerField(default=0)
     processed_count = models.PositiveIntegerField(default=0)
     processing_started_at = models.DateTimeField(null=True, blank=True)

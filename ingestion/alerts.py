@@ -29,7 +29,7 @@ def maybe_alert_high_pending():
 
     subject = "[StillUseful] Lots en attente importants"
     base_url = getattr(settings, "SITE_URL", "").rstrip("/")
-    admin_url = f"{base_url}{reverse('ingestion:admin_swipe')}"
+    admin_url = f"{base_url}{reverse('operations:dashboard')}"
     message = "\n".join(
         [
             "Le flux de modération contient plus de lots en attente que la moyenne.",

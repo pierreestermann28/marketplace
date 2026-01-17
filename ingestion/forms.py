@@ -11,3 +11,20 @@ class BatchUploadForm(forms.Form):
         widget=MultiFileInput(attrs={"multiple": True}),
         label="Photos (1 à 30 fichiers)",
     )
+    sale_location = forms.CharField(
+        required=False,
+        label="Lieu de vente",
+        widget=forms.TextInput(attrs={"placeholder": "Ex : Lyon, boutique Le Comptoir, pop-up Paris"}),
+        help_text="L’indication principale du lieu ou de la ville ciblée.",
+    )
+    seller_notes = forms.CharField(
+        required=False,
+        label="Contexte rapide",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": "Mentionnez marque, matériaux, état ou tout autre élément utile.",
+            }
+        ),
+        help_text="Quelques mots pour guider l’équipe lors de la revue.",
+    )

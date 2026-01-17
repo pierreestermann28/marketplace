@@ -91,6 +91,9 @@ class BatchUploadCreateView(LoginRequiredMixin, FormView):
             owner=self.request.user,
             media_count=len(files),
         )
+        batch.sale_location = form.cleaned_data.get("sale_location", "") or ""
+        batch.seller_notes = form.cleaned_data.get("seller_notes", "") or ""
+        batch.save(update_fields=["sale_location", "seller_notes"])
         for upload in files:
             image_asset = ImageAsset.objects.create(
                 user=self.request.user,
@@ -217,17 +220,12 @@ class DetectedItemRejectView(DetectedItemActionMixin, View):
         return self.render_next_card(request, item.batch)
 
 
-class AdminSwipeView(UserPassesTestMixin, TemplateView):
-    template_name = "ingestion/admin_swipe.html"
-
+class AdminSwipeView(UserPassesTestMixin, View):
     def test_func(self):
         return self.request.user.is_staff
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(_build_admin_counts())
-        context["current_item"] = _get_next_admin_item()
-        return context
+    def get(self, request, *args, **kwargs):
+        return redirect("operations:dashboard")
 
 
 class AdminSwipeFragmentView(UserPassesTestMixin, View):
@@ -276,7 +274,7 @@ class DetectedItemAdminApproveView(DetectedItemAdminActionMixin, View):
 
         try:
             with transaction.atomic():
-                listing = publish_detected_item(item)
+                listing = publish_detected_item(item, skip_quota=True)
                 item.status = DetectedItem.Status.ADMIN_APPROVED
                 item.listing = listing
                 item.save(update_fields=["status", "listing", "updated_at"])

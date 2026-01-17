@@ -47,6 +47,33 @@
                 {% endif %}
               </div>
             </div>
+            {% if listing.status == "pending_review" %}
+              <div class="rounded-2xl border border-ink-100 bg-ink-50 p-4 text-sm text-ink-600">
+                <p class="text-xs uppercase tracking-[0.4em] text-ink-500">Demande en attente</p>
+                <div class="space-y-3">
+                  <form method="post" class="space-y-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                    <input type="hidden" name="action" value="approve" />
+                    <button type="submit" class="btn btn-primary w-full">Approuver la mise à jour</button>
+                  </form>
+                  <form method="post" class="space-y-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+                    <input type="hidden" name="action" value="reject" />
+                    <label class="text-xs uppercase tracking-[0.3em] text-ink-500" for="reject-note-{{ listing.id }}">Motif</label>
+                    <textarea
+                      id="reject-note-{{ listing.id }}"
+                      name="note"
+                      rows="2"
+                      class="textarea textarea-sm w-full"
+                      placeholder="Explique pourquoi la mise à jour est refusée (facultatif)"
+                    ></textarea>
+                    <button type="submit" class="btn btn-danger w-full">Rejeter</button>
+                  </form>
+                </div>
+              </div>
+            {% endif %}
             <div class="grid gap-4 lg:grid-cols-2">
               <form method="post" class="space-y-2">
                 {% csrf_token %}

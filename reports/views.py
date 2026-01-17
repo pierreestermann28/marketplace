@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.views.generic import FormView, TemplateView, View
+from django.views.generic import FormView
 
 from listings.models import Listing
 from listings.views import get_listing_detail_url
@@ -63,15 +63,3 @@ class ConversationReportCreateView(_BaseReportCreateView):
 
     def get_success_url(self):
         return reverse("messages:detail", kwargs={"pk": self.target.pk})
-
-
-class ReportingLandingView(TemplateView):
-    template_name = "pages/report_help.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["page_meta"] = {
-            "title": "Signaler un contenu · StillUseful",
-            "description": "Guide des signalements pour annonces ou conversations et étapes pour régler un litige.",
-        }
-        return context
