@@ -13,17 +13,42 @@
     </p>
   </header>
 
-  <form method="post" enctype="multipart/form-data" class="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
-    <div class="space-y-6 rounded-3xl border border-ink-100 bg-white/80 p-8 shadow-2xl">
-      {% csrf_token %}
+  <form method="post" enctype="multipart/form-data" class="grid gap-8 lg:grid-cols-[0.85fr_1.2fr]">
+    {% csrf_token %}
+
+    <div class="space-y-6 rounded-3xl border border-ink-100 bg-white/90 p-8 shadow-2xl">
       <p class="section-label text-ink-500">Contexte du lot</p>
       <p class="text-sm text-ink-600">
-        Filtrez l’analyse : indiquez où l’objet sera vendu et ce que l’équipe doit vérifier. Pas d’informations superflues, juste l’essentiel.
+        Une seule ville et une consigne claire pour guider l’IA. Ces informations permettent d’orienter les suggestions automatiques.
       </p>
       <div class="space-y-5">
         <div class="space-y-2 text-sm">
-          <label for="{{ form.sale_location.id_for_label }}" class="text-xs uppercase tracking-[0.4em] text-ink-500">Lieu de vente</label>
-          {{ form.sale_location }}
+          <label class="text-xs uppercase tracking-[0.4em] text-ink-500">Ville principale</label>
+          <div
+            class="relative"
+            data-location-autocomplete
+            data-location-mode="single"
+          >
+            {{ form.sale_location }}
+            <div data-location-results class="location-autocomplete-results"></div>
+          </div>
+          <span
+            class="mt-2 inline-flex items-center gap-2 rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-700 hidden"
+            data-location-selection-output
+          >
+            <span data-location-selection-text>Choisissez une ville pour préremplir vos annonces.</span>
+            <button
+              type="button"
+              class="hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-semibold text-ink-500 transition hover:border-ink-200 hover:text-brand"
+              aria-label="Effacer la ville choisie"
+              data-location-selection-clear
+            >
+              ×
+            </button>
+          </span>
+          {% if form.sale_location.errors %}
+            <p class="text-xs text-danger">{{ form.sale_location.errors.as_text }}</p>
+          {% endif %}
           {% if form.sale_location.help_text %}
             <p class="text-xs text-ink-400">{{ form.sale_location.help_text }}</p>
           {% endif %}
@@ -35,81 +60,116 @@
             <p class="text-xs text-ink-400">{{ form.seller_notes.help_text }}</p>
           {% endif %}
         </div>
-        <div class="rounded-2xl border border-ink-100 bg-ink-50/80 p-4 text-xs text-ink-500">
-          <p class="font-semibold text-ink-900">Prévisualiser</p>
-          <ul class="mt-2 list-disc space-y-1 pl-4">
-            <li>Chemin de vente (ville, boutique, pop-up)</li>
-            <li>Notes rapides (matériaux, rareté, finition)</li>
-            <li>Pas besoin de réécrire le titre ou la catégorie.</li>
-          </ul>
-        </div>
+          <div class="rounded-2xl border border-ink-100 bg-ink-50/80 p-4 text-xs text-ink-500">
+            <p class="font-semibold text-ink-900">Guidage pour l’IA</p>
+            <ul class="mt-2 list-disc space-y-1 pl-4">
+              <li>Un lieu unique concentre l’analyse sur votre zone de vente.</li>
+              <li>La consigne rapide informe l’IA des matériaux, de l’état ou de l’intention.</li>
+              <li>Pas besoin de réécrire titre ou catégorie, l’IA propose déjà les meilleures pistes.</li>
+            </ul>
+          </div>
       </div>
     </div>
 
-    <div class="rounded-3xl border border-dashed border-ink-200 bg-ink-50/70 p-6 text-center shadow-2xl">
-      <div class="space-y-4">
-        <div class="drop-zone relative rounded-2xl border border-dashed border-ink-200 bg-white/80 p-10 text-center transition group hover:border-brand hover:bg-white">
-          <label for="media-input" class="flex flex-col items-center gap-3 text-center">
-            <div class="drop-icon">
-              <i data-lucide="cloud-upload" class="h-10 w-10 text-brand"></i>
-            </div>
-            <p class="text-xl font-semibold text-ink-900">Déposez vos photos ici</p>
-            <p class="text-sm text-ink-600">
-              1 à 30 fichiers. Drag & drop ou cliquez pour ouvrir votre explorateur.
-            </p>
-            <p id="drop-zone-info" class="text-xs uppercase tracking-[0.3em] text-ink-500">Aucun fichier sélectionné</p>
-          </label>
-          <input
-            id="media-input"
-            name="media_files"
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            class="sr-only"
-            required
-          />
-        </div>
-        {% if form.media_files.errors %}
-        <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
-        {% endif %}
-        <button
-          type="submit"
-          class="btn btn-primary w-full py-3 text-base font-semibold"
-          data-analytics-event="upload:submit"
-        >
-          Lancer l’analyse
-        </button>
+    <div class="space-y-4 rounded-3xl border border-dashed border-ink-200 bg-ink-50/80 p-6 text-center shadow-2xl">
+      <div class="drop-zone relative rounded-2xl border border-dashed border-ink-200 bg-white/80 p-10 text-center transition group hover:border-brand hover:bg-white">
+        <label for="media-input" class="flex flex-col items-center gap-3 text-center">
+          <div class="drop-icon">
+            <i data-lucide="cloud-upload" class="h-10 w-10 text-brand"></i>
+          </div>
+          <p class="text-xl font-semibold text-ink-900">Déposez vos photos ici</p>
+          <p class="text-sm text-ink-600">
+            1 à 30 fichiers. Drag & drop ou cliquez pour ouvrir votre explorateur.
+          </p>
+          <p id="drop-zone-info" class="text-xs uppercase tracking-[0.3em] text-ink-500">Aucun fichier sélectionné</p>
+        </label>
+        <input
+          id="media-input"
+          name="media_files"
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          class="sr-only"
+          required
+        />
       </div>
+      {% if form.media_files.errors %}
+      <p class="text-sm text-danger">{{ form.media_files.errors.as_text }}</p>
+      {% endif %}
+      <button
+        type="submit"
+        class="btn btn-primary w-full py-3 text-base font-semibold"
+        data-analytics-event="upload:submit"
+      >
+        Lancer l’analyse
+      </button>
     </div>
   </form>
 </section>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const input = document.querySelector("#media-input");
-    const info = document.querySelector("#drop-zone-info");
-    const dropZone = document.querySelector(".drop-zone");
+{% endblock %}
 
-    const updateInfo = () => {
-      const count = input.files.length;
-      info.textContent =
-        count === 0 ? "Aucun fichier sélectionné" : `${count} fichier${count > 1 ? "s" : ""} prêt${count > 1 ? "s" : ""}`;
-    };
+{% block extra_js %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const input = document.querySelector("#media-input");
+      const info = document.querySelector("#drop-zone-info");
+      const dropZone = document.querySelector(".drop-zone");
 
-    if (input) {
-      ["dragenter", "dragover"].forEach((event) => {
-        dropZone?.addEventListener(event, (e) => {
-          e.preventDefault();
-          dropZone?.classList.add("border-brand", "bg-white");
+      const updateInfo = () => {
+        const count = input.files.length;
+        info.textContent =
+          count === 0 ? "Aucun fichier sélectionné" : `${count} fichier${count > 1 ? "s" : ""} prêt${count > 1 ? "s" : ""}`;
+      };
+
+      if (input) {
+        ["dragenter", "dragover"].forEach((event) => {
+          dropZone?.addEventListener(event, (e) => {
+            e.preventDefault();
+            dropZone?.classList.add("border-brand", "bg-white");
+          });
         });
-      });
-      ["dragleave", "drop"].forEach((event) => {
-        dropZone?.addEventListener(event, () => {
-          dropZone?.classList.remove("border-brand", "bg-white");
+        ["dragleave", "drop"].forEach((event) => {
+          dropZone?.addEventListener(event, () => {
+            dropZone?.classList.remove("border-brand", "bg-white");
+          });
         });
-      });
-      input.addEventListener("change", updateInfo);
-    }
-  });
-</script>
+        input.addEventListener("change", updateInfo);
+      }
+
+      document
+        .querySelectorAll("[data-location-autocomplete][data-location-mode='single']")
+        .forEach(function (root) {
+          const cityInput = root.querySelector("[data-location-city-input]");
+          const output = root.querySelector("[data-location-selection-output]");
+          const outputText = root.querySelector("[data-location-selection-text]");
+          const clearButton = root.querySelector("[data-location-selection-clear]");
+          if (!cityInput || !output || !outputText) {
+            return;
+          }
+          const sync = function () {
+            if (cityInput.value) {
+              outputText.textContent = `Ville choisie : ${cityInput.value}`;
+              output.classList.remove("hidden", "bg-ink-100");
+              output.classList.add("bg-brand/10", "text-brand");
+              clearButton?.classList.remove("hidden");
+            } else {
+              outputText.textContent = "Choisissez une ville pour préremplir vos annonces.";
+              output.classList.remove("bg-brand/10", "text-brand");
+              output.classList.add("bg-ink-100", "hidden");
+              clearButton?.classList.add("hidden");
+            }
+          };
+          cityInput.addEventListener("input", sync);
+          sync();
+          if (clearButton) {
+            clearButton.addEventListener("click", function () {
+              cityInput.value = "";
+              cityInput.dispatchEvent(new Event("input", { bubbles: true }));
+              cityInput.focus();
+            });
+          }
+        });
+    });
+  </script>
 {% endblock %}

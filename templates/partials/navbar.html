@@ -12,22 +12,27 @@
         <a href="/" class="transition hover:text-ink-900">Explorer</a>
         <a href="{% url 'ingestion:batch_upload' %}"
            class="transition hover:text-ink-900">Vendre</a>
-        <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Favoris</a>
-        <a href="{% url 'messages:list' %}"
-           class="transition hover:text-ink-900">Messages</a>
         <a href="{% url 'accounts:pricing' %}"
            class="transition hover:text-ink-900">Premium</a>
         {% if user.is_authenticated %}
           <a href="{% url 'my_listings' %}" class="transition hover:text-ink-900">Mes annonces</a>
         {% endif %}
-        {% if user.is_staff %}
-          <a href="{% url 'operations:dashboard' %}"
-             class="transition hover:text-ink-900">Supervision</a>
-        {% endif %}
+      {% if user.is_staff %}
+        <a href="{% url 'operations:dashboard' %}"
+           class="transition hover:text-ink-900">Supervision</a>
+      {% endif %}
       </nav>
     </div>
-    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3">
       {% if user.is_authenticated %}
+        <a href="{% url 'wishlist' %}"
+           class="hidden rounded-full border border-ink-100 bg-white/80 p-2 text-ink-600 transition hover:bg-brand/10 md:inline-flex">
+          <i data-lucide="heart" class="h-4 w-4"></i>
+        </a>
+        <a href="{% url 'messages:list' %}"
+           class="hidden rounded-full border border-ink-100 bg-white/80 p-2 text-ink-600 transition hover:bg-brand/10 md:inline-flex">
+          <i data-lucide="message-circle" class="h-4 w-4"></i>
+        </a>
         {% with display_name=user.get_full_name|default:user.email %}
           <div class="relative hidden md:flex">
             <button type="button"
@@ -79,8 +84,6 @@
       <a href="/" class="transition hover:text-brand">Explorer</a>
       <a href="{% url 'ingestion:batch_upload' %}"
          class="transition hover:text-brand">Vendre</a>
-      <a href="{% url 'wishlist' %}" class="transition hover:text-brand">Favoris</a>
-      <a href="{% url 'messages:list' %}" class="transition hover:text-brand">Messages</a>
       <a href="{% url 'accounts:pricing' %}"
          class="transition hover:text-brand">Premium</a>
       {% if user.is_staff %}

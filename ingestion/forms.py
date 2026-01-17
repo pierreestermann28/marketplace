@@ -14,7 +14,13 @@ class BatchUploadForm(forms.Form):
     sale_location = forms.CharField(
         required=False,
         label="Lieu de vente",
-        widget=forms.TextInput(attrs={"placeholder": "Ex : Lyon, boutique Le Comptoir, pop-up Paris"}),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Ex : Lyon, boutique Le Comptoir, pop-up Paris",
+                "class": "input w-full",
+                "data-location-city-input": "true",
+            }
+        ),
         help_text="L’indication principale du lieu ou de la ville ciblée.",
     )
     seller_notes = forms.CharField(
@@ -22,9 +28,10 @@ class BatchUploadForm(forms.Form):
         label="Contexte rapide",
         widget=forms.Textarea(
             attrs={
-                "rows": 3,
+                "rows": 4,
                 "placeholder": "Mentionnez marque, matériaux, état ou tout autre élément utile.",
+                "class": "input w-full",
             }
         ),
-        help_text="Quelques mots pour guider l’équipe lors de la revue.",
+        help_text="Quelques mots pour guider l'IA.",
     )
