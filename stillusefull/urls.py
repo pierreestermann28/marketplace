@@ -18,7 +18,6 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.http import HttpResponse
 from django.urls import include, path
 
 from stillusefull.views import HealthCheckView, SitemapView
@@ -35,6 +34,7 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("", include("operations.urls")),
     path("", include("pwa.urls")),
+    path("locations/", include("location.urls")),
     path("admin/", admin.site.urls),
 ]
 
