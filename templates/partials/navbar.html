@@ -19,8 +19,7 @@
           <a href="{% url 'operations:dashboard' %}"
              class="transition hover:text-ink-900">Admin</a>
         {% endif %}
-        <a href="{% url 'accounts:pricing' %}"
-           class="transition hover:text-ink-900">Premium</a>
+        {% comment %} <a href="{% url 'accounts:pricing' %}" class="transition hover:text-ink-900">Premium</a> {% endcomment %}
       </nav>
     </div>
     <div class="flex items-center gap-3">
@@ -98,8 +97,7 @@
         <a href="{% url 'accounts:login' %}"
            class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">Connexion</a>
       {% endif %}
-      <a href="{% url 'accounts:pricing' %}"
-         class="transition hover:text-brand">Premium</a>
+      {% comment %} <a href="{% url 'accounts:pricing' %}" class="transition hover:text-brand">Premium</a> {% endcomment %}
       {% if user.is_staff %}
         <a href="{% url 'operations:dashboard' %}"
            class="transition hover:text-brand">Admin</a>
