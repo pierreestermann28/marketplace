@@ -201,6 +201,57 @@
         <section class="card card-body space-y-4">
           <div class="flex items-center justify-between">
             <div>
+              <p class="section-label">Privilèges</p>
+              <h2 class="text-lg font-semibold text-ink-900">Accès Premium</h2>
+            </div>
+            <span class="badge badge-sm uppercase tracking-[0.4em] text-ink-500">Coup de pouce</span>
+          </div>
+          <div class="space-y-3">
+            {% for entitlement in premium_entitlements %}
+              <article class="rounded-2xl border border-ink-100 bg-white/80 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="space-y-1">
+                    <p class="text-sm font-semibold text-ink-900">
+                      {{ entitlement.user.get_full_name|default:entitlement.user.email }}
+                    </p>
+                    <p class="text-xs uppercase tracking-[0.35em] text-ink-500">
+                      {% if entitlement.is_premium_active %}
+                        Premium actif
+                      {% else %}
+                        Standard
+                      {% endif %}
+                    </p>
+                    {% if entitlement.premium_until %}
+                      <p class="text-xs text-ink-500">
+                        Jusqu’au {{ entitlement.premium_until|date:"d M Y" }}
+                      </p>
+                    {% endif %}
+                  </div>
+                  <div class="flex gap-2">
+                    <form method="post" action="{% url 'operations:dashboard' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="toggle_premium" />
+                      <input type="hidden" name="user_id" value="{{ entitlement.user.id }}" />
+                      <input type="hidden" name="mode" value="{% if entitlement.is_premium_active %}disable{% else %}enable{% endif %}" />
+                      <button
+                        class="btn btn-ghost btn-sm"
+                        type="submit"
+                      >
+                        {{ entitlement.is_premium_active|yesno:"Révoquer,Attribuer" }}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </article>
+            {% empty %}
+              <p class="text-sm text-ink-500">Aucun utilisateur premium pour le moment.</p>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="card card-body space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
               <p class="section-label">Tendances</p>
               <h2 class="text-lg font-semibold text-ink-900">Listings populaires</h2>
             </div>

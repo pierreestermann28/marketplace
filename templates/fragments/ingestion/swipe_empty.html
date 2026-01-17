@@ -1,21 +1,19 @@
 <div class="rounded-3xl border border-ink-100 bg-white/90 p-8 text-center shadow-lg">
-  <p class="text-sm uppercase tracking-wide text-ink-500">Batch terminé</p>
-  <h2 class="mt-2 text-2xl font-semibold text-ink-900">
-    Aucune carte restante
-  </h2>
+  <p class="text-sm uppercase tracking-[0.4em] text-ink-500">Aucun nouvel objet</p>
+  <h2 class="mt-2 text-2xl font-semibold text-ink-900">Vous avez validé toutes les détections</h2>
   <p class="mt-2 text-sm text-ink-600">
-    Toutes les propositions ont été traitées. Vous pouvez retrouver vos annonces sur votre espace de vente.
+    Revenez plus tard pour continuer ou chargez un nouveau lot pour alimenter la file.
   </p>
-  <div class="mt-5 flex justify-center gap-3">
+  <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
     <a
-      href="{% url 'my_listings' %}"
-      class="rounded-2xl border border-transparent bg-brand px-4 py-3 text-sm font-semibold text-white"
+      href="{% url 'ingestion:batch_upload' %}"
+      class="btn btn-primary w-full sm:w-auto text-sm font-semibold"
     >
-      Mes annonces
+      Ajouter un lot
     </a>
     <a
       href="{% url 'home' %}"
-      class="rounded-2xl border border-ink-200 px-4 py-3 text-sm font-semibold text-ink-700"
+      class="btn btn-ghost w-full sm:w-auto text-sm font-semibold"
     >
       Retour au feed
     </a>

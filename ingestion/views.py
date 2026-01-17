@@ -1,8 +1,12 @@
+import json
+
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.conf import settings
 from django.db import transaction
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views import View
 from django.views.generic import FormView, TemplateView
@@ -162,7 +166,103 @@ class BatchSwipeView(BatchOwnerMixin, TemplateView):
         context["rejected_count"] = batch.detected_items.filter(
             status=DetectedItem.Status.USER_REJECTED
         ).count()
+        context["items"] = list(self.get_pending_items(batch)[:SWIPE_PREFETCH_LIMIT])
         return context
+
+
+def _user_pending_items(user):
+    return (
+        DetectedItem.objects.filter(owner=user, status=DetectedItem.Status.PENDING)
+        .select_related("hero_asset__image_asset")
+        .order_by("created_at")
+    )
+
+
+def _get_next_swipe_item(user):
+    return _user_pending_items(user).first()
+
+
+def _render_swipe_fragment(request, item):
+    if item:
+        return render(request, "fragments/ingestion/swipe_card.html", {"current_item": item})
+    return render(request, "fragments/ingestion/swipe_empty.html")
+
+
+SWIPE_PREFETCH_LIMIT = 3
+
+
+class SwipeListView(LoginRequiredMixin, TemplateView):
+    template_name = "ingestion/swipe.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pending_qs = _user_pending_items(self.request.user)
+        items = list(pending_qs[:SWIPE_PREFETCH_LIMIT])
+        context["items"] = items
+        context["pending_count"] = pending_qs.count()
+        return context
+
+
+class SwipeNextCardView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        next_item = _get_next_swipe_item(request.user)
+        return _render_swipe_fragment(request, next_item)
+
+
+class SwipeDecisionView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        try:
+            payload = json.loads(request.body.decode() or "{}")
+        except json.JSONDecodeError:
+            payload = request.POST
+        item_id = payload.get("item_id")
+        decision = payload.get("decision")
+        if not item_id or decision not in {"keep", "reject", "snooze"}:
+            return HttpResponseBadRequest("Décision invalide")
+        item = get_object_or_404(DetectedItem, id=item_id, owner=request.user)
+        if item.status != DetectedItem.Status.PENDING:
+            return HttpResponse(status=409)
+        if decision == "keep":
+            item.status = DetectedItem.Status.USER_APPROVED
+        elif decision == "reject":
+            item.status = DetectedItem.Status.USER_REJECTED
+        else:
+            item.status = DetectedItem.Status.EDITED
+        item.save(update_fields=["status", "updated_at"])
+        next_item = _get_next_swipe_item(request.user)
+        html = ""
+        empty = True
+        if next_item:
+            html = render_to_string(
+                "fragments/ingestion/swipe_deck_card.html",
+                {"item": next_item},
+                request=request,
+            )
+            empty = False
+        else:
+            html = render_to_string("fragments/ingestion/swipe_empty.html", request=request)
+        return HttpResponse(
+            json.dumps({"html": html, "empty": empty}),
+            content_type="application/json",
+        )
+
+
+def _user_pending_items(user):
+    return (
+        DetectedItem.objects.filter(owner=user, status=DetectedItem.Status.PENDING)
+        .select_related("hero_asset__image_asset")
+        .order_by("created_at")
+    )
+
+
+def _get_next_swipe_item(user):
+    return _user_pending_items(user).first()
+
+
+def _render_swipe_fragment(request, item):
+    if item:
+        return render(request, "fragments/ingestion/swipe_card.html", {"current_item": item})
+    return render(request, "fragments/ingestion/swipe_empty.html")
 
 
 class DetectedItemActionMixin(LoginRequiredMixin):

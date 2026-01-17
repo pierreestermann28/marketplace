@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import TemplateView
 
+from accounts.models import UserEntitlement
 from commerce.models import Dispute, Order
 from ingestion.models import DetectedItem
 from listings.models import Listing
@@ -122,9 +123,8 @@ class OperationsDashboardView(UserPassesTestMixin, TemplateView):
         summaries = []
         for batch in batches:
             stats = counts.get(batch.id, {})
-            ready = (
-                stats.get(DetectedItem.Status.USER_APPROVED, 0)
-                + stats.get(DetectedItem.Status.ADMIN_APPROVED, 0)
+            ready = stats.get(DetectedItem.Status.USER_APPROVED, 0) + stats.get(
+                DetectedItem.Status.ADMIN_APPROVED, 0
             )
             pending = stats.get(DetectedItem.Status.PENDING, 0)
             others = sum(
@@ -174,10 +174,39 @@ class OperationsDashboardView(UserPassesTestMixin, TemplateView):
             .order_by("created_at")[:6]
         )
         context["batch_summaries"] = self._get_recent_batch_summaries()
+        context["premium_entitlements"] = self._get_recent_entitlements()
         return context
 
     def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        if action == "toggle_premium":
+            return self._handle_premium_toggle(request)
         return ReviewActionMixin._handle_review_action(self, request)
+
+    def _get_recent_entitlements(self):
+        return (
+            UserEntitlement.objects.select_related("user")
+            .order_by("-updated_at")
+            .all()[:6]
+        )
+
+    def _handle_premium_toggle(self, request):
+        user_id = request.POST.get("user_id")
+        mode = request.POST.get("mode")
+        entitlement = get_object_or_404(
+            UserEntitlement.objects.select_related("user"), user__id=user_id
+        )
+        if mode == "enable":
+            entitlement.is_premium = True
+            entitlement.premium_until = None
+            message = f"Premium activé pour {entitlement.user.get_full_name() or entitlement.user.email}."
+        else:
+            entitlement.is_premium = False
+            entitlement.premium_until = None
+            message = f"Premium suspendu pour {entitlement.user.get_full_name() or entitlement.user.email}."
+        entitlement.save(update_fields=["is_premium", "premium_until", "updated_at"])
+        messages.success(request, message)
+        return redirect(self._return_url())
 
 
 class AdminListingModerationView(UserPassesTestMixin, TemplateView):

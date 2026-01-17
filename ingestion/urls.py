@@ -12,6 +12,9 @@ from .views import (
     DetectedItemAdminRejectView,
     DetectedItemApproveView,
     DetectedItemRejectView,
+    SwipeDecisionView,
+    SwipeListView,
+    SwipeNextCardView,
 )
 
 app_name = "ingestion"
@@ -67,5 +70,20 @@ urlpatterns = [
         "admin/items/<int:item_id>/reject/",
         DetectedItemAdminRejectView.as_view(),
         name="detecteditem_admin_reject",
+    ),
+    path(
+        "swipe/",
+        SwipeListView.as_view(),
+        name="swipe",
+    ),
+    path(
+        "swipe/next/",
+        SwipeNextCardView.as_view(),
+        name="swipe_next",
+    ),
+    path(
+        "swipe/decide/",
+        SwipeDecisionView.as_view(),
+        name="swipe_decide",
     ),
 ]

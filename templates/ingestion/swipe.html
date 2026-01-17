@@ -5,20 +5,29 @@
 {% block content %}
 <section class="mx-auto max-w-4xl py-12 px-4">
   <div class="space-y-6">
-    <header class="flex items-center justify-between">
+    <header class="flex flex-col gap-2">
       <div>
-        <p class="text-sm text-ink-600">Batch {{ batch.id }}</p>
-        <h1 class="text-2xl font-semibold text-ink-900">Swiper vos DetectedItems</h1>
+        <h1 class="text-2xl font-semibold text-ink-900">Mes détections IA</h1>
+        <p class="text-sm text-ink-600">Glissez à droite pour garder, à gauche pour rejeter.</p>
       </div>
-      <div class="text-right text-xs text-ink-600">
-        <p>En attente : {{ pending_count }}</p>
-        <p>Validés : {{ approved_count }}</p>
-        <p>Rejetés : {{ rejected_count }}</p>
+      <div class="text-xs text-ink-500">
+        {% if pending_count %}
+          <span class="font-semibold">{{ pending_count }}</span> objets en attente
+        {% else %}
+          Aucun objet en attente
+        {% endif %}
       </div>
     </header>
-    <div id="swipe-card">
-      {% if current_item %}
-        {% include "fragments/ingestion/swipe_card.html" %}
+    <div
+      id="board"
+      class="swipe-board mt-6 relative min-h-[520px]"
+      data-swipe-deck
+      data-swipe-decide-url="{% url 'ingestion:swipe_decide' %}"
+    >
+      {% if items %}
+        {% for item in items %}
+          {% include "fragments/ingestion/swipe_deck_card.html" with item=item %}
+        {% endfor %}
       {% else %}
         {% include "fragments/ingestion/swipe_empty.html" %}
       {% endif %}
@@ -30,69 +39,196 @@
 {% block extra_js %}
 <script>
   (function () {
-    const threshold = 60;
+    const board = document.getElementById("board");
+    if (!board) {
+      return;
+    }
 
-    const submitForm = (card, selector) => {
-      const form = card?.querySelector(selector);
-      if (!form) {
+    const decideUrl = board.dataset.swipeDecideUrl;
+    if (!decideUrl) {
+      return;
+    }
+
+    const threshold = 140;
+    const animationDuration = 300;
+
+    const getCsrfToken = () => {
+      const token = document.querySelector("meta[name='csrf-token']");
+      return token ? token.getAttribute("content") : "";
+    };
+
+    const getTopCard = () => {
+      const cards = board.querySelectorAll("[data-card]");
+      return cards.length ? cards[cards.length - 1] : null;
+    };
+
+    const highlightFeedback = (card, dx) => {
+      const approveOverlay = card.querySelector(".swipe-overlay--approve");
+      const rejectOverlay = card.querySelector(".swipe-overlay--reject");
+      if (!approveOverlay || !rejectOverlay) {
         return;
       }
-      if (typeof form.requestSubmit === "function") {
-        form.requestSubmit();
+      const intensity = Math.min(Math.abs(dx) / threshold, 1);
+      if (dx > 0) {
+        approveOverlay.style.opacity = intensity;
+        rejectOverlay.style.opacity = "0";
+      } else if (dx < 0) {
+        rejectOverlay.style.opacity = intensity;
+        approveOverlay.style.opacity = "0";
       } else {
-        form.submit();
-      }
-    };
-    const trackSwipe = (card, direction) => {
-      const title = card?.dataset.itemTitle || "item";
-      if (typeof window.analyticsTrack === "function") {
-        window.analyticsTrack("swipe", direction, title);
+        approveOverlay.style.opacity = "0";
+        rejectOverlay.style.opacity = "0";
       }
     };
 
-    const connectSwipe = () => {
-      const card = document.querySelector(".swipe-card-inner");
+    const resetCardVisual = (card, inner) => {
+      inner.style.transition = "transform 0.2s ease";
+      inner.style.transform = "translate(0px, 0px) scale(1)";
+      const overlays = card.querySelectorAll(".swipe-overlay");
+      overlays.forEach((overlay) => (overlay.style.opacity = "0"));
+      setTimeout(() => {
+        card.style.transition = "";
+      }, 200);
+    };
+
+    const postDecision = (itemId, decision) => {
+      return fetch(decideUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+        },
+        body: JSON.stringify({ item_id: itemId, decision }),
+      }).then((response) => {
+        if (!response.ok) {
+          throw new Error("Erreur de validation");
+        }
+        return response.json();
+      });
+    };
+
+    const cleanupHammer = (card) => {
+      if (card?._hammer) {
+        card._hammer.destroy();
+        card._hammer = null;
+      }
+    };
+
+    const removeCard = (card) => {
+      cleanupHammer(card);
+      if (card?.parentElement) {
+        card.parentElement.removeChild(card);
+      }
+    };
+
+    const insertNextFragment = (payload) => {
+      if (payload.empty) {
+        board.innerHTML = payload.html;
+      } else {
+        board.insertAdjacentHTML("beforeend", payload.html);
+      }
+      requestAnimationFrame(initSwipeDeck);
+    };
+
+    const commitDecision = (card, decision, deltaY) => {
+      if (card.dataset.swipeProcessing === "1") {
+        return;
+      }
+      card.dataset.swipeProcessing = "1";
+      const itemId = card.dataset.itemId;
+      const direction = decision === "keep" ? 1 : -1;
+      const flyX = (board.offsetWidth || window.innerWidth) * 1.3 * direction;
+      card.style.transition = `transform ${animationDuration}ms ease`;
+      const inner = card.querySelector(".swipe-card-inner") || card;
+      inner.style.transition = `transform ${animationDuration}ms ease`;
+      inner.style.transform = `translate(${flyX}px, ${deltaY}px) rotate(${direction * 25}deg)`;
+      cleanupHammer(card);
+      postDecision(itemId, decision)
+        .then(insertNextFragment)
+        .catch(() => {
+          card.dataset.swipeProcessing = "0";
+          resetCardVisual(card, inner);
+        });
+      setTimeout(() => {
+        removeCard(card);
+      }, animationDuration);
+    };
+
+    const bindCard = (card) => {
       if (!card || card.dataset.swipeBound === "1") {
         return;
       }
       card.dataset.swipeBound = "1";
-      let startX = null;
+      card.style.transformOrigin = "center center";
+      card.style.position = "absolute";
+      card.style.top = "0";
+      card.style.left = "50%";
+      card.style.transform = "translate(-50%, 0)";
+      card.style.width = "100%";
+      card.style.maxWidth = "36rem";
+      card.style.margin = "0 auto";
 
-      const onPointerStart = (event) => {
-        startX = event.touches ? event.touches[0].clientX : event.clientX;
-      };
+      const hammer = new Hammer(card);
+      hammer.get("pan").set({ direction: Hammer.DIRECTION_ALL, threshold: 5 });
+      let lastDeltaY = 0;
+      const inner = card.querySelector(".swipe-card-inner") || card;
 
-      const onPointerEnd = (event) => {
-        if (startX === null) {
+      hammer.on("panmove", (event) => {
+        const dx = event.deltaX;
+        lastDeltaY = event.deltaY;
+        card.style.transition = "none";
+        const boardWidth = board.offsetWidth || window.innerWidth;
+        const ratio = dx / boardWidth;
+        const rotation = Math.max(Math.min(ratio * 120, 60), -60);
+        const scale = 1 - Math.min(Math.abs(ratio) * 0.2, 0.08);
+        inner.style.transform = `translate(${dx}px, ${event.deltaY}px) rotate(${rotation}deg) scale(${scale})`;
+        highlightFeedback(card, dx);
+      });
+
+      hammer.on("panend", (event) => {
+        const dx = event.deltaX;
+        if (Math.abs(dx) > threshold) {
+          const decision = dx > 0 ? "keep" : "reject";
+          commitDecision(card, decision, lastDeltaY);
           return;
         }
-        const endX = event.changedTouches ? event.changedTouches[0].clientX : event.clientX;
-        const delta = endX - startX;
-        startX = null;
-        if (Math.abs(delta) < threshold) {
-          return;
-        }
-        if (delta > 0) {
-          trackSwipe(card, "approve");
-          submitForm(card, ".form-approve");
-        } else {
-          trackSwipe(card, "reject");
-          submitForm(card, ".form-reject");
-        }
-      };
+        resetCardVisual(card, inner);
+      });
 
-      card.addEventListener("pointerdown", onPointerStart, { passive: true });
-      card.addEventListener("pointerup", onPointerEnd, { passive: true });
-      card.addEventListener("touchstart", onPointerStart, { passive: true });
-      card.addEventListener("touchend", onPointerEnd, { passive: true });
+      card._hammer = hammer;
     };
 
-    document.addEventListener("DOMContentLoaded", connectSwipe);
-    document.addEventListener("htmx:afterSwap", function (event) {
-      if (event.detail.target && event.detail.target.id === "swipe-card") {
-        connectSwipe();
-      }
-    });
+    const setupDecisionButtons = () => {
+      board.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-decision]");
+        if (!button) {
+          return;
+        }
+        const card = button.closest("[data-card]");
+        const topCard = getTopCard();
+        if (!card || card !== topCard) {
+          return;
+        }
+        const decision = button.dataset.decision;
+        if (!decision || !["keep", "reject"].includes(decision)) {
+          return;
+        }
+        commitDecision(card, decision, 0);
+      });
+    };
+
+    const initSwipeDeck = () => {
+      board.style.position = "relative";
+      board.style.minHeight = board.style.minHeight || "520px";
+      const cards = board.querySelectorAll("[data-card]");
+      cards.forEach((card, index) => {
+        card.style.zIndex = 100 + index;
+        bindCard(card);
+      });
+    };
+
+    setupDecisionButtons();
+    initSwipeDeck();
   })();
 </script>
 {% endblock %}

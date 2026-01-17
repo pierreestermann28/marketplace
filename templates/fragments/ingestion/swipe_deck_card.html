@@ -1,0 +1,63 @@
+<div
+  class="card swipe-card rounded-3xl border border-ink-100 bg-white p-6 shadow-xl"
+  data-card
+  data-item-id="{{ item.id }}"
+>
+  <div class="swipe-overlay swipe-overlay--approve"></div>
+  <div class="swipe-overlay swipe-overlay--reject"></div>
+  <div class="swipe-card-inner space-y-4">
+    {% if item.hero_asset and item.hero_asset.image_asset.image %}
+      <div class="relative overflow-hidden rounded-2xl">
+        <img
+          src="{{ item.hero_asset.image_asset.image.url }}"
+          alt="{{ item.title_suggested }}"
+          class="h-64 w-full object-cover"
+        />
+      </div>
+    {% endif %}
+    <div class="space-y-2">
+      <div class="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-ink-500">
+        <span>Détection IA</span>
+        <span class="text-ink-400">Confiance {{ item.confidence|default:"?"|floatformat:2 }}</span>
+      </div>
+      <h2 class="text-lg font-semibold text-ink-900">
+        {{ item.title_suggested|default:"Objet détecté" }}
+      </h2>
+      <p class="text-sm text-ink-600">{{ item.description_suggested|truncatechars:140 }}</p>
+    </div>
+    <dl class="grid grid-cols-2 gap-3 text-xs text-ink-500">
+      <div>
+        <dt class="font-semibold text-ink-600">Prix</dt>
+        <dd>
+          {% if item.price_low %}
+            {{ item.price_low }} – {{ item.price_high|default:item.price_low }} €
+          {% else %}
+            À définir
+          {% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-ink-600">Catégorie</dt>
+        <dd>{{ item.category_suggested|default:"À catégoriser" }}</dd>
+      </div>
+    </dl>
+  </div>
+  <div class="mt-6 grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.4em]">
+    <div class="flex flex-col gap-1 text-emerald-700">
+      <span class="font-semibold">Glisser à droite</span>
+      <span class="text-[10px] text-ink-400">Garder</span>
+    </div>
+    <div class="flex flex-col gap-1 text-danger">
+      <span class="font-semibold">Glisser à gauche</span>
+      <span class="text-[10px] text-ink-400">Rejeter</span>
+    </div>
+  </div>
+  <div class="mt-5 flex flex-wrap items-center gap-3">
+    <button type="button" class="btn btn-outline w-full sm:w-auto text-sm font-semibold" data-decision="reject">
+      Rejeter
+    </button>
+    <button type="button" class="btn btn-primary w-full sm:w-auto text-sm font-semibold" data-decision="keep">
+      Garder
+    </button>
+  </div>
+</div>
