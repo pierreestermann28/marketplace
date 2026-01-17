@@ -83,7 +83,7 @@
 
     const resetCardVisual = (card) => {
       card.style.transition = "transform 0.2s ease";
-      card.style.transform = "translate(-50%, 0) scale(1)";
+      card.style.transform = "translate(-50%, -50%) scale(1)";
       const overlays = card.querySelectorAll(".swipe-overlay");
       overlays.forEach((overlay) => (overlay.style.opacity = "0"));
       setTimeout(() => {
@@ -159,9 +159,9 @@
       card.dataset.swipeBound = "1";
       card.style.transformOrigin = "center center";
       card.style.position = "absolute";
-      card.style.top = "0";
+      card.style.top = "50%";
       card.style.left = "50%";
-      card.style.transform = "translate(-50%, 0)";
+      card.style.transform = "translate(-50%, -50%) scale(0.95)";
       card.style.width = "100%";
       card.style.maxWidth = "36rem";
       card.style.margin = "0 auto";
@@ -178,7 +178,7 @@
         const ratio = dx / boardWidth;
         const rotation = Math.max(Math.min(ratio * 120, 60), -60);
         const scale = 1 - Math.min(Math.abs(ratio) * 0.2, 0.08);
-        card.style.transform = `translate(calc(-50% + ${dx}px), ${event.deltaY}px) rotate(${rotation}deg) scale(${scale})`;
+        card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${event.deltaY}px)) rotate(${rotation}deg) scale(${scale})`;
         highlightFeedback(card, dx);
       });
 
