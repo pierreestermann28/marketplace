@@ -9,21 +9,21 @@
         <span class="text-lg font-semibold tracking-tight">StillUseful</span>
       </a>
       <nav class="hidden gap-6 text-sm font-medium text-ink-600 md:flex">
-        <a href="/" class="transition hover:text-ink-900">Explorer</a>
+        <a href="/" class="transition hover:text-ink-900">Découvrir</a>
         <a href="{% url 'ingestion:batch_upload' %}"
-           class="transition hover:text-ink-900">Vendre</a>
-        <a href="{% url 'accounts:pricing' %}"
-           class="transition hover:text-ink-900">Premium</a>
+           class="transition hover:text-ink-900">Publier</a>
         {% if user.is_authenticated %}
           <a href="{% url 'my_listings' %}" class="transition hover:text-ink-900">Mes annonces</a>
         {% endif %}
-      {% if user.is_staff %}
-        <a href="{% url 'operations:dashboard' %}"
-           class="transition hover:text-ink-900">Supervision</a>
-      {% endif %}
+        {% if user.is_staff %}
+          <a href="{% url 'operations:dashboard' %}"
+             class="transition hover:text-ink-900">Admin</a>
+        {% endif %}
+        <a href="{% url 'accounts:pricing' %}"
+           class="transition hover:text-ink-900">Premium</a>
       </nav>
     </div>
-      <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3">
       {% if user.is_authenticated %}
         <a href="{% url 'wishlist' %}"
            class="hidden rounded-full border border-ink-100 bg-white/80 p-2 text-ink-600 transition hover:bg-brand/10 md:inline-flex">
@@ -81,15 +81,9 @@
        x-cloak
        class="border-t border-ink-100 bg-white/95 px-4 py-4 shadow-lg backdrop-blur md:hidden">
     <nav class="flex flex-col gap-3 text-sm font-medium text-ink-700">
-      <a href="/" class="transition hover:text-brand">Explorer</a>
+      <a href="/" class="transition hover:text-brand">Découvrir</a>
       <a href="{% url 'ingestion:batch_upload' %}"
-         class="transition hover:text-brand">Vendre</a>
-      <a href="{% url 'accounts:pricing' %}"
-         class="transition hover:text-brand">Premium</a>
-      {% if user.is_staff %}
-        <a href="{% url 'operations:dashboard' %}"
-           class="transition hover:text-brand">Supervision</a>
-      {% endif %}
+         class="transition hover:text-brand">Publier</a>
       {% if user.is_authenticated %}
         <a href="{% url 'accounts:personal_profile' %}"
            class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">Mon profil</a>
@@ -103,6 +97,12 @@
       {% else %}
         <a href="{% url 'accounts:login' %}"
            class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">Connexion</a>
+      {% endif %}
+      <a href="{% url 'accounts:pricing' %}"
+         class="transition hover:text-brand">Premium</a>
+      {% if user.is_staff %}
+        <a href="{% url 'operations:dashboard' %}"
+           class="transition hover:text-brand">Admin</a>
       {% endif %}
     </nav>
   </div>
