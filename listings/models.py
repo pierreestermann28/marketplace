@@ -8,6 +8,8 @@ from django.db.models import F, Prefetch
 from django.utils import timezone
 from django.utils.text import slugify
 
+from location.models import City
+
 from catalog.models import Category
 from mediahub.models import ImageAsset, Keyframe, VideoUpload
 
@@ -63,6 +65,13 @@ class Listing(models.Model):
 
     postal_code = models.CharField(max_length=20, blank=True, db_index=True)
     city = models.CharField(max_length=80, blank=True, db_index=True)
+    location_city = models.ForeignKey(
+        City,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="listings",
+    )
     country_code = models.CharField(max_length=2, default="FR")
     available_from = models.DateTimeField(null=True, blank=True, db_index=True)
     view_count = models.PositiveIntegerField(default=0, db_index=True)
@@ -122,6 +131,7 @@ class Listing(models.Model):
             models.Index(fields=["category", "status", "created_at"]),
             models.Index(fields=["city", "status", "created_at"]),
             models.Index(fields=["postal_code", "status", "created_at"]),
+            models.Index(fields=["location_city", "status", "created_at"]),
         ]
 
     class PublicStatus(models.TextChoices):
@@ -150,6 +160,12 @@ class Listing(models.Model):
     def __str__(self):
         return self.title
 
+    def _sync_location_fields(self):
+        location = self.location_city
+        if location:
+            self.city = location.name
+            self.postal_code = location.postal_code
+
     def get_primary_image(self):
         primary = (
             self.images.filter(is_primary=True).select_related("image_asset").first()
@@ -165,6 +181,8 @@ class Listing(models.Model):
             active.update(cancelled_at=now)
 
     def save(self, *args, **kwargs):
+        if self.location_city:
+            self._sync_location_fields()
         if not self.slug and self.title:
             self.slug = slugify(self.title)[:160]
         prev_status = self._initial_status
@@ -337,9 +355,7 @@ class ReservationLog(models.Model):
         on_delete=models.CASCADE,
         related_name="reservation_logs",
     )
-    action = models.CharField(
-        max_length=16, choices=Action.choices, db_index=True
-    )
+    action = models.CharField(max_length=16, choices=Action.choices, db_index=True)
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -383,6 +399,13 @@ class SearchAlert(models.Model):
     )
     keyword = models.CharField(max_length=255, blank=True)
     city = models.CharField(max_length=80, blank=True)
+    location_city = models.ForeignKey(
+        City,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="search_alerts",
+    )
     category = models.ForeignKey(
         Category,
         null=True,
@@ -395,7 +418,7 @@ class SearchAlert(models.Model):
     last_sent = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = [("user", "keyword", "city", "category")]
+        unique_together = [("user", "keyword", "city", "location_city", "category")]
 
     def matches(self, listing):
         if listing.seller == self.user:
@@ -404,8 +427,11 @@ class SearchAlert(models.Model):
             text = f"{listing.title} {listing.description}".lower()
             if self.keyword.lower() not in text:
                 return False
-        if self.city and self.city.strip():
-            if self.city.lower() != listing.city.lower():
+        if self.location_city_id:
+            if listing.location_city_id != self.location_city_id:
+                return False
+        elif self.city and self.city.strip():
+            if listing.city.lower() != self.city.lower():
                 return False
         if self.category and listing.category_id != self.category_id:
             return False
@@ -448,4 +474,3 @@ class Favorite(models.Model):
 
     class Meta:
         unique_together = [("user", "listing")]
-

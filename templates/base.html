@@ -107,5 +107,229 @@
         }
       });
     </script>
+    <script>
+      (function () {
+        const API_URL = "/locations/cities/autocomplete/";
+        const MIN_QUERY_LENGTH = 2;
+        const DEBOUNCE_MS = 250;
+
+        function debounce(fn, delay) {
+          let timer;
+          return function (term) {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              fn(term);
+            }, delay);
+          };
+        }
+
+        function createResultButton(city) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "location-autocomplete-result";
+          button.textContent = city.display_name || city.name;
+          button.dataset.cityId = city.id;
+          button.dataset.cityName = city.name;
+          button.dataset.citySlug = city.slug || "";
+          button.dataset.cityPostal = city.postal_code || "";
+          return button;
+        }
+
+        function setupAutocomplete(root) {
+          if (root.dataset.locationAutocompleteInitialized === "true") {
+            return;
+          }
+          const input = root.querySelector("[data-location-city-input]");
+          const resultsContainer = root.querySelector("[data-location-results]");
+          if (!input || !resultsContainer) {
+            return;
+          }
+          const hiddenSingle = root.querySelector("[data-location-city-hidden]");
+          const hiddenWrapper = root.querySelector("[data-location-hidden-wrapper]");
+          const selectedContainer = root.querySelector("[data-location-selected]");
+          const multiMode = root.dataset.locationMode === "multi";
+          const hiddenFieldName = root.dataset.locationFieldName || "city_ids";
+
+          const selections = new Map();
+          if (selectedContainer) {
+            selectedContainer
+              .querySelectorAll("[data-location-chip]")
+              .forEach(function (chip) {
+                if (chip.dataset && chip.dataset.cityId) {
+                  selections.set(chip.dataset.cityId, true);
+                }
+              });
+          }
+
+          function clearResults() {
+            resultsContainer.innerHTML = "";
+          }
+
+          function renderResults(cities) {
+            clearResults();
+            if (!cities.length) {
+              return;
+            }
+            cities.forEach(function (city) {
+              const button = createResultButton(city);
+              button.addEventListener("click", function () {
+                handleSuggestionClick(city);
+              });
+              resultsContainer.appendChild(button);
+            });
+          }
+
+          function addChip(city) {
+            if (!selectedContainer) {
+              return;
+            }
+            const chip = document.createElement("span");
+            chip.className = "location-autocomplete-chip";
+            chip.dataset.locationChip = "true";
+            chip.dataset.cityId = city.id;
+            const label = document.createElement("span");
+            label.textContent = city.display_name || city.name;
+            chip.appendChild(label);
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.className = "location-autocomplete-chip-remove";
+            removeButton.setAttribute("aria-label", "Retirer " + city.name);
+            removeButton.dataset.locationChipRemove = "true";
+            removeButton.textContent = "×";
+            chip.appendChild(removeButton);
+            selectedContainer.appendChild(chip);
+            selections.set(String(city.id), true);
+          }
+
+          function addHiddenInput(cityId) {
+            if (!hiddenWrapper) {
+              return;
+            }
+            const inputEl = document.createElement("input");
+            inputEl.type = "hidden";
+            inputEl.name = hiddenFieldName;
+            inputEl.value = cityId;
+            inputEl.dataset.locationCityId = cityId;
+            hiddenWrapper.appendChild(inputEl);
+          }
+
+          function removeCity(cityId, chipEl) {
+            selections.delete(String(cityId));
+            if (chipEl) {
+              chipEl.remove();
+            }
+            if (hiddenWrapper) {
+              const hidden = hiddenWrapper.querySelector(
+                'input[name="' + hiddenFieldName + '"][data-location-city-id="' + cityId + '"]'
+              );
+              if (hidden) {
+                hidden.remove();
+              }
+            }
+          }
+
+          function handleSuggestionClick(city) {
+            if (multiMode) {
+              if (selections.has(String(city.id))) {
+                return;
+              }
+              addChip(city);
+              addHiddenInput(city.id);
+              input.value = "";
+            } else if (hiddenSingle) {
+              input.value = city.display_name || city.name;
+              hiddenSingle.value = city.id;
+            }
+            clearResults();
+          }
+
+          const fetchResults = function (term) {
+            if (term.length < MIN_QUERY_LENGTH) {
+              clearResults();
+              return;
+            }
+            fetch(API_URL + "?q=" + encodeURIComponent(term) + "&limit=8", {
+              headers: {
+                Accept: "application/json",
+              },
+            })
+              .then(function (response) {
+                if (!response.ok) {
+                  throw new Error("Failed to load cities");
+                }
+                return response.json();
+              })
+              .then(function (data) {
+                if (data && Array.isArray(data.results)) {
+                  renderResults(data.results);
+                }
+              })
+              .catch(function () {
+                clearResults();
+              });
+          };
+
+          const debouncedFetch = debounce(fetchResults, DEBOUNCE_MS);
+
+          input.addEventListener("input", function (event) {
+            const term = event.target.value.trim();
+            if (!multiMode && hiddenSingle) {
+              hiddenSingle.value = "";
+            }
+            if (term.length < MIN_QUERY_LENGTH) {
+              clearResults();
+              return;
+            }
+            debouncedFetch(term);
+          });
+
+          input.addEventListener("focus", function () {
+            const term = input.value.trim();
+            if (term.length >= MIN_QUERY_LENGTH) {
+              fetchResults(term);
+            }
+          });
+
+          input.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+              clearResults();
+            }
+          });
+
+          document.addEventListener("click", function (event) {
+            if (!root.contains(event.target)) {
+              clearResults();
+            }
+          });
+
+          if (selectedContainer) {
+            selectedContainer.addEventListener("click", function (event) {
+              const removeButton = event.target.closest("[data-location-chip-remove]");
+              if (!removeButton) {
+                return;
+              }
+              const chip = removeButton.closest("[data-location-chip]");
+              const cityId = chip ? chip.dataset.cityId : null;
+              if (!cityId) {
+                return;
+              }
+              removeCity(cityId, chip);
+            });
+          }
+          root.dataset.locationAutocompleteInitialized = "true";
+        }
+
+        function init() {
+          document
+            .querySelectorAll("[data-location-autocomplete]")
+            .forEach(function (root) {
+              setupAutocomplete(root);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+        document.addEventListener("htmx:afterSwap", init);
+      })();
+    </script>
   </body>
 </html>

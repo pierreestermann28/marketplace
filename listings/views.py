@@ -40,6 +40,7 @@ from .utils import user_can_view_contact_info
 from accounts.models import ReputationStats
 from commerce.models import Review
 from ingestion.models import DetectedItem
+from location.models import City as LocationCity
 
 
 def get_listing_detail_url(listing):
@@ -60,10 +61,23 @@ class HomeFeedView(ListView):
         qs = Listing.objects.filter(status__in=self.status_filter)
         q = self.request.GET.get("q", "").strip()
         city = self.request.GET.get("city", "").strip()
+        city_slug = self.request.GET.get("city_slug", "").strip()
         category = self.request.GET.get("category", "").strip()
+        city_ids = []
+        for value in self.request.GET.getlist("city_ids"):
+            if not value.strip():
+                continue
+            try:
+                city_ids.append(int(value))
+            except ValueError:
+                continue
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
-        if city:
+        if city_ids:
+            qs = qs.filter(location_city_id__in=city_ids)
+        elif city_slug:
+            qs = qs.filter(location_city__slug=city_slug)
+        elif city:
             qs = qs.filter(city__icontains=city)
         if category:
             qs = qs.filter(category__slug=category)
@@ -89,13 +103,23 @@ class HomeFeedView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.all()
-        context["filters"] = {
+        selected_city_ids = []
+        for value in self.request.GET.getlist("city_ids"):
+            if not value.strip():
+                continue
+            try:
+                selected_city_ids.append(int(value))
+            except ValueError:
+                continue
+        filters = {
             "q": self.request.GET.get("q", ""),
             "city": self.request.GET.get("city", ""),
             "category": self.request.GET.get("category", ""),
             "querystring": self._get_filter_querystring(),
+            "city_ids": [str(cid) for cid in selected_city_ids],
         }
-        context["search_alert_form"] = SearchAlertForm()
+        context["filters"] = filters
+        context["selected_cities"] = self._resolve_selected_cities(selected_city_ids)
         recommended, category_ids = self._get_recommendations()
         context["recommended_listings"] = recommended
         context["recommendation_reason"] = self._build_recommendation_reason(
@@ -108,14 +132,17 @@ class HomeFeedView(ListView):
             .order_by("-count")[:6]
         )
         featured_city_qs = (
-            Listing.objects.filter(status__in=self.status_filter)
-            .exclude(city__exact="")
-            .values("city")
+            Listing.objects.filter(status__in=self.status_filter, location_city__isnull=False)
+            .values("location_city__name", "location_city__slug")
             .annotate(count=Count("id"))
             .order_by("-count")[:6]
         )
         context["featured_cities"] = [
-            {"city": city["city"], "count": city["count"], "slug": slugify(city["city"])}
+            {
+                "city": city["location_city__name"],
+                "count": city["count"],
+                "slug": city["location_city__slug"],
+            }
             for city in featured_city_qs
         ]
         context["page_meta"] = self._default_page_meta()
@@ -126,6 +153,28 @@ class HomeFeedView(ListView):
         context["canonical_url"] = self._build_canonical_url(current_page)
         context["pagination_links"] = self._build_pagination_links(page_obj)
         return context
+
+    def _resolve_selected_cities(self, city_ids):
+        if not city_ids:
+            return []
+        unique_ids = list(dict.fromkeys(city_ids))
+        cities = (
+            LocationCity.objects.filter(id__in=unique_ids)
+            .order_by("name")
+            .values("id", "name", "postal_code", "slug")
+        )
+        return [
+            {
+                "id": city["id"],
+                "name": city["name"],
+                "slug": city["slug"],
+                "postal_code": city["postal_code"] or "",
+                "display_name": f"{city['name']} ({city['postal_code']})"
+                if city["postal_code"]
+                else city["name"],
+            }
+            for city in cities
+        ]
 
     def _get_filter_querystring(self):
         params = self.request.GET.copy()
@@ -265,9 +314,12 @@ class CityListingView(HomeFeedView):
     template_name = "pages/listings_feed.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.city_label = self._resolve_city(kwargs["slug"])
+        self.location_city = get_object_or_404(LocationCity, slug=kwargs["slug"])
+        self.city_label = self.location_city.name
         query_params = request.GET.copy()
         query_params["city"] = self.city_label
+        query_params["city_slug"] = self.location_city.slug
+        query_params.setlist("city_ids", [str(self.location_city.id)])
         request.GET = query_params
         return super().dispatch(request, *args, **kwargs)
 
@@ -284,18 +336,6 @@ class CityListingView(HomeFeedView):
             "og_type": "website",
         }
         return context
-
-    def _resolve_city(self, slug):
-        cities = (
-            Listing.objects.filter(city__isnull=False)
-            .exclude(city="")
-            .values_list("city", flat=True)
-            .distinct()
-        )
-        for city in cities:
-            if slugify(city) == slug:
-                return city
-        raise Http404("Ville inconnue")
 
 
 class ListingDetailView(DetailView):
@@ -505,6 +545,7 @@ class SearchAlertCreateView(LoginRequiredMixin, View):
                 user=request.user,
                 keyword=form.cleaned_data["keyword"],
                 city=form.cleaned_data["city"],
+                location_city=form.cleaned_data["location_city"],
                 category=form.cleaned_data["category"],
                 defaults={"is_active": True},
             )

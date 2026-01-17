@@ -1,33 +1,66 @@
 {% extends "layouts/app.html" %}
 {% block page_content %}
-  <div class="container-app py-10">
-    <div class="card card-body space-y-4">
+  <div class="container-app py-10 space-y-6">
+    <section class="card card-body space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Wishlist</div>
+          <div class="text-xs uppercase tracking-[0.3em] text-ink-500">Favoris</div>
           <h1 class="h1 mt-1">Mes favoris</h1>
-          <p class="muted text-sm">Retrouve tous les objets que tu suis et garde-les à portée.</p>
+          <p class="muted text-sm">Retrouve les objets suivis, crée des alertes et reste informé en priorité.</p>
         </div>
         <div class="flex items-center gap-3 text-sm text-ink-500">
           <a href="/" class="underline">Explorer</a>
           <span class="text-ink-300">|</span>
-          <a href="{% url 'wishlist' %}" class="font-semibold">Wishlist</a>
+          <span class="font-semibold text-ink-900">Favoris</span>
         </div>
       </div>
-    </div>
-    <div class="mt-4 grid gap-6 lg:grid-cols-[3fr_1fr]">
-      <div id="wishlist-panel">
-        {% include "fragments/listings/wishlist_panel.html" %}
-      </div>
-      <aside class="space-y-4">
+    </section>
+
+    <div class="grid gap-6 lg:grid-cols-[3fr_1fr]">
+      <section class="space-y-4">
+        <div class="card card-body space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="section-label">Favoris</p>
+              <h2 class="text-lg font-semibold text-ink-900">Annonces suivies</h2>
+            </div>
+            <span class="text-xs uppercase tracking-[0.4em] text-ink-400">Actualisé</span>
+          </div>
+          <div id="wishlist-panel">
+            {% include "fragments/listings/wishlist_panel.html" %}
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-4">
         <div class="card card-body space-y-4">
           <div class="flex items-center justify-between">
             <div>
               <p class="section-label">Alertes de recherche</p>
-              <h3 class="text-lg font-semibold text-ink-900">Suivez vos filtres</h3>
+              <h2 class="text-lg font-semibold text-ink-900">Restez informé</h2>
             </div>
             <span class="text-xs uppercase tracking-[0.4em] text-ink-400">Email</span>
           </div>
+          <form method="post" action="{% url 'search_alert_create' %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+              <label class="label sr-only" for="{{ search_alert_form.keyword.id_for_label }}">Mot-clé</label>
+              {{ search_alert_form.keyword }}
+            </div>
+            <div class="relative" data-location-autocomplete data-location-mode="single">
+              <label class="label sr-only" for="{{ search_alert_form.city.id_for_label }}">Ville</label>
+              {{ search_alert_form.city }}
+              <div data-location-results class="location-autocomplete-results"></div>
+              <div class="hidden">
+                {{ search_alert_form.location_city }}
+              </div>
+            </div>
+            <div>
+              <label class="label sr-only" for="{{ search_alert_form.category.id_for_label }}">Catégorie</label>
+              {{ search_alert_form.category }}
+            </div>
+            <button type="submit" class="btn btn-primary w-full py-3 text-sm font-semibold">Créer une alerte</button>
+          </form>
           <div class="space-y-3 text-sm text-ink-600">
             {% if search_alerts %}
               {% for alert in search_alerts %}
@@ -44,13 +77,13 @@
                 </div>
               {% endfor %}
             {% else %}
-              <p>Créez une alerte depuis la page d’accueil pour recevoir un email dès qu’une annonce correspond à vos critères.</p>
+              <p>Créez une alerte via le formulaire ci-dessus pour recevoir un email dès qu’une annonce correspond à vos critères.</p>
             {% endif %}
           </div>
-          <a href="/" class="text-sm font-semibold text-brand hover:underline">Créer une alerte</a>
         </div>
-      </aside>
+      </section>
     </div>
+
     <div
       id="wishlist-refresher"
       hx-trigger="wishlist-updated from:body"

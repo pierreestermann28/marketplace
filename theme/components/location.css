@@ -1,0 +1,22 @@
+@layer components {
+  .location-autocomplete-results {
+    @apply absolute inset-x-0 top-full z-20 mt-2 max-h-64 overflow-auto rounded-2xl border border-ink-100 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)];
+  }
+
+  .location-autocomplete-result {
+    @apply w-full text-left px-4 py-2 text-sm text-ink-900 bg-white border-none cursor-pointer transition duration-150;
+  }
+
+  .location-autocomplete-result:hover,
+  .location-autocomplete-result:focus-visible {
+    @apply bg-ink-50;
+  }
+
+  .location-autocomplete-chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-ink-200 bg-surface-muted px-3 py-1 text-sm text-ink-900;
+  }
+
+  .location-autocomplete-chip-remove {
+    @apply bg-transparent border-none text-ink-500 text-base leading-none cursor-pointer;
+  }
+}

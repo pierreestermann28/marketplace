@@ -10,6 +10,8 @@ from catalog.models import Category
 
 from messaging.models import Conversation
 
+from location.models import City
+
 from .models import Favorite, Listing, Reservation, ReservationLog
 
 
@@ -193,6 +195,23 @@ class ListingViewTests(TestCase):
         self.assertIn(self.listing_other, listings)
         self.assertIn(self.listing_draft, listings)
         self.assertEqual(len(listings), 3)
+
+    def test_home_feed_filters_by_location_city(self):
+        location = City.objects.create(
+            name="Bordeaux",
+            postal_code="33000",
+            slug="bordeaux-33000",
+        )
+        listing = Listing.objects.create(
+            seller=self.seller,
+            title="Bordeaux item",
+            status=Listing.Status.PUBLISHED,
+            currency="EUR",
+            location_city=location,
+        )
+        response = self.client.get(reverse("home"), {"city_ids": str(location.id)})
+        listings = get_listings_from_response(response)
+        self.assertIn(listing, listings)
 
     def test_seller_can_mark_sold_and_archive(self):
         sold_listing = Listing.objects.create(

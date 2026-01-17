@@ -6,4 +6,5 @@
 @import "./components/ui.css";
 @import "./components/listings.css";
 @import "./components/messaging.css";
+@import "./components/location.css";
 @import "./utilities.css";

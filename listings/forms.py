@@ -18,20 +18,28 @@ class ListingForm(forms.ModelForm):
             "currency",
             "postal_code",
             "city",
+            "location_city",
         ]
         widgets = {
             "description": forms.Textarea(attrs={"class": "textarea"}),
+            "location_city": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
+            if isinstance(field.widget, forms.HiddenInput):
+                field.widget.attrs.setdefault("data-location-city-hidden", "true")
+                continue
             if name in {"category", "condition", "currency"}:
                 field.widget.attrs["class"] = "input"
             elif name == "description":
                 field.widget = forms.Textarea(attrs={"class": "textarea"})
             else:
                 field.widget.attrs["class"] = "input"
+            if name == "city":
+                field.widget.attrs.setdefault("data-location-city-input", "true")
+                field.widget.attrs.setdefault("autocomplete", "off")
 
 
 class MultiFileInput(forms.ClearableFileInput):
@@ -78,16 +86,22 @@ class PhotoUploadForm(forms.Form):
 class SearchAlertForm(forms.ModelForm):
     class Meta:
         model = SearchAlert
-        fields = ["keyword", "city", "category"]
+        fields = ["keyword", "city", "location_city", "category"]
         widgets = {
             "keyword": forms.TextInput(attrs={"class": "input", "placeholder": "Mot-clé"}),
             "city": forms.TextInput(attrs={"class": "input", "placeholder": "Ville"}),
+            "location_city": forms.HiddenInput(),
             "category": forms.Select(attrs={"class": "input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = Category.objects.all()
+        if "city" in self.fields:
+            self.fields["city"].widget.attrs.setdefault("data-location-city-input", "true")
+            self.fields["city"].widget.attrs.setdefault("autocomplete", "off")
+        if "location_city" in self.fields:
+            self.fields["location_city"].widget.attrs.setdefault("data-location-city-hidden", "true")
 
     def clean(self):
         cleaned = super().clean()

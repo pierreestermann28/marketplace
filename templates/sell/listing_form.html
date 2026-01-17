@@ -36,9 +36,13 @@
         <label class="label" for="id_postal_code">Code postal</label>
         {{ form.postal_code }}
       </div>
-      <div>
+      <div class="relative" data-location-autocomplete data-location-mode="single">
         <label class="label" for="id_city">Ville</label>
         {{ form.city }}
+        <div data-location-results class="location-autocomplete-results"></div>
+        <div class="hidden">
+          {{ form.location_city }}
+        </div>
       </div>
       <div class="flex items-center justify-end gap-2">
         {% include "components/ui/button.html" with label="Enregistrer" variant="primary" type="submit" only %}
