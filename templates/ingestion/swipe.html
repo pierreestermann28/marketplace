@@ -20,7 +20,7 @@
     </header>
     <div
       id="board"
-      class="swipe-board mt-6 relative min-h-[520px]"
+      class="swipe-board mt-6 relative min-h-[520px] pb-24 overflow-hidden"
       data-swipe-deck
       data-swipe-decide-url="{% url 'ingestion:swipe_decide' %}"
     >
@@ -81,9 +81,9 @@
       }
     };
 
-    const resetCardVisual = (card, inner) => {
-      inner.style.transition = "transform 0.2s ease";
-      inner.style.transform = "translate(0px, 0px) scale(1)";
+    const resetCardVisual = (card) => {
+      card.style.transition = "transform 0.2s ease";
+      card.style.transform = "translate(-50%, 0) scale(1)";
       const overlays = card.querySelectorAll(".swipe-overlay");
       overlays.forEach((overlay) => (overlay.style.opacity = "0"));
       setTimeout(() => {
@@ -139,15 +139,13 @@
       const direction = decision === "keep" ? 1 : -1;
       const flyX = (board.offsetWidth || window.innerWidth) * 1.3 * direction;
       card.style.transition = `transform ${animationDuration}ms ease`;
-      const inner = card.querySelector(".swipe-card-inner") || card;
-      inner.style.transition = `transform ${animationDuration}ms ease`;
-      inner.style.transform = `translate(${flyX}px, ${deltaY}px) rotate(${direction * 25}deg)`;
+      card.style.transform = `translate(${flyX}px, ${deltaY}px) rotate(${direction * 25}deg)`;
       cleanupHammer(card);
       postDecision(itemId, decision)
         .then(insertNextFragment)
         .catch(() => {
           card.dataset.swipeProcessing = "0";
-          resetCardVisual(card, inner);
+          resetCardVisual(card);
         });
       setTimeout(() => {
         removeCard(card);
@@ -171,7 +169,6 @@
       const hammer = new Hammer(card);
       hammer.get("pan").set({ direction: Hammer.DIRECTION_ALL, threshold: 5 });
       let lastDeltaY = 0;
-      const inner = card.querySelector(".swipe-card-inner") || card;
 
       hammer.on("panmove", (event) => {
         const dx = event.deltaX;
@@ -181,7 +178,7 @@
         const ratio = dx / boardWidth;
         const rotation = Math.max(Math.min(ratio * 120, 60), -60);
         const scale = 1 - Math.min(Math.abs(ratio) * 0.2, 0.08);
-        inner.style.transform = `translate(${dx}px, ${event.deltaY}px) rotate(${rotation}deg) scale(${scale})`;
+        card.style.transform = `translate(calc(-50% + ${dx}px), ${event.deltaY}px) rotate(${rotation}deg) scale(${scale})`;
         highlightFeedback(card, dx);
       });
 
@@ -192,7 +189,7 @@
           commitDecision(card, decision, lastDeltaY);
           return;
         }
-        resetCardVisual(card, inner);
+        resetCardVisual(card);
       });
 
       card._hammer = hammer;
