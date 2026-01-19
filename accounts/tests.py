@@ -8,14 +8,14 @@ from django.utils import timezone
 
 import stripe
 
-from accounts.entitlements import (
+from billing.entitlements import (
     can_generate_detected_items,
     can_publish_listing,
     ensure_listing_quota,
     record_listing_publication,
     QuotaExceeded,
 )
-from accounts.models import UserEntitlement, UsageCounter
+from billing.models import UserEntitlement, UsageCounter
 from mediahub.models import BatchUpload
 from listings.models import Listing
 from ingestion.models import DetectedItem

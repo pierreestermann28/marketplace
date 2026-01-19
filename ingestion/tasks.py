@@ -1,9 +1,10 @@
 import hashlib
 import logging
 import random
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
+from django.utils import timezone
 
 try:
     from celery import shared_task
@@ -16,7 +17,8 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger("ingestion.tasks")
 
-from accounts.entitlements import (
+from ai.models import AIImageAnalysis, AISuggestion, AIModelProvider
+from billing.entitlements import (
     detected_item_usage_window,
     get_free_detected_item_quota,
     is_premium,
@@ -105,6 +107,7 @@ def analyze_batch(self, batch_id):
                         confidence=cached.confidence,
                         metadata_json=metadata,
                         is_cached_result=True,
+                        current_suggestion=cached.current_suggestion,
                     )
                     batch.mark_asset_processed()
                     continue
@@ -136,6 +139,29 @@ def analyze_batch(self, batch_id):
                     "media_type": asset.media_type,
                     "confidence": confidence,
                 }
+                analysis = AIImageAnalysis.objects.create(
+                    image_asset=asset,
+                    requested_by=batch.owner,
+                    provider=AIModelProvider.OPENAI,
+                    status=AIImageAnalysis.Status.SUCCEEDED,
+                    input_payload={"asset_id": str(asset.id)},
+                    output_json={
+                        "title": title,
+                        "description": description,
+                        "confidence": confidence,
+                        "metadata": metadata,
+                    },
+                    completed_at=timezone.now(),
+                )
+                suggestion = AISuggestion.objects.create(
+                    analysis=analysis,
+                    suggested_title=title or "Objet détecté",
+                    suggested_category_slug="Misc",
+                    price_eur_min=int(low.quantize(ROUND_HALF_UP)),
+                    price_eur_max=int(high.quantize(ROUND_HALF_UP)),
+                    pricing_reason="IA heuristics – batch upload",
+                    quality_flags=[asset.media_type] if asset.media_type else [],
+                )
                 DetectedItem.objects.create(
                     owner=batch.owner,
                     batch=batch,
@@ -147,6 +173,7 @@ def analyze_batch(self, batch_id):
                     price_high=high,
                     confidence=confidence,
                     metadata_json=metadata,
+                    current_suggestion=suggestion,
                 )
                 if quota_limit is not None:
                     usage += 1

@@ -5,7 +5,7 @@
 >
   <div class="swipe-overlay swipe-overlay--approve"></div>
   <div class="swipe-overlay swipe-overlay--reject"></div>
-  <div class="swipe-card-inner space-y-4">
+  <div class="swipe-card-inner space-y-5">
     {% if item.hero_asset and item.hero_asset.image_asset.image %}
       <div class="relative overflow-hidden rounded-2xl">
         <img
@@ -13,51 +13,132 @@
           alt="{{ item.title_suggested }}"
           class="h-64 w-full object-cover"
         />
+        <div class="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/40 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-white">
+          <i data-lucide="zap" class="h-4 w-4"></i>
+          Prédictions IA
+        </div>
       </div>
     {% endif %}
     <div class="space-y-2">
       <div class="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-ink-500">
         <span>Détection IA</span>
-        <span class="text-ink-400">Confiance {{ item.confidence|default:"?"|floatformat:2 }}</span>
+        <span class="text-ink-400">
+          Confiance {{ item.confidence_canonical|default:"?"|floatformat:2 }}
+        </span>
       </div>
-      <h2 class="text-lg font-semibold text-ink-900">
-        {{ item.title_suggested|default:"Objet détecté" }}
+      <h2 class="text-2xl font-semibold text-ink-900">
+        {{ item.title_suggested_canonical|default:"Objet détecté" }}
       </h2>
-      <p class="text-sm text-ink-600">{{ item.description_suggested|truncatechars:140 }}</p>
+      <p class="text-sm text-ink-600">
+        {{ item.description_suggested_canonical|truncatechars:160 }}
+      </p>
     </div>
-    <dl class="grid grid-cols-2 gap-3 text-xs text-ink-500">
-      <div>
-        <dt class="font-semibold text-ink-600">Prix</dt>
-        <dd>
-          {% if item.price_low %}
-            {{ item.price_low }} – {{ item.price_high|default:item.price_low }} €
-          {% else %}
-            À définir
-          {% endif %}
-        </dd>
+    <div class="grid grid-cols-3 gap-3 text-xs text-ink-500">
+      <div class="rounded-2xl border border-ink-100 bg-ink-50/80 p-3">
+        <p class="text-[10px] uppercase tracking-[0.35em] text-ink-400">Prix</p>
+          <p class="mt-1 text-sm font-semibold text-ink-900">
+            {% if item.price_low_canonical %}
+              {{ item.price_low_canonical }} – {{ item.price_high_canonical|default:item.price_low_canonical }} €
+            {% else %}
+              À définir
+            {% endif %}
+          </p>
       </div>
-      <div>
-        <dt class="font-semibold text-ink-600">Catégorie</dt>
-        <dd>{{ item.category_suggested|default:"À catégoriser" }}</dd>
+      <div class="rounded-2xl border border-ink-100 bg-ink-50/80 p-3">
+        <p class="text-[10px] uppercase tracking-[0.35em] text-ink-400">Catégorie</p>
+        <p class="mt-1 text-sm font-semibold text-ink-900">
+          {{ item.category_suggested_canonical|default:"À catégoriser" }}
+        </p>
       </div>
-    </dl>
-  </div>
-  <div class="mt-6 grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.4em]">
-    <div class="flex flex-col gap-1 text-emerald-700">
-      <span class="font-semibold">Glisser à droite</span>
-      <span class="text-[10px] text-ink-400">Garder</span>
+      <div class="rounded-2xl border border-ink-100 bg-ink-50/80 p-3">
+        <p class="text-[10px] uppercase tracking-[0.35em] text-ink-400">Origine</p>
+        <p class="mt-1 text-sm font-semibold text-ink-900">Lot {{ item.batch.media_count }} photos</p>
+      </div>
     </div>
-    <div class="flex flex-col gap-1 text-danger">
-      <span class="font-semibold">Glisser à gauche</span>
-      <span class="text-[10px] text-ink-400">Rejeter</span>
+    <form class="space-y-4">
+        <div>
+          <label class="text-xs uppercase tracking-[0.3em] text-ink-500">Titre</label>
+          <input
+            type="text"
+            class="input w-full text-base font-semibold"
+            value="{{ item.title_suggested_canonical }}"
+            placeholder="Titre suggéré par l'IA"
+            autocomplete="off"
+          />
+        </div>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="text-xs uppercase tracking-[0.3em] text-ink-500">Prix</label>
+          <input
+            type="text"
+            class="input w-full"
+            value="{{ item.price_low_canonical|default:"" }}"
+            placeholder="xx €"
+            autocomplete="off"
+          />
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-[0.3em] text-ink-500">Catégorie</label>
+          <input
+            type="text"
+            class="input w-full"
+            value="{{ item.category_suggested_canonical }}"
+            placeholder="Catégorie"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+      <details class="group rounded-2xl border border-dashed border-ink-200 bg-ink-50/80 p-4">
+        <summary class="flex cursor-pointer items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-ink-500">
+          Plus d’options
+          <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-150 group-open:rotate-180"></i>
+        </summary>
+        <div class="mt-3 space-y-4 text-sm text-ink-600">
+          <div>
+            <label class="text-[10px] uppercase tracking-[0.35em] text-ink-400">Description</label>
+            <textarea
+              class="textarea h-28"
+              placeholder="Ajoutez des détails (matériaux, état, histoire...)"
+            >{{ item.description_suggested_canonical }}</textarea>
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-[0.35em] text-ink-400">Extras suggérés</label>
+            <p class="text-[12px] text-ink-500">IA propose de remplir les dimensions, l’état et les tags métiers.</p>
+          </div>
+        </div>
+      </details>
+    </form>
+    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.35em]">
+      <span class="rounded-full bg-brand/10 px-3 py-1 text-brand">Fini → modération</span>
+      <span class="rounded-full bg-success/10 px-3 py-1 text-success">Vendu localement</span>
     </div>
   </div>
-  <div class="mt-5 flex flex-wrap items-center gap-3">
-    <button type="button" class="btn btn-outline w-full sm:w-auto text-sm font-semibold" data-decision="reject">
-      Rejeter
+  <div class="mt-5 flex flex-col gap-3 sm:flex-row">
+    <button
+      type="button"
+      class="btn btn-outline flex-1 justify-center gap-2 text-sm font-semibold text-danger"
+      data-decision="reject"
+      data-analytics-event="swipe:reject"
+    >
+      <i data-lucide="arrow-left" class="h-4 w-4"></i>
+      Ignorer
     </button>
-    <button type="button" class="btn btn-primary w-full sm:w-auto text-sm font-semibold" data-decision="keep">
-      Garder
+    <button
+      type="button"
+      class="btn btn-ghost flex-1 justify-center gap-2 text-sm font-semibold text-ink-700"
+      data-swipe-toggle-details="true"
+    >
+      <i data-lucide="edit-3" class="h-4 w-4"></i>
+      Modifier
+    </button>
+    <button
+      type="button"
+      class="btn btn-primary flex-1 justify-center gap-2 text-sm font-semibold"
+      data-decision="keep"
+      data-analytics-event="swipe:keep"
+    >
+      <i data-lucide="arrow-right" class="h-4 w-4"></i>
+      Publier
     </button>
   </div>
 </div>

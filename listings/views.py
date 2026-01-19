@@ -1,3 +1,4 @@
+import urllib.parse
 from datetime import timedelta
 
 from django.conf import settings
@@ -55,8 +56,8 @@ class HomeFeedView(ListView):
     context_object_name = "listings"
     paginate_by = 24
     status_filter = [Listing.Status.PUBLISHED]
-    default_title = "Annonces responsables | StillUseful"
-    default_description = "Vendez et achetez localement avec StillUseful : annonces vérifiées, échanges sécurisés et durabilité."
+    default_title = "Annonces responsables | Swipe2Sell"
+    default_description = "Vendez et achetez localement avec Swipe2Sell : annonces vérifiées, échanges sécurisés et durabilité."
 
     def get_queryset(self):
         qs = Listing.objects.filter(status__in=self.status_filter)
@@ -255,6 +256,71 @@ class HomeFeedView(ListView):
         return links
 
 
+class OnboardingView(TemplateView):
+    template_name = "pages/onboarding.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["categories"] = Category.objects.order_by("name")[:12]
+        return context
+
+    def post(self, request, *args, **kwargs):
+        category_slugs = [
+            slug.strip()
+            for slug in request.POST.getlist("category_slugs")
+            if slug.strip()
+        ]
+        city = request.POST.get("city", "").strip()
+        radius = request.POST.get("radius", "").strip()
+        purpose = request.POST.get("purpose", "both")
+        request.session["onboarding_filters"] = {
+            "purpose": purpose,
+            "categories": category_slugs,
+            "city": city,
+            "radius": radius,
+        }
+
+        if request.user.is_authenticated:
+            self._create_search_alerts(request.user, category_slugs, city)
+
+        params = []
+        if city:
+            params.append(("city", city))
+        if category_slugs:
+            params.extend([("category_slugs", slug) for slug in category_slugs])
+        if radius:
+            params.append(("radius", radius))
+        if purpose:
+            params.append(("purpose", purpose))
+        query = urllib.parse.urlencode(params, doseq=True)
+        url = reverse("home")
+        if query:
+            url = f"{url}?{query}"
+        return redirect(url)
+
+    def _create_search_alerts(self, user, category_slugs, city):
+        if not category_slugs and not city:
+            return
+        if category_slugs:
+            categories = Category.objects.filter(slug__in=category_slugs)
+            for category in categories:
+                SearchAlert.objects.get_or_create(
+                    user=user,
+                    keyword="",
+                    city=city,
+                    category=category,
+                    defaults={"is_active": True},
+                )
+        else:
+            SearchAlert.objects.get_or_create(
+                user=user,
+                keyword="",
+                city=city,
+                category=None,
+                defaults={"is_active": True},
+            )
+
+
 class HomeFeedPartialView(HomeFeedView):
     template_name = "fragments/home/listings_feed.html"
     paginate_by = 24
@@ -278,13 +344,13 @@ class CategoryListingView(HomeFeedView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        description = f"Explorez toutes les annonces {self.category.name} vérifiées sur StillUseful."
+        description = f"Explorez toutes les annonces {self.category.name} vérifiées sur Swipe2Sell."
         context["page_heading"] = f"Catégorie {self.category.name}"
         context["page_description"] = description
         context["page_meta"] = {
-            "title": f"{self.category.name} | StillUseful",
+            "title": f"{self.category.name} | Swipe2Sell",
             "description": description,
-            "og_title": f"{self.category.name} – StillUseful",
+            "og_title": f"{self.category.name} – Swipe2Sell",
             "og_description": description,
             "og_type": "website",
         }
@@ -310,7 +376,7 @@ class CityListingView(HomeFeedView):
         context["page_heading"] = f"{self.city_label}"
         context["page_description"] = description
         context["page_meta"] = {
-            "title": f"Annonces à {self.city_label} | StillUseful",
+            "title": f"Annonces à {self.city_label} | Swipe2Sell",
             "description": description,
             "og_title": f"Annonces à {self.city_label}",
             "og_description": description,
@@ -433,7 +499,7 @@ class ListingDetailView(DetailView):
             }
         )
         context["page_meta"] = {
-            "title": f"{listing.title} | StillUseful",
+            "title": f"{listing.title} | Swipe2Sell",
             "description": (listing.description or listing.title)[:160],
             "og_title": listing.title,
             "og_description": (listing.description or listing.title)[:200],

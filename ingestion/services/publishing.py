@@ -6,7 +6,7 @@ from django.utils.text import slugify
 from listings.models import Listing, ListingImage
 
 from ..models import DetectedItem
-from accounts.entitlements import ensure_listing_quota, record_listing_publication
+from billing.entitlements import ensure_listing_quota, record_listing_publication
 from mediahub.models import MediaAsset
 
 
@@ -17,9 +17,9 @@ def publish_detected_item(item: DetectedItem, skip_quota: bool = False) -> Listi
         ensure_listing_quota(item.owner)
     listing = Listing(
         seller=item.owner,
-        title=item.title_suggested or "Objet détecté",
-        description=item.description_suggested or "",
-        category=category,
+    title=item.title_suggested_canonical or "Objet détecté",
+    description=item.description_suggested_canonical or "",
+    category=category,
         price_cents=price_cents,
         currency="EUR",
         status=Listing.Status.PUBLISHED,
@@ -28,8 +28,8 @@ def publish_detected_item(item: DetectedItem, skip_quota: bool = False) -> Listi
         and item.hero_asset.media_type == MediaAsset.MediaType.VIDEO
         else "images",
         ai_summary={
-            "confidence": item.confidence,
-            "metadata": item.metadata_json or {},
+        "confidence": item.confidence_canonical,
+        "metadata": item.metadata_canonical or {},
         },
         source_item=item,
     )
@@ -48,7 +48,7 @@ def publish_detected_item(item: DetectedItem, skip_quota: bool = False) -> Listi
 
 
 def _price_to_cents(item: DetectedItem):
-    price_candidate = item.price_low or item.price_high
+    price_candidate = item.price_low_canonical or item.price_high_canonical
     if price_candidate is None:
         return None
     try:

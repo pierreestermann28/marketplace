@@ -1,29 +1,33 @@
+{% load static %}
 <footer class="border-t border-slate-100 bg-surface-muted">
   <div class="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:flex-row md:items-start">
     <div class="space-y-4 md:w-2/5">
       <div class="flex items-center gap-3 text-lg font-semibold text-ink-900">
-        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-rose text-base font-bold text-white">SU</span>
-        StillUseful
+        <img src="{% static 'brand/logos/swipe2sell_logo_horizontal_transparent.png' %}"
+             alt="Swipe2Sell"
+             class="h-8 w-auto"
+             loading="lazy" />
+        <span class="sr-only">Swipe2Sell</span>
       </div>
       <p class="text-sm text-ink-600">
         Plateforme responsable qui aide à donner une seconde vie aux objets, avec un parcours sécurisé pour acheteurs et vendeurs.
       </p>
       <div class="flex items-center gap-3 text-ink-500">
-        <a href="https://www.instagram.com/stilluseful/"
+        <a href="https://www.instagram.com/swipe2sell/"
            target="_blank"
            rel="noreferrer"
            class="rounded-full border border-slate-200 p-2 transition hover:border-brand hover:text-brand"
            aria-label="Instagram">
           <i data-lucide="instagram" class="h-4 w-4"></i>
         </a>
-        <a href="https://www.linkedin.com/company/stilluseful/"
+        <a href="https://www.linkedin.com/company/swipe2sell/"
            target="_blank"
            rel="noreferrer"
            class="rounded-full border border-slate-200 p-2 transition hover:border-brand hover:text-brand"
            aria-label="LinkedIn">
           <i data-lucide="linkedin" class="h-4 w-4"></i>
         </a>
-        <a href="https://twitter.com/stilluseful_"
+        <a href="https://twitter.com/swipe2sell"
            target="_blank"
            rel="noreferrer"
            class="rounded-full border border-slate-200 p-2 transition hover:border-brand hover:text-brand"
@@ -31,36 +35,67 @@
           <i data-lucide="twitter" class="h-4 w-4"></i>
         </a>
       </div>
-      <p class="text-xs uppercase tracking-[0.4em] text-ink-400">© {% now "Y" %} StillUseful</p>
+      <p class="text-xs uppercase tracking-[0.4em] text-ink-400">© {% now "Y" %} Swipe2Sell</p>
     </div>
-
     <div class="grid flex-1 grid-cols-2 gap-6 text-sm text-ink-600 md:flex md:flex-row md:gap-12">
       <div class="space-y-3">
         <h3 class="text-xs uppercase tracking-[0.4em] text-ink-500">Explorer</h3>
         <ul class="space-y-2">
-          <li><a href="/" class="transition hover:text-ink-900">Marketplace</a></li>
-          <li><a href="{% url 'home_feed_partial' %}" class="transition hover:text-ink-900">Catégories & villes</a></li>
-          <li><a href="{% url 'ingestion:batch_upload' %}" class="transition hover:text-ink-900">Créer un lot</a></li>
-          <li><a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Favoris</a></li>
+          <li>
+            <a href="/" class="transition hover:text-ink-900">Marketplace</a>
+          </li>
+          <li>
+            <a href="{% url 'home_feed_partial' %}"
+               class="transition hover:text-ink-900">Catégories & villes</a>
+          </li>
+          <li>
+            <a href="{% url 'ingestion:batch_upload' %}"
+               class="transition hover:text-ink-900">Créer un lot</a>
+          </li>
+          <li>
+            <a href="{% url 'wishlist' %}" class="transition hover:text-ink-900">Favoris</a>
+          </li>
         </ul>
       </div>
       <div class="space-y-3">
         <h3 class="text-xs uppercase tracking-[0.4em] text-ink-500">Compte</h3>
         <ul class="space-y-2">
-          <li><a href="{% url 'accounts:personal_profile' %}" class="transition hover:text-ink-900">Mon profil</a></li>
-          <li><a href="{% url 'accounts:pricing' %}" class="transition hover:text-ink-900">Premium</a></li>
-          <li><a href="{% url 'my_listings' %}" class="transition hover:text-ink-900">Mes annonces</a></li>
-          <li><a href="{% url 'messages:list' %}" class="transition hover:text-ink-900">Messages</a></li>
-          <li><a href="{% url 'healthz' %}" class="transition hover:text-ink-900">Healthcheck</a></li>
+          <li>
+            <a href="{% url 'accounts:personal_profile' %}"
+               class="transition hover:text-ink-900">Mon profil</a>
+          </li>
+          <li>
+            <a href="{% url 'accounts:pricing' %}"
+               class="transition hover:text-ink-900">Premium</a>
+          </li>
+          <li>
+            <a href="{% url 'my_listings' %}" class="transition hover:text-ink-900">Mes annonces</a>
+          </li>
+          <li>
+            <a href="{% url 'messages:list' %}"
+               class="transition hover:text-ink-900">Messages</a>
+          </li>
+          <li>
+            <a href="{% url 'healthz' %}" class="transition hover:text-ink-900">Healthcheck</a>
+          </li>
         </ul>
       </div>
       <div class="space-y-3">
         <h3 class="text-xs uppercase tracking-[0.4em] text-ink-500">Opérations</h3>
         <ul class="space-y-2">
-          <li><a href="mailto:bonjour@stilluseful.com" class="transition hover:text-ink-900">Support</a></li>
+          <li>
+            <a href="mailto:bonjour@stilluseful.com"
+               class="transition hover:text-ink-900">Support</a>
+          </li>
           {% if user.is_staff %}
-            <li><a href="{% url 'operations:dashboard' %}" class="transition hover:text-ink-900">Supervision</a></li>
-            <li><a href="{% url 'operations:admin_listings' %}" class="transition hover:text-ink-900">Modération</a></li>
+            <li>
+              <a href="{% url 'operations:dashboard' %}"
+                 class="transition hover:text-ink-900">Supervision</a>
+            </li>
+            <li>
+              <a href="{% url 'operations:admin_listings' %}"
+                 class="transition hover:text-ink-900">Modération</a>
+            </li>
           {% endif %}
         </ul>
         <p class="text-xs text-ink-500">Service responsable, responsable.</p>

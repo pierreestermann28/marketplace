@@ -214,6 +214,26 @@
       });
     };
 
+    const setupMoreOptionsToggle = () => {
+      board.addEventListener("click", function (event) {
+        const toggle = event.target.closest("[data-swipe-toggle-details]");
+        if (!toggle) {
+          return;
+        }
+        const card = toggle.closest("[data-card]");
+        if (!card) {
+          return;
+        }
+        const details = card.querySelector("details");
+        if (details) {
+          details.open = !details.open;
+          if (details.open && typeof details.scrollIntoView === "function") {
+            details.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      });
+    };
+
     const initSwipeDeck = () => {
       board.style.position = "relative";
       board.style.minHeight = board.style.minHeight || "520px";
@@ -225,6 +245,7 @@
     };
 
     setupDecisionButtons();
+    setupMoreOptionsToggle();
     initSwipeDeck();
   })();
 </script>

@@ -6,7 +6,7 @@ from django.urls import reverse
 def notify_batch_failure(batch):
     if not settings.ADMINS:
         return
-    subject = f"[StillUseful] Batch {batch.id} failed"
+    subject = f"[Swipe2Sell] Batch {batch.id} failed"
     base_url = getattr(settings, "SITE_URL", "").rstrip("/")
     batch_url = f"{base_url}{reverse('ingestion:batch_processing', kwargs={'batch_id': batch.id})}"
     message = "\n".join(

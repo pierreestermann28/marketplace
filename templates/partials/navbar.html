@@ -1,12 +1,16 @@
 {% load profile_tags %}
+{% load static %}
 <header x-data="{ mobileOpen: false, profileOpen: false }"
         class="sticky top-0 z-40 border-b border-ink-100 bg-white/95 backdrop-blur shadow-sm">
   <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
     <div class="flex items-center gap-3">
       <a href="/"
-         class="flex items-center gap-2 text-lg font-semibold text-ink-900">
-        <span class="flex h-9 w-9 items-center justify-center rounded-2xl bg-brand text-base font-bold text-white">SU</span>
-        <span class="text-lg font-semibold tracking-tight">StillUseful</span>
+         class="flex items-center gap-3 text-lg font-semibold text-ink-900">
+        <img src="{% static 'brand/logos/swipe2sell_logo_horizontal_transparent.png' %}"
+             alt="Swipe2Sell"
+             class="h-8 w-auto"
+             loading="eager" />
+        <span class="sr-only">Swipe2Sell</span>
       </a>
       <nav class="hidden gap-6 text-sm font-medium text-ink-600 md:flex">
         <a href="/" class="transition hover:text-ink-900">Découvrir</a>

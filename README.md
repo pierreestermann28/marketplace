@@ -1,4 +1,4 @@
-# StillUseful — Dockerized development
+# Swipe2Sell — Dockerized development
 
 1 upload → IA → DetectedItem → swipe → listing, with Django + Celery + Redis + Tailwind in Docker.
 

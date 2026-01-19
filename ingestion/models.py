@@ -1,4 +1,6 @@
 # ingestion/models.py
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 
@@ -69,6 +71,14 @@ class DetectedItem(models.Model):
     # Tout ce que renvoie l'IA (bbox, labels, embeddings, etc.)
     metadata_json = models.JSONField(default=dict, blank=True)
 
+    current_suggestion = models.ForeignKey(
+        "ai.AISuggestion",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -80,3 +90,57 @@ class DetectedItem(models.Model):
 
     def __str__(self) -> str:
         return f"DetectedItem({self.id}) {self.status} - {self.title_suggested[:30]}"
+
+    @property
+    def title_suggested_canonical(self):
+        suggestion = self.current_suggestion
+        if suggestion and suggestion.suggested_title:
+            return suggestion.suggested_title
+        return self.title_suggested
+
+    @property
+    def description_suggested_canonical(self):
+        suggestion = self.current_suggestion
+        if (
+            suggestion
+            and suggestion.analysis
+            and suggestion.analysis.output_json
+            and suggestion.analysis.output_json.get("description")
+        ):
+            return suggestion.analysis.output_json["description"]
+        return self.description_suggested
+
+    @property
+    def category_suggested_canonical(self):
+        suggestion = self.current_suggestion
+        if suggestion and suggestion.suggested_category_slug:
+            return suggestion.suggested_category_slug
+        return self.category_suggested
+
+    @property
+    def price_low_canonical(self):
+        suggestion = self.current_suggestion
+        if suggestion and suggestion.price_eur_min:
+            return Decimal(suggestion.price_eur_min)
+        return self.price_low
+
+    @property
+    def price_high_canonical(self):
+        suggestion = self.current_suggestion
+        if suggestion and suggestion.price_eur_max:
+            return Decimal(suggestion.price_eur_max)
+        return self.price_high
+
+    @property
+    def confidence_canonical(self):
+        suggestion = self.current_suggestion
+        if suggestion and suggestion.analysis and suggestion.analysis.output_json:
+            return suggestion.analysis.output_json.get("confidence") or self.confidence
+        return self.confidence
+
+    @property
+    def metadata_canonical(self):
+        suggestion = self.current_suggestion
+        if suggestion and suggestion.analysis and suggestion.analysis.output_json:
+            return suggestion.analysis.output_json
+        return self.metadata_json

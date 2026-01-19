@@ -33,10 +33,10 @@ module.exports = {
           200: "#D9DEED",
           300: "#BAC5E0",
           400: "#8B98CA",
-          DEFAULT: "#1F2A44",
-          600: "#1F2A44",
-          700: "#182035",
-          800: "#14192B",
+          DEFAULT: "#13265B",
+          600: "#173574",
+          700: "#102449",
+          800: "#0B1835",
         },
         accent: {
           50: "#EDF8F4",
@@ -56,7 +56,7 @@ module.exports = {
         },
         surface: {
           DEFAULT: "#FFFFFF",
-          muted: "#F6F5F2",
+          muted: "#F7FAFC",
         },
       },
     },

@@ -1,0 +1,256 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Onboarding | Swipe2Sell{% endblock %}
+
+{% block page_content %}
+<section class="min-h-screen bg-gradient-to-b from-white via-ink-50 to-ink-100 py-12">
+  <div class="container-app space-y-10">
+    <header class="space-y-3 text-center">
+      <p class="text-xs uppercase tracking-[0.5em] text-ink-400">Swipe2Sell – onboarding express</p>
+      <h1 class="text-3xl font-semibold text-ink-900">Votre feed intelligent en 30 secondes</h1>
+      <p class="text-sm text-ink-600">
+        Trois questions, zéro formulaire lourd. On créé une alerte sauvegardée, on filtre votre feed et
+        on vous présente des annonces pertinentes dès maintenant.
+      </p>
+    </header>
+
+    <form
+      method="post"
+      action="{% url 'onboarding' %}"
+      class="space-y-6"
+      id="onboarding-form"
+      data-user-authenticated="{{ request.user.is_authenticated|yesno:'true,false' }}"
+    >
+      {% csrf_token %}
+
+      <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-ink-500">1. Pourquoi êtes-vous là ?</p>
+            <h2 class="text-xl font-semibold text-ink-900">Acheter, vendre ou les deux ?</h2>
+          </div>
+          <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">30 sec chrono</span>
+        </div>
+        <div class="mt-5 flex flex-wrap gap-3" data-purpose-group>
+          <button type="button" class="chip purpose-chip" data-purpose-chip="buy">Acheter</button>
+          <button type="button" class="chip purpose-chip" data-purpose-chip="sell">Vendre</button>
+          <button type="button" class="chip purpose-chip" data-purpose-chip="both">Acheter & Vendre</button>
+        </div>
+        <input type="hidden" name="purpose" id="onboarding-purpose" value="buy" />
+        <p class="mt-4 text-sm text-ink-500">
+          Les choix sont partagés entre votre feed “Pour vous” et vos outils de vente, pas d’effort de
+          synthèse supplémentaire.
+        </p>
+      </section>
+
+      <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-ink-500">2. Vos univers préférés</p>
+            <h2 class="text-xl font-semibold text-ink-900">Choisissez jusqu’à 6 catégories</h2>
+          </div>
+          <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400" id="onboarding-category-count">0 sélectionnée</span>
+        </div>
+        <p class="mt-2 text-sm text-ink-600">
+          Restez libre : vous pouvez modifier ces sélections plus tard, mais on commence par ce qui vous branche.
+        </p>
+        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" data-category-grid>
+          {% for category in categories %}
+            <button
+              type="button"
+              class="chip chip-secondary text-left"
+              data-category-chip
+              data-slug="{{ category.slug }}"
+            >
+              {{ category.name }}
+            </button>
+          {% endfor %}
+        </div>
+        <div data-category-inputs></div>
+      </section>
+
+      <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.4em] text-ink-500">3. Où cherchez-vous ?</p>
+            <h2 class="text-xl font-semibold text-ink-900">Ville + rayon</h2>
+          </div>
+          <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">Proximité</span>
+        </div>
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+          <label class="space-y-2 text-sm">
+            <span class="font-semibold text-ink-900">Ville ou quartier</span>
+            <input
+              type="text"
+              name="city"
+              id="onboarding-city"
+              class="input w-full"
+              placeholder="Ex : Lyon"
+              autocomplete="off"
+            />
+          </label>
+          <label class="space-y-2 text-sm">
+            <span class="font-semibold text-ink-900 flex items-center justify-between">
+              Rayon (<span id="radius-value">10 km</span>)
+            </span>
+            <input
+              type="range"
+              name="radius"
+              id="onboarding-radius"
+              min="5"
+              max="100"
+              step="5"
+              value="10"
+              class="accent-brand w-full"
+            />
+          </label>
+        </div>
+        <p class="mt-3 text-sm text-ink-500">
+          Les paramètres de proximité alimentent instantanément le fil Nearby et sont stockés pendant 24 h.
+        </p>
+      </section>
+
+      <section class="rounded-3xl border border-dashed border-brand/40 bg-brand/5 p-6 text-sm text-ink-900 shadow-inner">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-ink-900">Votre feed, déjà prêt</h2>
+          <span class="text-xs uppercase tracking-[0.3em] text-ink-500">For you · Nearby · Saved</span>
+        </div>
+        <p class="mt-3" id="onboarding-summary">
+          Onboarding prépare un feed personnel basé sur vos intentions, vos catégories favorites et votre ville.
+        </p>
+        <ul class="mt-4 grid gap-3 text-xs uppercase tracking-[0.3em] text-ink-500 sm:grid-cols-3">
+          <li class="rounded-2xl border border-ink-100 bg-white/70 px-3 py-2 text-center">
+            For you – les nouveautés qui vous ressemblent
+          </li>
+          <li class="rounded-2xl border border-ink-100 bg-white/70 px-3 py-2 text-center">
+            Nearby – priorité aux annonces autour de vous
+          </li>
+          <li class="rounded-2xl border border-ink-100 bg-white/70 px-3 py-2 text-center">
+            Saved searches – votre alerte est enregistrée automatiquement
+          </li>
+        </ul>
+      </section>
+
+      <div class="space-y-3 text-center">
+        <button type="submit" class="btn btn-primary w-full px-6 py-3 text-base font-semibold">
+          Découvrir mon feed
+        </button>
+        <p class="text-xs text-ink-500" id="onboarding-alert-message">
+          {% if request.user.is_authenticated %}
+            Une alerte personnalisée est créée pour chaque catégorie sélectionnée.
+          {% else %}
+            Connectez-vous pour enregistrer ces critères et recevoir des alertes.
+          {% endif %}
+        </p>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const purposeInput = document.getElementById("onboarding-purpose");
+      const purposeGroup = document.querySelector("[data-purpose-group]");
+      const purposeChips = purposeGroup?.querySelectorAll("[data-purpose-chip]") || [];
+      const categoryGrid = document.querySelector("[data-category-grid]");
+      const categoryCount = document.getElementById("onboarding-category-count");
+      const categoryInputs = document.querySelector("[data-category-inputs]");
+      const radiusInput = document.getElementById("onboarding-radius");
+      const radiusValue = document.getElementById("radius-value");
+      const cityInput = document.getElementById("onboarding-city");
+      const summary = document.getElementById("onboarding-summary");
+      const alertMessage = document.getElementById("onboarding-alert-message");
+      const selectedCategories = new Set();
+
+      const updateSummary = () => {
+        const purpose = purposeInput?.value || "both";
+        const city = cityInput?.value.trim();
+        const radius = radiusInput?.value;
+        const categories = Array.from(selectedCategories);
+        let text = "Onboarding prépare un feed personnel ";
+        text += purpose === "buy" ? "pour dénicher" : purpose === "sell" ? "pour vendre" : "pour échanger";
+        if (categories.length) {
+          text += ` autour de ${categories.join(", ")}`;
+        }
+        if (city) {
+          text += ` à ${city} (${radius || "10"} km)`;
+        }
+        if (summary) {
+          summary.textContent = text;
+        }
+        if (alertMessage) {
+          const auth = document.getElementById("onboarding-form").dataset.userAuthenticated === "true";
+          alertMessage.textContent = auth
+            ? "Alertes enregistrées pour vos catégories et votre zone."
+            : "Connectez-vous pour que vos critères soient sauvegardés.";
+        }
+      };
+
+      const syncCategoryInputs = () => {
+        if (!categoryInputs) {
+          return;
+        }
+        categoryInputs.innerHTML = "";
+        selectedCategories.forEach((slug) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = "category_slugs";
+          input.value = slug;
+          categoryInputs.appendChild(input);
+        });
+        if (categoryCount) {
+          const label = selectedCategories.size === 1 ? "sélectionnée" : "sélectionnées";
+          categoryCount.textContent = `${selectedCategories.size} ${label}`;
+        }
+      };
+
+      const toggleChip = (button, value) => {
+        const isActive = button.classList.toggle("chip-active");
+        if (isActive) {
+          selectedCategories.add(value);
+        } else {
+          selectedCategories.delete(value);
+        }
+        syncCategoryInputs();
+        updateSummary();
+      };
+
+      purposeChips.forEach((chip) => {
+        chip.addEventListener("click", function () {
+          purposeChips.forEach((node) => node.classList.remove("chip-active"));
+          chip.classList.add("chip-active");
+          if (purposeInput) {
+            purposeInput.value = chip.dataset.purposeChip;
+          }
+          updateSummary();
+        });
+      });
+
+      categoryGrid?.querySelectorAll("[data-category-chip]").forEach((chip) => {
+        chip.addEventListener("click", function () {
+          const slug = chip.dataset.slug;
+          if (!slug) {
+            return;
+          }
+          toggleChip(chip, slug);
+        });
+      });
+
+      radiusInput?.addEventListener("input", function () {
+        if (radiusValue) {
+          radiusValue.textContent = `${radiusInput.value} km`;
+        }
+        updateSummary();
+      });
+
+      cityInput?.addEventListener("input", updateSummary);
+
+      // Initialize default purpose chip.
+      const defaultChip = purposeGroup?.querySelector("[data-purpose-chip='buy']");
+      defaultChip?.classList.add("chip-active");
+      updateSummary();
+    });
+  </script>
+{% endblock %}

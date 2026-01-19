@@ -5,9 +5,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#1F2A44" />
+    <meta name="theme-color" content="#13265B" />
     <meta name="description"
-          content="StillUseful, la place de marché engagée pour donner une seconde vie aux objets du quotidien." />
+          content="Swipe2Sell, la place de marché engagée pour donner une seconde vie aux objets du quotidien." />
+    <link rel="icon" href="{% static 'brand/icons/favicon.ico' %}" />
     {% csrf_token %}
     <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>
@@ -15,25 +16,25 @@
         {% if page_meta.title %}
           {{ page_meta.title }}
         {% else %}
-          StillUseful
+          Swipe2Sell
         {% endif %}
       {% endblock %}
     </title>
     {% if page_meta %}
       <meta name="description"
-            content='{{ page_meta.description|default:"StillUseful, la place de marché engagée pour donner une seconde vie aux objets du quotidien." }}' />
+            content='{{ page_meta.description|default:"Swipe2Sell, la place de marché engagée pour donner une seconde vie aux objets du quotidien." }}' />
       <meta property="og:title"
-            content='{{ page_meta.og_title|default:page_meta.title|default:"StillUseful" }}' />
+            content='{{ page_meta.og_title|default:page_meta.title|default:"Swipe2Sell" }}' />
       <meta property="og:description"
-            content='{{ page_meta.og_description|default:page_meta.description|default:"StillUseful, la place de marché engagée pour donner une seconde vie aux objets du quotidien." }}' />
+            content='{{ page_meta.og_description|default:page_meta.description|default:"Swipe2Sell, la place de marché engagée pour donner une seconde vie aux objets du quotidien." }}' />
       <meta property="og:type"
             content='{{ page_meta.og_type|default:"website" }}' />
     {% else %}
       <meta name="description"
-            content="StillUseful, la place de marché engagée pour donner une seconde vie aux objets du quotidien." />
-      <meta property="og:title" content="StillUseful" />
+            content="Swipe2Sell, la place de marché engagée pour donner une seconde vie aux objets du quotidien." />
+      <meta property="og:title" content="Swipe2Sell" />
       <meta property="og:description"
-            content="StillUseful, la place de marché engagée pour donner une seconde vie aux objets du quotidien." />
+            content="Swipe2Sell, la place de marché engagée pour donner une seconde vie aux objets du quotidien." />
       <meta property="og:type" content="website" />
     {% endif %}
     {% comment %} {% with canonical_url=canonical_url|default_if_none:"" pagination_links=pagination_links|default:{} %}

@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from .models import UsageCounter, UserEntitlement, current_month_period
+from billing.models import UsageCounter, UserEntitlement, current_month_period
 from ingestion.models import DetectedItem
 
 

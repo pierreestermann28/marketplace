@@ -103,6 +103,16 @@
     @apply max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3;
   }
 
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-ink-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-ink-500 transition hover:border-brand hover:text-brand;
+  }
+  .chip-secondary {
+    @apply bg-white text-ink-700;
+  }
+  .chip-active {
+    @apply border-brand bg-brand/10 text-brand;
+  }
+
   /* Hero block */
   .hero {
     @apply relative overflow-hidden rounded-[32px] bg-gradient-to-br from-brand/90 via-slate-900 to-slate-800 p-8 text-white shadow-[0_25px_40px_rgba(31,42,68,0.45)];

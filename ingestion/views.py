@@ -56,7 +56,7 @@ from mediahub.models import BatchUpload, ImageAsset, MediaAsset
 
 from .forms import BatchUploadForm
 from .models import DetectedItem
-from accounts.entitlements import QuotaExceeded
+from billing.entitlements import QuotaExceeded
 from .tasks import analyze_batch
 from .services.publishing import publish_detected_item
 

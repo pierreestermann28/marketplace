@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import TemplateView
 
-from accounts.models import UserEntitlement
+from billing.models import UserEntitlement
 from commerce.models import Dispute, Order
 from ingestion.models import DetectedItem
 from listings.models import Listing

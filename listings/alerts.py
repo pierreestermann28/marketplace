@@ -20,7 +20,7 @@ def dispatch_search_alerts(listing: Listing):
             continue
         if not alert.user.email:
             continue
-        subject = f"Nouveau résultat pour votre recherche sur StillUseful"
+        subject = f"Nouveau résultat pour votre recherche sur Swipe2Sell"
         base_url = getattr(settings, "SITE_URL", "").rstrip("/")
         listing_url = reverse("listing_detail", kwargs={"slug": listing.slug or "item", "uuid": listing.id})
         if base_url:

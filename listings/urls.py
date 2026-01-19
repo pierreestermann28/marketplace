@@ -14,6 +14,7 @@ from .views import (
     ListingStartView,
     ListingModerationDetailView,
     MyListingsView,
+    OnboardingView,
     PhotoUploadView,
     ReservationAcceptView,
     ReservationCancelView,
@@ -26,6 +27,7 @@ from .views import (
 
 urlpatterns = [
     path("", HomeFeedView.as_view(), name="home"),
+    path("onboarding/", OnboardingView.as_view(), name="onboarding"),
     path("items/<uuid:listing_id>/favorite/", ListingFavoriteToggleView.as_view(), name="listing_favorite"),
     path("items/<uuid:listing_id>/cancel-reservation/", ReservationCancelView.as_view(), name="listing_cancel_reservation"),
     path("items/<uuid:listing_id>/remind/", ListingReminderCreateView.as_view(), name="listing_remind"),

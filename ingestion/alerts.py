@@ -27,7 +27,7 @@ def maybe_alert_high_pending():
     if not settings.ADMINS:
         return
 
-    subject = "[StillUseful] Lots en attente importants"
+    subject = "[Swipe2Sell] Lots en attente importants"
     base_url = getattr(settings, "SITE_URL", "").rstrip("/")
     admin_url = f"{base_url}{reverse('operations:dashboard')}"
     message = "\n".join(

@@ -12,7 +12,7 @@ from django.views import View
 
 import stripe
 
-from .entitlements import get_user_entitlement
+from billing.entitlements import get_user_entitlement
 from .forms import SignUpForm
 
 from .models import ReputationStats, User
@@ -46,9 +46,7 @@ def _apply_premium_entitlement(user, subscription_payload=None):
     if subscription_payload:
         period_end = subscription_payload.get("current_period_end")
         if period_end:
-            premium_until = timezone.datetime.fromtimestamp(
-                period_end, tz=timezone.utc
-            )
+            premium_until = timezone.datetime.fromtimestamp(period_end, tz=timezone.utc)
     entitlement.premium_until = premium_until
     entitlement.save(update_fields=["is_premium", "premium_until"])
 
@@ -75,11 +73,13 @@ class PersonalProfileView(TemplateView):
             {
                 "object": user,
                 "reputation_stats": stats,
-                "reviews_received": user.reviews_received.select_related("order__listing")
-                .order_by("-created_at")[:5],
+                "reviews_received": user.reviews_received.select_related(
+                    "order__listing"
+                ).order_by("-created_at")[:5],
             }
         )
         return context
+
 
 class PublicProfileView(DetailView):
     model = User
@@ -92,7 +92,9 @@ class PublicProfileView(DetailView):
         if not stats:
             stats = ReputationStats.for_user(user)
         context["reputation_stats"] = stats
-        context["reviews_received"] = user.reviews_received.select_related("order__listing").order_by("-created_at")[:5]
+        context["reviews_received"] = user.reviews_received.select_related(
+            "order__listing"
+        ).order_by("-created_at")[:5]
         return context
 
 
@@ -114,7 +116,7 @@ class PricingView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["page_meta"] = {
-            "title": "StillUseful Premium",
+            "title": "Swipe2Sell Premium",
             "description": "Débloquez des quotas illimités et une surveillance premium.",
         }
         context["stripe_publishable_key"] = settings.STRIPE_PUBLISHABLE_KEY
@@ -141,8 +143,12 @@ class StripeCheckoutSessionView(LoginRequiredMixin, View):
                     "metadata": {"user_id": str(request.user.pk)},
                 },
                 metadata={"user_id": str(request.user.pk)},
-                success_url=_build_absolute_url(request, settings.STRIPE_CHECKOUT_SUCCESS_URL),
-                cancel_url=_build_absolute_url(request, settings.STRIPE_CHECKOUT_CANCEL_URL),
+                success_url=_build_absolute_url(
+                    request, settings.STRIPE_CHECKOUT_SUCCESS_URL
+                ),
+                cancel_url=_build_absolute_url(
+                    request, settings.STRIPE_CHECKOUT_CANCEL_URL
+                ),
             )
         except stripe.error.StripeError as exc:
             return JsonResponse({"error": str(exc)}, status=502)

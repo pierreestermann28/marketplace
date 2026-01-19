@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     "messaging",
     "reports",
     "location",
+    "ai",
+    "billing",
 ]
 
 MIDDLEWARE = [
@@ -177,26 +179,33 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # PWA (django-pwa)
-PWA_APP_NAME = "StillUseful"
-PWA_APP_SHORT_NAME = "StillUseful"
-PWA_APP_DESCRIPTION = "Trust-first marketplace for second-life items."
-PWA_APP_THEME_COLOR = "#1F2A44"
-PWA_APP_BACKGROUND_COLOR = "#F6F5F2"
+PWA_APP_NAME = "Swipe2Sell"
+PWA_APP_SHORT_NAME = "Swipe2Sell"
+PWA_APP_DESCRIPTION = "Swipe2Sell, la place de marché engagée pour donner une seconde vie aux objets du quotidien."
+PWA_APP_THEME_COLOR = "#13265B"
+PWA_APP_BACKGROUND_COLOR = "#F7FAFC"
 PWA_APP_DISPLAY = "standalone"
 PWA_APP_SCOPE = "/"
 PWA_APP_START_URL = "/"
 PWA_APP_STATUS_BAR_COLOR = "default"
 PWA_APP_ORIENTATION = "portrait"
-# PWA_APP_ICONS = [
-#     {
-#         "src": "/static/img/pwa/icon-192.png",
-#         "sizes": "192x192",
-#     },
-#     {
-#         "src": "/static/img/pwa/icon-512.png",
-#         "sizes": "512x512",
-#     },
-# ]
+PWA_APP_ICONS = [
+    {
+        "src": "/static/brand/icons/app_icon_192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+    },
+    {
+        "src": "/static/brand/icons/app_icon_256.png",
+        "sizes": "256x256",
+        "type": "image/png",
+    },
+    {
+        "src": "/static/brand/icons/app_icon_512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+    },
+]
 # PWA_APP_SPLASH_SCREEN = [
 #     {
 #         "src": "/static/img/pwa/splash-640x1136.png",
