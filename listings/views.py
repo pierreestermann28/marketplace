@@ -75,6 +75,7 @@ class HomeFeedView(ListView):
         q = self.request.GET.get("q", "").strip()
         city = self.request.GET.get("city", "").strip()
         city_slug = self.request.GET.get("city_slug", "").strip()
+        postal_code = self.request.GET.get("postal_code", "").strip()
         category = self.request.GET.get("category", "").strip()
         city_ids = []
         for value in self.request.GET.getlist("city_ids"):
@@ -97,6 +98,8 @@ class HomeFeedView(ListView):
             qs = qs.filter(location_city__slug=city_slug)
         elif city:
             qs = qs.filter(city__icontains=city)
+        elif postal_code:
+            qs = qs.filter(postal_code__istartswith=postal_code)
         if category_slugs:
             qs = qs.filter(category__slug__in=category_slugs)
         elif category:
@@ -139,6 +142,7 @@ class HomeFeedView(ListView):
         filters = {
             "q": self.request.GET.get("q", ""),
             "city": self.request.GET.get("city", ""),
+            "postal_code": self.request.GET.get("postal_code", ""),
             "category": self.request.GET.get("category", ""),
             "querystring": self._get_filter_querystring(),
             "city_ids": [str(cid) for cid in selected_city_ids],

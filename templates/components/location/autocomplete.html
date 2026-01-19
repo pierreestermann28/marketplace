@@ -1,0 +1,67 @@
+{% load static %}
+{% with mode=mode|default:"single" %}
+  <div class="relative {{ wrapper_class|default:"" }}"
+       data-location-autocomplete
+       data-location-mode="{{ mode }}"
+       {% if field_name %}data-location-field-name="{{ field_name }}"{% endif %}
+       data-location-endpoint="{% if endpoint %}{{ endpoint }}{% else %}{% url 'location:city-autocomplete' %}{% endif %}">
+    {% if label %}<label class="{{ label_class|default:"label" }}" for="{{ field_id }}">{{ label }}</label>{% endif %}
+    <input type="text"
+           id="{{ field_id }}"
+           name="{{ input_name }}"
+           value="{{ value|default:"" }}"
+           placeholder="{{ placeholder|default:"" }}"
+           class="{{ input_class|default:"input w-full" }}"
+           data-location-city-input="true"
+           autocomplete="off" />
+    {% if postal_field_name %}
+      <div class="mt-3">
+        <label class="{{ postal_label_class|default:"label text-sm" }}"
+               for="{{ field_id }}-postal">{{ postal_label|default:"Code postal" }}</label>
+        <input type="text"
+               id="{{ field_id }}-postal"
+               name="{{ postal_field_name }}"
+               value="{{ postal_value|default:"" }}"
+               placeholder="{{ postal_placeholder|default:"Code postal" }}"
+               class="{{ postal_input_class|default:"input w-full" }}"
+               data-location-postal-input="true"
+               autocomplete="off" />
+      </div>
+    {% endif %}
+    <div data-location-results class="location-autocomplete-results"></div>
+    {% if mode == "multi" %}
+      <div class="mt-2 flex flex-wrap gap-2" data-location-selected>
+        {% if selected_items %}
+          {% for item in selected_items %}
+            <span class="location-autocomplete-chip"
+                  data-location-chip
+                  data-city-id="{{ item.id }}">
+              {{ item.display_name }}
+              <button type="button"
+                      class="location-autocomplete-chip-remove"
+                      aria-label="Retirer {{ item.name }}"
+                      data-location-chip-remove>×</button>
+            </span>
+          {% endfor %}
+        {% endif %}
+      </div>
+      <div class="sr-only" data-location-hidden-wrapper>
+        {% if hidden_inputs %}
+          {% for item in hidden_inputs %}
+            <input type="hidden"
+                   name="{{ hidden_field_name|default:input_name }}"
+                   value="{{ item.id }}"
+                   data-location-city-id="{{ item.id }}" />
+          {% endfor %}
+        {% elif selected_items %}
+          {% for item in selected_items %}
+            <input type="hidden"
+                   name="{{ hidden_field_name|default:input_name }}"
+                   value="{{ item.id }}"
+                   data-location-city-id="{{ item.id }}" />
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endwith %}

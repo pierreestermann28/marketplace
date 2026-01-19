@@ -44,42 +44,23 @@
         {% endfor %}
       </div>
     </div>
-    <div class="relative"
-         data-location-autocomplete
-         data-location-mode="multi"
-         data-location-field-name="city_ids">
-      <label class="label sr-only" for="id_search_city">Ville</label>
-      <input type="text"
-             id="id_search_city"
-             name="city"
-             value="{{ filters.city }}"
-             placeholder="Ville"
-             class="input"
-             data-location-city-input="true"
-             autocomplete="off" />
-      <div data-location-results class="location-autocomplete-results"></div>
-      <div class="mt-2 flex flex-wrap gap-2" data-location-selected>
-        {% for city in selected_cities %}
-          <span class="location-autocomplete-chip"
-                data-location-chip
-                data-city-id="{{ city.id }}">
-            {{ city.display_name }}
-            <button type="button"
-                    class="location-autocomplete-chip-remove"
-                    aria-label="Retirer {{ city.name }}"
-                    data-location-chip-remove>&times;</button>
-          </span>
-        {% endfor %}
-      </div>
-      <div class="hidden" data-location-hidden-wrapper>
-        {% for city in selected_cities %}
-          <input type="hidden"
-                 name="city_ids"
-                 value="{{ city.id }}"
-                 data-location-city-id="{{ city.id }}" />
-        {% endfor %}
-      </div>
-    </div>
+    {% include "components/location/autocomplete.html" with
+      mode="multi"
+      field_id="id_search_city"
+      input_name="city"
+      value=filters.city
+      placeholder="Ville"
+      label="Ville"
+      label_class="label sr-only"
+      field_name="city_ids"
+      selected_items=selected_cities
+      endpoint="{% url 'location:city-autocomplete' %}"
+      postal_field_name="postal_code"
+      postal_value=filters.postal_code
+      postal_placeholder="Code postal"
+      postal_label="Code postal"
+      postal_label_class="label sr-only"
+    %}
     <div class="flex justify-end">
       {% include "components/ui/button.html" with label="Afficher les résultats" variant="primary" type="submit" class="w-full" only %}
     </div>
