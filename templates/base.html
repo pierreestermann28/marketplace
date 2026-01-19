@@ -122,7 +122,8 @@
         if (!form || form.id !== "home-filter-form") {
           return;
         }
-        if (form.dataset.locationReady !== "true") {
+        const isBlocked = form.dataset.locationBlocked === "true";
+        if (isBlocked && form.dataset.locationReady !== "true") {
           event.preventDefault();
         }
       });
