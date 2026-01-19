@@ -16,6 +16,8 @@
         <a href="/" class="transition hover:text-ink-900">Découvrir</a>
         <a href="{% url 'ingestion:batch_upload' %}"
            class="transition hover:text-ink-900">Publier</a>
+        <a href="{% url 'suggestions' %}"
+           class="transition hover:text-ink-900">Suggestion</a>
         {% if user.is_authenticated %}
           <a href="{% url 'my_listings' %}" class="transition hover:text-ink-900">Mes annonces</a>
         {% endif %}
@@ -83,10 +85,11 @@
   <div x-show="mobileOpen"
        x-cloak
        class="border-t border-ink-100 bg-white/95 px-4 py-4 shadow-lg backdrop-blur md:hidden">
-    <nav class="flex flex-col gap-3 text-sm font-medium text-ink-700">
-      <a href="/" class="transition hover:text-brand">Découvrir</a>
-      <a href="{% url 'ingestion:batch_upload' %}"
-         class="transition hover:text-brand">Publier</a>
+      <nav class="flex flex-col gap-3 text-sm font-medium text-ink-700">
+        <a href="/" class="transition hover:text-brand">Découvrir</a>
+        <a href="{% url 'suggestions' %}" class="transition hover:text-brand">Suggestion</a>
+        <a href="{% url 'ingestion:batch_upload' %}"
+           class="transition hover:text-brand">Publier</a>
       {% if user.is_authenticated %}
         <a href="{% url 'accounts:personal_profile' %}"
            class="rounded-xl border border-ink-100 px-4 py-2 text-sm font-semibold text-ink-900">Mon profil</a>

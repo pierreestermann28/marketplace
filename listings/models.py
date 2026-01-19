@@ -516,6 +516,33 @@ class SearchAlertNotification(models.Model):
         unique_together = [("alert", "listing")]
 
 
+class OnboardingProfile(models.Model):
+    PURPOSE_CHOICES = [
+        ("buy", "Acheter"),
+        ("sell", "Vendre"),
+        ("both", "Acheter & Vendre"),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="onboarding_profile",
+    )
+    purpose = models.CharField(max_length=10, choices=PURPOSE_CHOICES, default="buy")
+    city = models.CharField(max_length=80, blank=True)
+    radius_km = models.PositiveIntegerField(null=True, blank=True)
+    categories = models.ManyToManyField(
+        Category,
+        blank=True,
+        related_name="onboarding_profiles",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"OnboardingProfile({self.user.email})"
+
+
 class Favorite(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites"

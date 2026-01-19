@@ -22,6 +22,7 @@ from .views import (
     SearchAlertCreateView,
     SearchAlertDeleteView,
     SubmitForReviewView,
+    SuggestionFeedView,
     WishlistView,
 )
 
@@ -68,4 +69,5 @@ urlpatterns = [
         ListingModerationDetailView.as_view(),
         name="review_listing",
     ),
+    path("suggestions/", SuggestionFeedView.as_view(), name="suggestions"),
 ]

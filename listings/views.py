@@ -5,7 +5,17 @@ from django.conf import settings
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.mail import send_mail
-from django.db.models import Avg, BooleanField, Count, Exists, F, OuterRef, Prefetch, Q, Value
+from django.db.models import (
+    Avg,
+    BooleanField,
+    Count,
+    Exists,
+    F,
+    OuterRef,
+    Prefetch,
+    Q,
+    Value,
+)
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -35,6 +45,7 @@ from .models import (
     Reservation,
     ReservationLog,
     SearchAlert,
+    OnboardingProfile,
 )
 from reports.forms import ReportForm
 from .utils import user_can_view_contact_info
@@ -133,13 +144,17 @@ class HomeFeedView(ListView):
             "city_ids": [str(cid) for cid in selected_city_ids],
             "category_slugs": category_slugs,
         }
-        context["selected_categories"] = self._resolve_selected_categories(category_slugs)
+        context["selected_categories"] = self._resolve_selected_categories(
+            category_slugs
+        )
         context["filters"] = filters
         context["selected_cities"] = self._resolve_selected_cities(selected_city_ids)
         recommended, reason = self._get_recommendations()
         context["recommended_listings"] = recommended
         context["recommendation_reason"] = reason
-        context["feed_partial_url"] = self._build_feed_partial_url(context["filters"]["querystring"])
+        context["feed_partial_url"] = self._build_feed_partial_url(
+            context["filters"]["querystring"]
+        )
         context["featured_categories"] = (
             Category.objects.filter(listings__status__in=self.status_filter)
             .annotate(count=Count("listings"))
@@ -169,9 +184,11 @@ class HomeFeedView(ListView):
                 "name": city["name"],
                 "slug": city["slug"],
                 "postal_code": city["postal_code"] or "",
-                "display_name": f"{city['name']} ({city['postal_code']})"
-                if city["postal_code"]
-                else city["name"],
+                "display_name": (
+                    f"{city['name']} ({city['postal_code']})"
+                    if city["postal_code"]
+                    else city["name"]
+                ),
             }
             for city in cities
         ]
@@ -185,7 +202,10 @@ class HomeFeedView(ListView):
             .order_by("name")
             .values("name", "slug")
         )
-        return [{"name": category["name"], "slug": category["slug"]} for category in categories]
+        return [
+            {"name": category["name"], "slug": category["slug"]}
+            for category in categories
+        ]
 
     def _get_filter_querystring(self):
         params = self.request.GET.copy()
@@ -209,7 +229,9 @@ class HomeFeedView(ListView):
             .prefetch_related(Prefetch("images", queryset=image_qs))
         )
         listings_by_id = {listing.id: listing for listing in qs}
-        ordered = [listings_by_id[lid] for lid in recommended_ids if lid in listings_by_id]
+        ordered = [
+            listings_by_id[lid] for lid in recommended_ids if lid in listings_by_id
+        ]
         return ordered, reason
 
     def _build_feed_partial_url(self, querystring):
@@ -262,6 +284,15 @@ class OnboardingView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.order_by("name")[:12]
+        profile = None
+        if self.request.user.is_authenticated:
+            profile = (
+                OnboardingProfile.objects.select_related("user")
+                .prefetch_related("categories")
+                .filter(user=self.request.user)
+                .first()
+            )
+        context["onboarding_profile"] = profile
         return context
 
     def post(self, request, *args, **kwargs):
@@ -282,6 +313,9 @@ class OnboardingView(TemplateView):
 
         if request.user.is_authenticated:
             self._create_search_alerts(request.user, category_slugs, city)
+            self._update_onboarding_profile(
+                request.user, purpose, city, radius, category_slugs
+            )
 
         params = []
         if city:
@@ -293,7 +327,7 @@ class OnboardingView(TemplateView):
         if purpose:
             params.append(("purpose", purpose))
         query = urllib.parse.urlencode(params, doseq=True)
-        url = reverse("home")
+        url = reverse("suggestions")
         if query:
             url = f"{url}?{query}"
         return redirect(url)
@@ -319,6 +353,18 @@ class OnboardingView(TemplateView):
                 category=None,
                 defaults={"is_active": True},
             )
+
+    def _update_onboarding_profile(self, user, purpose, city, radius, category_slugs):
+        profile, _ = OnboardingProfile.objects.get_or_create(user=user)
+        profile.purpose = purpose
+        profile.city = city
+        try:
+            profile.radius_km = int(radius)
+        except (TypeError, ValueError):
+            profile.radius_km = None
+        profile.save(update_fields=["purpose", "city", "radius_km", "updated_at"])
+        categories = Category.objects.filter(slug__in=category_slugs)
+        profile.categories.set(categories)
 
 
 class HomeFeedPartialView(HomeFeedView):
@@ -383,6 +429,10 @@ class CityListingView(HomeFeedView):
             "og_type": "website",
         }
         return context
+
+
+class SuggestionFeedView(HomeFeedView):
+    template_name = "pages/suggestions.html"
 
 
 class ListingDetailView(DetailView):
@@ -474,9 +524,7 @@ class ListingDetailView(DetailView):
                 "available_from": listing.available_from,
                 "view_count": listing.view_count,
                 "remind_url": (
-                    reverse(
-                        "listing_remind", kwargs={"listing_id": listing.id}
-                    )
+                    reverse("listing_remind", kwargs={"listing_id": listing.id})
                     if listing.available_from and self.request.user.is_authenticated
                     else None
                 ),
@@ -535,9 +583,7 @@ class ListingDetailView(DetailView):
         seller_reviews = seller.reviews_received.filter(
             role=Review.Role.BUYER_TO_SELLER
         )
-        buyer_reviews = seller.reviews_received.filter(
-            role=Review.Role.SELLER_TO_BUYER
-        )
+        buyer_reviews = seller.reviews_received.filter(role=Review.Role.SELLER_TO_BUYER)
         seller_avg = seller_reviews.aggregate(avg=Avg("rating"))["avg"]
         buyer_avg = buyer_reviews.aggregate(avg=Avg("rating"))["avg"]
         return {
@@ -570,7 +616,9 @@ class WishlistView(LoginRequiredMixin, TemplateView):
             listing.is_favorited = True
         context["listings"] = listings
         context["wishlist_url"] = reverse("wishlist")
-        context["search_alerts"] = SearchAlert.objects.filter(user=self.request.user).order_by("-created_at")
+        context["search_alerts"] = SearchAlert.objects.filter(
+            user=self.request.user
+        ).order_by("-created_at")
         context["search_alert_form"] = SearchAlertForm()
         return context
 
@@ -638,7 +686,7 @@ class MyListingsView(LoginRequiredMixin, ListView):
     model = Listing
     template_name = "sell/my_listings.html"
     context_object_name = "listings"
- 
+
     STATUS_ORDER = [
         Listing.Status.DRAFT,
         Listing.Status.PENDING_REVIEW,
@@ -1065,7 +1113,13 @@ class ListingModerationDetailView(UserPassesTestMixin, DetailView):
             listing.needs_review = False
         listing.moderated_by = request.user
         listing.moderated_at = timezone.now()
-        update_fields = ["status", "moderation_notes", "moderated_by", "moderated_at", "needs_review"]
+        update_fields = [
+            "status",
+            "moderation_notes",
+            "moderated_by",
+            "moderated_at",
+            "needs_review",
+        ]
         listing.save(update_fields=update_fields)
         if action in {"approve", "reject"}:
             event = (
@@ -1094,9 +1148,7 @@ class ListingReminderCreateView(LoginRequiredMixin, View):
                 request, "Nous vous préviendrons dès que l’annonce sera disponible."
             )
         else:
-            django_messages.info(
-                request, "Vous êtes déjà inscrit pour être prévenu."
-            )
+            django_messages.info(request, "Vous êtes déjà inscrit pour être prévenu.")
         return HttpResponseRedirect(get_listing_detail_url(listing))
 
     def _notify_seller(self, listing, requester):
@@ -1115,6 +1167,7 @@ class ListingReminderCreateView(LoginRequiredMixin, View):
             ]
         )
         send_mail(subject, message, sender, [listing.seller.email], fail_silently=True)
+
 
 class ListingFavoriteToggleView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):

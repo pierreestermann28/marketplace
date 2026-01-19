@@ -135,3 +135,8 @@ class ReputationStats(models.Model):
 def ensure_reputation_stats(sender, instance, created, **kwargs):
     if created:
         ReputationStats.objects.get_or_create(user=instance)
+
+
+def current_month_period():
+    now = timezone.now()
+    return now.date().replace(day=1)

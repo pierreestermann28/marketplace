@@ -101,7 +101,7 @@ class PublicProfileView(DetailView):
 class SignUpView(FormView):
     template_name = "registration/register.html"
     form_class = SignUpForm
-    success_url = reverse_lazy("accounts:login")
+    success_url = reverse_lazy("onboarding")
 
     def form_valid(self, form):
         user = form.save()

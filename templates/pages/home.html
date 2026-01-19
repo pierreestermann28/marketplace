@@ -19,20 +19,6 @@
 
       <div class="space-y-6">
         {% include "fragments/home/listings_feed.html" %}
-
-        {% if recommended_listings %}
-          <section class="space-y-4">
-            <div class="flex items-end justify-between gap-4">
-              <div>
-                <p class="section-label">Suggestions personnalisées</p>
-                <h2 class="h2">Basées sur {{ recommendation_reason }}</h2>
-              </div>
-              <a href="#listings-feed-wrapper"
-                 class="text-sm font-semibold text-brand hover:underline">Voir tout</a>
-            </div>
-            {% include "components/listings/listing_grid.html" with listings=recommended_listings request=request only %}
-          </section>
-        {% endif %}
       </div>
     </section>
   </div>

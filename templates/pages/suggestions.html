@@ -1,0 +1,32 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Suggestions | Swipe2Sell{% endblock %}
+
+{% block page_content %}
+  <div class="min-h-screen space-y-6 py-10">
+    <section class="container-app space-y-6">
+      <header class="space-y-2">
+        <p class="text-xs uppercase tracking-[0.5em] text-ink-400">Suggestions</p>
+        <h1 class="text-3xl font-semibold text-ink-900">Feed personnalisé</h1>
+        <p class="text-sm text-ink-600">Des annonces choisies selon vos préférences, vos recherches sauvegardées et votre proximité.</p>
+      </header>
+      {% if recommended_listings %}
+        <section class="space-y-4">
+          <div class="flex items-end justify-between gap-4">
+            <div>
+              <p class="section-label">Suggestions personnalisées</p>
+              <h2 class="h2">Basées sur {{ recommendation_reason }}</h2>
+            </div>
+            <a href="#suggestions-feed"
+               class="text-sm font-semibold text-brand hover:underline">Voir tout</a>
+          </div>
+          {% include "components/listings/listing_grid.html" with listings=recommended_listings request=request only %}
+        </section>
+      {% else %}
+        <div class="rounded-3xl border border-ink-100 bg-ink-50/80 p-6 text-center text-sm text-ink-600">
+          Aucun signal personnalisé pour le moment. Vous pouvez enregistrer une alerte ou liker des annonces pour activer le feed.
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}
