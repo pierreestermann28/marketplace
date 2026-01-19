@@ -39,18 +39,25 @@
         {{ form.postal_code }}
       </div>
       <div class="relative">
-        {% include "components/location/autocomplete.html" with
-          mode="single"
-          field_id="id_city"
-          input_name="city"
-          value=form.city.value
-          placeholder="Ville"
-          label="Ville"
-          label_class="label"
-          field_name="location_city"
-          endpoint="{% url 'location:city-autocomplete' %}"
-        %}
+        <label class="label" for="id_city">Ville</label>
+        <div class="relative"
+             data-location-autocomplete
+             data-location-mode="single"
+             data-location-endpoint="{% url 'location:city-autocomplete' %}">
+          <input type="text"
+                 id="id_city"
+                 name="city"
+                 class="input w-full"
+                 placeholder="Ville"
+                 value="{{ form.city.value }}"
+                 data-location-city-input="true"
+                 autocomplete="off" />
+          <div data-location-results class="location-autocomplete-results"></div>
+        </div>
         {{ form.city.errors }}
+        <div class="hidden">
+          {{ form.location_city }}
+        </div>
         {{ form.location_city.errors }}
       </div>
       <div class="flex items-center justify-end gap-2">

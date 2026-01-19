@@ -84,7 +84,6 @@ class Listing(models.Model):
         on_delete=models.SET_NULL,
         related_name="listings",
     )
-    ai_summary = models.JSONField(default=dict, blank=True)
 
     shipping_enabled = models.BooleanField(default=True, db_index=True)
     in_person_enabled = models.BooleanField(default=True, db_index=True)
