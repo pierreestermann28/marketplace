@@ -1,5 +1,5 @@
 """
-URL configuration for stillusefull project.
+URL configuration for swipetosell project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/6.0/topics/http/urls/
@@ -20,7 +20,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from stillusefull.views import HealthCheckView, SitemapView
+from swipetosell.views import HealthCheckView, SitemapView
 
 
 urlpatterns = [

@@ -5,10 +5,10 @@ try:
 except ImportError:  # pragma: no cover
     Celery = None
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "stillusefull.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "swipetosell.settings")
 
 if Celery:
-    app = Celery("stillusefull")
+    app = Celery("swipetosell")
     app.config_from_object("django.conf:settings", namespace="CELERY")
     app.autodiscover_tasks()
 else:

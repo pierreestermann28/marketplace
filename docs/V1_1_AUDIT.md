@@ -39,7 +39,7 @@ Cartographier l’existant par rapport aux besoins de la V1.1 afin d’identifie
 ## 4. Settings / Infrastructure
 
 - Docker Compose (`docker-compose.yml`) orchestre : PostgreSQL 16, Redis 7, service `web` Django/HTMX, worker Celery, worker `flower`, loader `tailwind:watch`.
-- Celery utilise `redis` en backend (via `.env` non exposé ici) et la commande `celery -A stillusefull worker --pool=solo`.
+- Celery utilise `redis` en backend (via `.env` non exposé ici) et la commande `celery -A swipetosell worker --pool=solo`.
 - `tailwind` service lance `npm run tailwind:watch`, liant les volumes `.:/app` + `/app/node_modules`.
 - `docker/entrypoint.sh` assure un bootstrap commun (migrations/collectstatic). À valider pour V1.1 : mettre en place des seeders, ajouter healthchecks (web?). Déjà en place pour postgres/redis.
 

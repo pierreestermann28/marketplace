@@ -5,13 +5,13 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-stillusefull}
-      POSTGRES_USER: ${POSTGRES_USER:-stillusefull}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stillusefull}
+      POSTGRES_DB: ${POSTGRES_DB:-swipetosell}
+      POSTGRES_USER: ${POSTGRES_USER:-swipetosell}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swipetosell}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stillusefull}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-swipetosell}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,7 +43,7 @@ services:
     build: .
     env_file:
       - .env
-    command: celery -A stillusefull worker --loglevel=info --pool=solo
+    command: celery -A swipetosell worker --loglevel=info --pool=solo
     volumes:
       - .:/app
     depends_on:
@@ -71,7 +71,7 @@ services:
     build: .
     env_file:
       - .env
-    command: celery -A stillusefull flower --port=5555
+    command: celery -A swipetosell flower --port=5555
     ports:
       - "5555:5555"
     volumes:
