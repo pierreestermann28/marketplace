@@ -115,6 +115,19 @@
       });
     </script>
     <script>
+      document.addEventListener("htmx:beforeRequest", function (event) {
+        const form = event.target.closest
+          ? event.target.closest("form")
+          : null;
+        if (!form || form.id !== "home-filter-form") {
+          return;
+        }
+        if (form.dataset.locationReady !== "true") {
+          event.preventDefault();
+        }
+      });
+    </script>
+    <script>
       (function () {
         function initCategoryFilters() {
           document

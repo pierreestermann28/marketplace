@@ -1,5 +1,5 @@
 {
-  "name": "stillusefull",
+  "name": "swipetosell",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "tailwind:build": "npx tailwindcss -c theme/tailwind.config.js -i theme/input.css -o static/css/app.css --minify",
     "tailwind:watch": "npx tailwindcss -c theme/tailwind.config.js -i theme/input.css -o static/css/app.css --watch --poll 1000"
   },
-  "keywords": [],
+  "keywords": [ ],
   "author": "",
   "license": "ISC",
   "description": "",

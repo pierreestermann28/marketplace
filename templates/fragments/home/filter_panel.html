@@ -10,6 +10,7 @@
         hx-target="#listings-feed-wrapper"
         hx-swap="outerHTML"
         hx-trigger="keyup delay:600ms, change delay:600ms, submit"
+        data-location-ready="false"
         class="space-y-4">
     <div>
       <label class="label sr-only" for="id_home_search">Rechercher</label>
@@ -44,23 +45,43 @@
         {% endfor %}
       </div>
     </div>
-    {% include "components/location/autocomplete.html" with
-      mode="multi"
-      field_id="id_search_city"
-      input_name="city"
-      value=filters.city
-      placeholder="Ville"
-      label="Ville"
-      label_class="label sr-only"
-      field_name="city_ids"
-      selected_items=selected_cities
-      endpoint="{% url 'location:city-autocomplete' %}"
-      postal_field_name="postal_code"
-      postal_value=filters.postal_code
-      postal_placeholder="Code postal"
-      postal_label="Code postal"
-      postal_label_class="label sr-only"
-    %}
+    <label class="label sr-only" for="id_search_city">Ville</label>
+    <div class="relative"
+         data-location-autocomplete
+         data-location-mode="multi"
+         data-location-field-name="city_ids"
+         data-location-endpoint="{% url 'location:city-autocomplete' %}">
+      <input type="text"
+             id="id_search_city"
+             name="city"
+             class="input w-full"
+             value="{{ filters.city }}"
+             placeholder="Ville"
+             data-location-city-input="true"
+             autocomplete="off" />
+      <div data-location-results class="location-autocomplete-results"></div>
+      <div class="mt-2 flex flex-wrap gap-2" data-location-selected>
+        {% for item in selected_cities %}
+          <span class="location-autocomplete-chip"
+                data-location-chip
+                data-city-id="{{ item.id }}">
+            {{ item.display_name }}
+            <button type="button"
+                    class="location-autocomplete-chip-remove"
+                    aria-label="Retirer {{ item.name }}"
+                    data-location-chip-remove>×</button>
+          </span>
+        {% endfor %}
+      </div>
+      <div class="sr-only" data-location-hidden-wrapper>
+        {% for item in selected_cities %}
+          <input type="hidden"
+                 name="city_ids"
+                 value="{{ item.id }}"
+                 data-location-city-id="{{ item.id }}" />
+        {% endfor %}
+      </div>
+    </div>
     <div class="flex justify-end">
       {% include "components/ui/button.html" with label="Afficher les résultats" variant="primary" type="submit" class="w-full" only %}
     </div>
