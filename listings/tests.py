@@ -12,7 +12,7 @@ from messaging.models import Conversation
 
 from location.models import City
 
-from .models import Favorite, Listing, Reservation, ReservationLog
+from .models import Favorite, Listing, Offer, OfferLog
 
 
 PNG_BYTES = (
@@ -35,8 +35,12 @@ class FavoriteToggleTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
-        cls.buyer = User.objects.create_user(email="buyer@example.com", password="password123")
+        cls.seller = User.objects.create_user(
+            email="seller@example.com", password="password123"
+        )
+        cls.buyer = User.objects.create_user(
+            email="buyer@example.com", password="password123"
+        )
         cls.listing = Listing.objects.create(
             seller=cls.seller,
             title="Vintage chair",
@@ -49,7 +53,9 @@ class FavoriteToggleTests(TestCase):
         response = self.client.post(url, data={"next": "/"})
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(Favorite.objects.filter(user=self.buyer, listing=self.listing).count(), 1)
+        self.assertEqual(
+            Favorite.objects.filter(user=self.buyer, listing=self.listing).count(), 1
+        )
 
     def test_toggle_removes_favorite(self):
         Favorite.objects.create(user=self.buyer, listing=self.listing)
@@ -59,7 +65,9 @@ class FavoriteToggleTests(TestCase):
         response = self.client.post(url, data={"next": "/"})
 
         self.assertEqual(response.status_code, 302)
-        self.assertFalse(Favorite.objects.filter(user=self.buyer, listing=self.listing).exists())
+        self.assertFalse(
+            Favorite.objects.filter(user=self.buyer, listing=self.listing).exists()
+        )
 
     def test_requires_login(self):
         url = reverse("listing_favorite", kwargs={"listing_id": self.listing.id})
@@ -82,15 +90,21 @@ class FavoriteToggleTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["HX-Trigger"], "wishlist-updated")
-        self.assertTrue(Favorite.objects.filter(user=self.buyer, listing=self.listing).exists())
+        self.assertTrue(
+            Favorite.objects.filter(user=self.buyer, listing=self.listing).exists()
+        )
 
 
 class ListingViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
-        cls.other_user = User.objects.create_user(email="other@example.com", password="password123")
+        cls.seller = User.objects.create_user(
+            email="seller@example.com", password="password123"
+        )
+        cls.other_user = User.objects.create_user(
+            email="other@example.com", password="password123"
+        )
         cls.category = Category.objects.create(name="Furniture", slug="furniture")
         cls.category_other = Category.objects.create(name="Decor", slug="decor")
         cls.paris_city = City.objects.create(
@@ -244,7 +258,9 @@ class ListingViewTests(TestCase):
         sold_listing.refresh_from_db()
         self.assertEqual(sold_listing.status, Listing.Status.ARCHIVED)
 
-        unarchive_url = reverse("listing_unarchive", kwargs={"listing_id": sold_listing.id})
+        unarchive_url = reverse(
+            "listing_unarchive", kwargs={"listing_id": sold_listing.id}
+        )
         response = self.client.post(unarchive_url)
         sold_listing.refresh_from_db()
         self.assertEqual(sold_listing.status, Listing.Status.PUBLISHED)
@@ -267,7 +283,9 @@ class ListingWorkflowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
+        cls.seller = User.objects.create_user(
+            email="seller@example.com", password="password123"
+        )
         cls.category = Category.objects.create(name="Furniture", slug="furniture")
 
     def test_listing_start_creates_listing_and_images(self):
@@ -283,7 +301,9 @@ class ListingWorkflowTests(TestCase):
         listing = Listing.objects.get(seller=self.seller)
         self.assertEqual(listing.status, Listing.Status.DRAFT)
         self.assertEqual(listing.images.count(), 2)
-        self.assertEqual(response["Location"], reverse("listing_submit", kwargs={"pk": listing.id}))
+        self.assertEqual(
+            response["Location"], reverse("listing_submit", kwargs={"pk": listing.id})
+        )
 
     def test_photo_upload_adds_images(self):
         listing = Listing.objects.create(
@@ -303,7 +323,9 @@ class ListingWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         listing.refresh_from_db()
         self.assertEqual(listing.images.count(), 1)
-        self.assertEqual(response["Location"], reverse("listing_submit", kwargs={"pk": listing.id}))
+        self.assertEqual(
+            response["Location"], reverse("listing_submit", kwargs={"pk": listing.id})
+        )
 
     def test_submit_for_review_sets_status(self):
         listing = Listing.objects.create(
@@ -381,9 +403,15 @@ class ListingWorkflowTests(TestCase):
 class MarketplaceFlowTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.seller = User.objects.create_user(email="seller@example.com", password="password123")
-        self.buyer = User.objects.create_user(email="buyer@example.com", password="password123")
-        self.other_buyer = User.objects.create_user(email="otherbuyer@example.com", password="password123")
+        self.seller = User.objects.create_user(
+            email="seller@example.com", password="password123"
+        )
+        self.buyer = User.objects.create_user(
+            email="buyer@example.com", password="password123"
+        )
+        self.other_buyer = User.objects.create_user(
+            email="otherbuyer@example.com", password="password123"
+        )
         self.staff = User.objects.create_user(
             email="staff@example.com", password="password123", is_staff=True
         )
@@ -412,33 +440,39 @@ class MarketplaceFlowTests(TestCase):
         )
         reserve_url = reverse("messages:reserve", kwargs={"pk": conversation.pk})
         self.client.force_login(self.seller)
-        response = self.client.post(reserve_url, data={"reservation_note": "Noter la réservation"})
+        response = self.client.post(
+            reserve_url, data={"reservation_note": "Noter la réservation"}
+        )
         self.assertEqual(response.status_code, 302)
         listing.refresh_from_db()
 
         self.assertEqual(listing.status, Listing.Status.RESERVED)
         self.assertEqual(listing.reserved_for, self.buyer)
         self.assertEqual(listing.reservation_note, "Noter la réservation")
-        self.assertTrue(Reservation.objects.active().filter(listing=listing).exists())
+        self.assertTrue(Offer.objects.active().filter(listing=listing).exists())
         self.assertTrue(
-            ReservationLog.objects.filter(
-                listing=listing, action=ReservationLog.Action.RESERVED
+            OfferLog.objects.filter(
+                listing=listing, action=OfferLog.Action.RESERVED
             ).exists()
         )
 
         self.client.force_login(self.other_buyer)
-        response = self.client.post(reserve_url, data={"reservation_note": "Commande clé"})
+        response = self.client.post(
+            reserve_url, data={"reservation_note": "Commande clé"}
+        )
         self.assertEqual(
-            Reservation.objects.active().filter(listing=listing).count(),
+            Offer.objects.active().filter(listing=listing).count(),
             1,
         )
 
         self.client.force_login(self.seller)
-        cancel_url = reverse("listing_cancel_reservation", kwargs={"listing_id": listing.id})
+        cancel_url = reverse(
+            "listing_cancel_reservation", kwargs={"listing_id": listing.id}
+        )
         response = self.client.post(cancel_url)
         listing.refresh_from_db()
 
         self.assertEqual(listing.status, Listing.Status.PUBLISHED)
         self.assertIsNone(listing.reserved_for)
         self.assertEqual(listing.reservation_note, "")
-        self.assertFalse(Reservation.objects.active().filter(listing=listing).exists())
+        self.assertFalse(Offer.objects.active().filter(listing=listing).exists())

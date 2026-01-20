@@ -42,18 +42,18 @@ from .models import (
     ListingImage,
     ListingReminder,
     ListingView,
-    Reservation,
-    ReservationLog,
     SearchAlert,
     OnboardingProfile,
 )
+
+from listings.models import Offer, OfferLog
 from reports.forms import ReportForm
 from .utils import user_can_view_contact_info
 from accounts.models import ReputationStats
 from commerce.models import Review
 from ingestion.models import DetectedItem
 from location.models import City as LocationCity
-from .recommendations import ListingRecommendationEngine
+from .services.recommendations import ListingRecommendationEngine
 
 
 def get_listing_detail_url(listing):
@@ -306,7 +306,9 @@ class OnboardingView(TemplateView):
             if slug.strip()
         ]
         city = request.POST.get("city", "").strip()
-        location_city_id = request.POST.get("location_city") or request.POST.get("location_city_id")
+        location_city_id = request.POST.get("location_city") or request.POST.get(
+            "location_city_id"
+        )
         location_city = (
             LocationCity.objects.filter(id=location_city_id).first()
             if location_city_id
@@ -365,7 +367,9 @@ class OnboardingView(TemplateView):
                 defaults={"is_active": True},
             )
 
-    def _update_onboarding_profile(self, user, purpose, location_city, radius, category_slugs):
+    def _update_onboarding_profile(
+        self, user, purpose, location_city, radius, category_slugs
+    ):
         profile, _ = OnboardingProfile.objects.get_or_create(user=user)
         profile.purpose = purpose
         profile.location_city = location_city
@@ -373,7 +377,9 @@ class OnboardingView(TemplateView):
             profile.radius_km = int(radius)
         except (TypeError, ValueError):
             profile.radius_km = None
-        profile.save(update_fields=["purpose", "location_city", "radius_km", "updated_at"])
+        profile.save(
+            update_fields=["purpose", "location_city", "radius_km", "updated_at"]
+        )
         categories = Category.objects.filter(slug__in=category_slugs)
         profile.categories.set(categories)
 
@@ -701,8 +707,6 @@ class MyListingsView(LoginRequiredMixin, ListView):
         Listing.Status.DRAFT,
         Listing.Status.PENDING_REVIEW,
         Listing.Status.PUBLISHED,
-        Listing.Status.RESERVED,
-        Listing.Status.RESERVATION_ACCEPTED,
         Listing.Status.SOLD,
         Listing.Status.REJECTED,
         Listing.Status.ARCHIVED,
@@ -712,8 +716,6 @@ class MyListingsView(LoginRequiredMixin, ListView):
         Listing.Status.DRAFT: "Brouillons",
         Listing.Status.PENDING_REVIEW: "En relecture",
         Listing.Status.PUBLISHED: "Publiés",
-        Listing.Status.RESERVED: "Réservés",
-        Listing.Status.RESERVATION_ACCEPTED: "Réservation acceptée",
         Listing.Status.SOLD: "Vendues",
         Listing.Status.REJECTED: "Refusés",
         Listing.Status.ARCHIVED: "Archivée",
@@ -723,8 +725,6 @@ class MyListingsView(LoginRequiredMixin, ListView):
         Listing.Status.DRAFT: "Complète les infos",
         Listing.Status.PENDING_REVIEW: "Sous validation équipe",
         Listing.Status.PUBLISHED: "Visibles par tous",
-        Listing.Status.RESERVED: "Attente confirmation",
-        Listing.Status.RESERVATION_ACCEPTED: "Réservation validée",
         Listing.Status.SOLD: "Livrées ou payées",
         Listing.Status.REJECTED: "Demande une mise à jour",
         Listing.Status.ARCHIVED: "Conclues ou retirées",
@@ -733,17 +733,12 @@ class MyListingsView(LoginRequiredMixin, ListView):
     STATUS_FILTERS = [
         ("all", "Toutes", []),
         ("available", "Disponibles", [Listing.Status.PUBLISHED]),
-        (
-            "reserved",
-            "Réservées",
-            [Listing.Status.RESERVED, Listing.Status.RESERVATION_ACCEPTED],
-        ),
         ("sold", "Vendues", [Listing.Status.SOLD]),
         ("archived", "Archivée", [Listing.Status.ARCHIVED]),
     ]
 
     def get_queryset(self):
-        reservation_qs = Reservation.objects.active().select_related("buyer")
+        reservation_qs = Offer.objects.active().select_related("buyer")
         qs = (
             Listing.objects.filter(seller=self.request.user)
             .select_related("category")
@@ -769,14 +764,9 @@ class MyListingsView(LoginRequiredMixin, ListView):
         context["status_cards"] = self._build_status_cards(summary)
         context["status_filters"] = self._build_filter_options(summary)
         context["active_filter"] = self.request.GET.get("filter", "all")
-        context["reserved_statuses"] = [
-            Listing.Status.RESERVED,
-            Listing.Status.RESERVATION_ACCEPTED,
-        ]
+
         context["public_visible_statuses"] = [
             Listing.Status.PUBLISHED,
-            Listing.Status.RESERVED,
-            Listing.Status.RESERVATION_ACCEPTED,
         ]
         return context
 
@@ -1002,28 +992,7 @@ class ReservationCancelView(LoginRequiredMixin, View):
             django_messages.info(request, "Il n’y a plus de réservation active.")
             return redirect(detail_url)
         reservation.cancel()
-        if listing.status in {
-            Listing.Status.RESERVED,
-            Listing.Status.RESERVATION_ACCEPTED,
-        }:
-            listing.status = Listing.Status.PUBLISHED
-            listing.reserved_for = None
-            listing.reserved_at = None
-            listing.reservation_note = ""
-            listing.save(
-                update_fields=[
-                    "status",
-                    "reserved_for",
-                    "reserved_at",
-                    "reservation_note",
-                ]
-            )
-            ReservationLog.objects.create(
-                listing=listing,
-                user=request.user,
-                action=ReservationLog.Action.CANCELLED,
-                note="Annulation manuelle",
-            )
+
         django_messages.success(request, "La réservation a été annulée.")
         return redirect(detail_url)
 
@@ -1049,10 +1018,10 @@ class ReservationAcceptView(LoginRequiredMixin, View):
             request,
             "La réservation a été acceptée et l’objet passe en statut Réservation acceptée.",
         )
-        ReservationLog.objects.create(
+        OfferLog.objects.create(
             listing=listing,
             user=request.user,
-            action=ReservationLog.Action.ACCEPTED,
+            action=OfferLog.Action.ACCEPTED,
             note="Acceptation manuelle.",
         )
         return redirect(detail_url)

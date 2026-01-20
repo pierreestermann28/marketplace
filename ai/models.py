@@ -20,7 +20,7 @@ class AIImageAnalysis(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     image_asset = models.ForeignKey(
-        "mediahub.BatchMedia", on_delete=models.CASCADE, related_name="ai_analyses"
+        "ingestion.BatchMedia", on_delete=models.CASCADE, related_name="ai_analyses"
     )
 
     requested_by = models.ForeignKey(

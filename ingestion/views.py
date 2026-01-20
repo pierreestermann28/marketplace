@@ -53,7 +53,8 @@ def _build_batch_status_context(batch):
     }
 
 
-from mediahub.models import BatchUpload, ImageAsset, BatchMedia
+from mediahub.models import ImageAsset
+from ingestion.models import BatchUpload, BatchMedia
 
 from .forms import BatchUploadForm
 from .models import DetectedItem

@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import BatchUpload, ImageAsset, Keyframe, BatchMedia, VideoUpload
+from .models import ImageAsset, Keyframe, VideoUpload
+from ingestion.models import BatchUpload, BatchMedia
 
 
 @admin.register(ImageAsset)

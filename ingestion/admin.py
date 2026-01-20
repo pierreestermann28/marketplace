@@ -10,10 +10,7 @@ class DetectedItemAdmin(admin.ModelAdmin):
         "owner",
         "batch",
         "status",
-        "title_suggested",
-        "listing",
         "created_at",
     )
     list_filter = ("status", "created_at")
-    search_fields = ("title_suggested", "category_suggested", "listing__title")
-    autocomplete_fields = ("owner", "batch", "hero_asset", "listing")
+    autocomplete_fields = ("owner", "batch", "hero_asset")

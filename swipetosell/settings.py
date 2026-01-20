@@ -171,7 +171,7 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-# Reservation hold duration in hours before auto expiry
+# Offer hold duration in hours before auto expiry
 RESERVATION_HOLD_HOURS = 24
 
 # Security uploads

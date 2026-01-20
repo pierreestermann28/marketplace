@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 
 from billing.models import UserEntitlement
-from commerce.models import Dispute, Order
+from commerce.models import Order
 from ingestion.models import DetectedItem
 from listings.models import Listing
 from ingestion.models import BatchUpload
@@ -92,12 +92,10 @@ class OperationsDashboardView(UserPassesTestMixin, TemplateView):
             ).count(),
             "orders_attention": Order.objects.filter(
                 status__in=[
-                    Order.Status.DISPUTE,
                     Order.Status.EXPIRED,
                     Order.Status.CANCELLED,
                 ]
             ).count(),
-            "open_disputes": Dispute.objects.filter(is_resolved=False).count(),
             "pending_detected_items": DetectedItem.objects.filter(
                 status=DetectedItem.Status.PENDING
             ).count(),

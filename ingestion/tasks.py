@@ -9,11 +9,13 @@ from django.utils import timezone
 try:
     from celery import shared_task
 except ImportError:  # pragma: no cover
+
     def shared_task(*args, **kwargs):
         def decorator(func):
             return func
 
         return decorator
+
 
 logger = logging.getLogger("ingestion.tasks")
 
@@ -23,7 +25,7 @@ from billing.entitlements import (
     get_free_detected_item_quota,
     is_premium,
 )
-from mediahub.models import BatchUpload
+from ingestion.models import BatchUpload
 from .models import DetectedItem
 
 
@@ -82,9 +84,7 @@ def analyze_batch(self, batch_id):
 
     owner_premium = is_premium(batch.owner)
     usage = detected_item_usage_window(batch.owner)
-    quota_limit = (
-        None if owner_premium else get_free_detected_item_quota(batch.owner)
-    )
+    quota_limit = None if owner_premium else get_free_detected_item_quota(batch.owner)
 
     try:
         with transaction.atomic():
@@ -130,9 +130,7 @@ def analyze_batch(self, batch_id):
                 low = price
                 high = price + Decimal("15.00")
                 title = asset.image_asset.image.name.split("/")[-1]
-                description = (
-                    f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
-                )
+                description = f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
                 confidence = random.uniform(0.5, 0.98)
                 metadata = {
                     "asset_id": str(asset.id),

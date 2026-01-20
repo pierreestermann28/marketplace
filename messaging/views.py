@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView, RedirectView, TemplateView
 
-from listings.models import Listing, Reservation, ReservationLog
+from listings.models import Listing, Offer, OfferLog
 
 from .forms import MessageForm
 from .models import BlockedUser, Conversation, Message
@@ -111,7 +111,9 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
         )
         other = conversation.other_user(self.request.user) if conversation else None
         context["other_user"] = other
-        context["other_user_blocked"] = _is_blocked(self.request.user, other) if other else False
+        context["other_user_blocked"] = (
+            _is_blocked(self.request.user, other) if other else False
+        )
         context["report_form"] = ReportForm()
         context["conversation_report_url"] = (
             reverse("reports:conversation_report", kwargs={"pk": conversation.pk})
@@ -186,9 +188,7 @@ class SellerReservationCreateView(LoginRequiredMixin, View):
         )
         listing = conversation.listing
         if request.user != listing.seller:
-            return redirect(
-                reverse("messages:detail", kwargs={"pk": conversation.pk})
-            )
+            return redirect(reverse("messages:detail", kwargs={"pk": conversation.pk}))
         if listing.status not in {
             Listing.Status.PUBLISHED,
         }:
@@ -196,22 +196,18 @@ class SellerReservationCreateView(LoginRequiredMixin, View):
                 request,
                 "La réservation ne peut être initiée que pour une annonce disponible.",
             )
-            return redirect(
-                reverse("messages:detail", kwargs={"pk": conversation.pk})
-            )
-        if Reservation.objects.active().filter(listing=listing).exists():
+            return redirect(reverse("messages:detail", kwargs={"pk": conversation.pk}))
+        if Offer.objects.active().filter(listing=listing).exists():
             django_messages.info(
                 request, "Il existe déjà une réservation active pour cette annonce."
             )
-            return redirect(
-                reverse("messages:detail", kwargs={"pk": conversation.pk})
-            )
+            return redirect(reverse("messages:detail", kwargs={"pk": conversation.pk}))
         note = request.POST.get("reservation_note", "").strip()
         expires_at = timezone.now() + timedelta(
             hours=getattr(settings, "RESERVATION_HOLD_HOURS", 24)
         )
         with transaction.atomic():
-            Reservation.objects.create(
+            Offer.objects.create(
                 listing=listing,
                 buyer=conversation.buyer,
                 expires_at=expires_at,
@@ -229,10 +225,10 @@ class SellerReservationCreateView(LoginRequiredMixin, View):
                     "updated_at",
                 ]
             )
-            ReservationLog.objects.create(
+            OfferLog.objects.create(
                 listing=listing,
                 user=request.user,
-                action=ReservationLog.Action.RESERVED,
+                action=OfferLog.Action.RESERVED,
                 note=note,
             )
         django_messages.success(
@@ -263,9 +259,7 @@ class ConversationStartView(LoginRequiredMixin, RedirectView):
                 "listing_detail", kwargs={"slug": listing.slug, "uuid": listing.id}
             )
         if _is_blocked(self.request.user, listing.seller):
-            django_messages.error(
-                self.request, "Cette conversation est bloquée."
-            )
+            django_messages.error(self.request, "Cette conversation est bloquée.")
             return reverse("messages:list")
         conversation, created = Conversation.objects.get_or_create(
             listing=listing,

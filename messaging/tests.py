@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from listings.models import Listing, Reservation, ReservationLog
+from listings.models import Listing, Offer, OfferLog
 
 from .models import Conversation, Message
 
@@ -12,9 +12,15 @@ class MessagingViewsTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         User = get_user_model()
-        cls.buyer = User.objects.create_user(email="buyer@example.com", password="password123")
-        cls.seller = User.objects.create_user(email="seller@example.com", password="password123")
-        cls.other = User.objects.create_user(email="other@example.com", password="password123")
+        cls.buyer = User.objects.create_user(
+            email="buyer@example.com", password="password123"
+        )
+        cls.seller = User.objects.create_user(
+            email="seller@example.com", password="password123"
+        )
+        cls.other = User.objects.create_user(
+            email="other@example.com", password="password123"
+        )
         cls.listing = Listing.objects.create(
             seller=cls.seller,
             title="Test listing",
@@ -123,10 +129,10 @@ class MessagingViewsTests(TestCase):
         self.listing.refresh_from_db()
         self.assertEqual(self.listing.status, Listing.Status.RESERVED)
         self.assertEqual(self.listing.reserved_for, self.buyer)
-        self.assertTrue(Reservation.objects.active().filter(listing=self.listing).exists())
+        self.assertTrue(Offer.objects.active().filter(listing=self.listing).exists())
         self.assertTrue(
-            ReservationLog.objects.filter(
-                listing=self.listing, action=ReservationLog.Action.RESERVED
+            OfferLog.objects.filter(
+                listing=self.listing, action=OfferLog.Action.RESERVED
             ).exists()
         )
         self.assertEqual(response.status_code, 302)
