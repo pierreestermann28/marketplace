@@ -1,13 +1,14 @@
+# accounts/models.py
+from __future__ import annotations
+
 from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Avg
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils import timezone
 
 
 class EmailUserManager(BaseUserManager):
@@ -36,28 +37,37 @@ class EmailUserManager(BaseUserManager):
 class User(AbstractUser):
     username = None
     email = models.EmailField("email address", unique=True)
+
     display_name = models.CharField(max_length=80, blank=True)
     phone_e164 = models.CharField(max_length=32, blank=True, db_index=True)
+
     is_verified = models.BooleanField(default=False, db_index=True)
-    trust_score = models.DecimalField(max_digits=4, decimal_places=2, default=0)
-    stripe_customer_id = models.CharField(max_length=64, blank=True, null=True)
+
+    trust_score = models.DecimalField(
+        max_digits=4, decimal_places=2, default=Decimal("0.00"), db_index=True
+    )
+    stripe_customer_id = models.CharField(
+        max_length=64, blank=True, null=True, db_index=True
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = EmailUserManager()
 
+    def __str__(self):
+        return self.email
+
 
 class Address(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="addresses",
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses"
     )
 
     label = models.CharField(max_length=60, default="Home")
     full_name = models.CharField(max_length=120)
     line1 = models.CharField(max_length=120)
     line2 = models.CharField(max_length=120, blank=True)
+
     postal_code = models.CharField(max_length=20, db_index=True)
     city = models.CharField(max_length=80, db_index=True)
     country_code = models.CharField(max_length=2, default="FR")
@@ -71,19 +81,25 @@ class Address(models.Model):
 
 class ReputationStats(models.Model):
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="reputation",
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reputation"
     )
 
-    seller_rating_avg = models.DecimalField(max_digits=3, decimal_places=2, default=0)
+    # Reviews
+    seller_rating_avg = models.DecimalField(
+        max_digits=3, decimal_places=2, default=Decimal("0.00")
+    )
     seller_rating_count = models.PositiveIntegerField(default=0)
-    items_sold_count = models.PositiveIntegerField(default=0)
 
-    buyer_rating_avg = models.DecimalField(max_digits=3, decimal_places=2, default=0)
+    buyer_rating_avg = models.DecimalField(
+        max_digits=3, decimal_places=2, default=Decimal("0.00")
+    )
     buyer_rating_count = models.PositiveIntegerField(default=0)
+
+    # Transactions (real completed orders)
+    items_sold_count = models.PositiveIntegerField(default=0)
     items_bought_count = models.PositiveIntegerField(default=0)
 
+    # Optional penalties (V1 keep, you can wire later)
     cancellations_count = models.PositiveIntegerField(default=0)
     no_show_count = models.PositiveIntegerField(default=0)
     disputes_count = models.PositiveIntegerField(default=0)
@@ -95,48 +111,8 @@ class ReputationStats(models.Model):
         stats, _ = cls.objects.get_or_create(user=user)
         return stats
 
-    def rebuild_from_reviews(self):
-        from commerce.models import Review
-
-        seller_reviews = Review.objects.filter(
-            target=self.user, role=Review.Role.BUYER_TO_SELLER
-        )
-        buyer_reviews = Review.objects.filter(
-            target=self.user, role=Review.Role.SELLER_TO_BUYER
-        )
-
-        def avg_from_queryset(qs):
-            data = qs.aggregate(avg=Avg("rating"))
-            return Decimal(data["avg"] or 0)
-
-        self.seller_rating_count = seller_reviews.count()
-        self.seller_rating_avg = avg_from_queryset(seller_reviews)
-        self.items_sold_count = seller_reviews.count()
-        self.buyer_rating_count = buyer_reviews.count()
-        self.buyer_rating_avg = avg_from_queryset(buyer_reviews)
-        self.items_bought_count = buyer_reviews.count()
-        self.save(
-            update_fields=[
-                "seller_rating_avg",
-                "seller_rating_count",
-                "items_sold_count",
-                "buyer_rating_avg",
-                "buyer_rating_count",
-                "items_bought_count",
-                "updated_at",
-            ]
-        )
-        preferred_score = self.seller_rating_avg or self.buyer_rating_avg
-        self.user.trust_score = preferred_score
-        self.user.save(update_fields=["trust_score"])
-
 
 @receiver(post_save, sender=User)
 def ensure_reputation_stats(sender, instance, created, **kwargs):
     if created:
         ReputationStats.objects.get_or_create(user=instance)
-
-
-def current_month_period():
-    now = timezone.now()
-    return now.date().replace(day=1)

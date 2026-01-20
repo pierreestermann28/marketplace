@@ -1,17 +1,11 @@
+# listings/models.py (V2) - models "purs"
 import uuid
-from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
-from django.db.models import F, Prefetch
+from django.db.models import Q
 from django.utils import timezone
-from django.utils.text import slugify
-
-from location.models import City
-
-from catalog.models import Category
-from mediahub.models import ImageAsset, Keyframe, VideoUpload
 
 
 class Listing(models.Model):
@@ -20,8 +14,6 @@ class Listing(models.Model):
         PENDING_REVIEW = "pending_review"
         PUBLISHED = "published"
         REJECTED = "rejected"
-        RESERVED = "reserved"
-        RESERVATION_ACCEPTED = "reservation_accepted"
         SOLD = "sold"
         ARCHIVED = "archived"
 
@@ -32,13 +24,40 @@ class Listing(models.Model):
         FAIR = "fair"
         FOR_PARTS = "for_parts"
 
+    class SourceType(models.TextChoices):
+        IMAGES = "images"
+        VIDEO = "video"
+
+    class PublicStatus(models.TextChoices):
+        AVAILABLE = "available", "Disponible"
+        NEGOTIATING = "negotiating", "Offres en cours"
+        SOLD = "sold", "Vendue"
+        ARCHIVED = "archived", "Archivée"
+
+    PUBLIC_STATUS_TONES = {
+        PublicStatus.AVAILABLE: "success",
+        PublicStatus.NEGOTIATING: "warning",
+        PublicStatus.SOLD: "danger",
+        PublicStatus.ARCHIVED: "secondary",
+    }
+
+    PUBLIC_FEED_STATUSES = {Status.PUBLISHED}
+
+    class ChangeEvent(models.TextChoices):
+        SUBMITTED = "submitted", "Annonce soumise"
+        APPROVED = "approved", "Annonce validée"
+        REJECTED = "rejected", "Annonce rejetée"
+        STATUS_UPDATED = "status_updated", "Statut modifié"
+        DETAILS_UPDATED = "details_updated", "Détails mis à jour"
+        OTHER = "other", "Autre modification"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     seller = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="listings"
     )
     category = models.ForeignKey(
-        Category,
+        "catalog.Category",
         null=True,
         blank=True,
         on_delete=models.PROTECT,
@@ -65,7 +84,7 @@ class Listing(models.Model):
 
     postal_code = models.CharField(max_length=20, blank=True, db_index=True)
     location_city = models.ForeignKey(
-        City,
+        "location.City",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -75,9 +94,11 @@ class Listing(models.Model):
     available_from = models.DateTimeField(null=True, blank=True, db_index=True)
     view_count = models.PositiveIntegerField(default=0, db_index=True)
 
-    source_type = models.CharField(max_length=12, default="images")  # images|video
+    source_type = models.CharField(
+        max_length=12, choices=SourceType.choices, default=SourceType.IMAGES
+    )
     source_video = models.ForeignKey(
-        VideoUpload,
+        "mediahub.VideoUpload",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -86,22 +107,6 @@ class Listing(models.Model):
 
     shipping_enabled = models.BooleanField(default=True, db_index=True)
     in_person_enabled = models.BooleanField(default=True, db_index=True)
-    source_item = models.OneToOneField(
-        "ingestion.DetectedItem",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="published_listing",
-    )
-    reserved_for = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="reserved_listings",
-    )
-    reserved_at = models.DateTimeField(null=True, blank=True)
-    reservation_note = models.TextField(blank=True)
 
     # moderation
     moderation_notes = models.TextField(blank=True)
@@ -128,142 +133,35 @@ class Listing(models.Model):
         indexes = [
             models.Index(fields=["status", "created_at"]),
             models.Index(fields=["category", "status", "created_at"]),
-            models.Index(fields=["status", "created_at"]),
             models.Index(fields=["postal_code", "status", "created_at"]),
             models.Index(fields=["location_city", "status", "created_at"]),
         ]
 
-    class PublicStatus(models.TextChoices):
-        AVAILABLE = "available", "Disponible"
-        RESERVED = "reserved", "Réservée"
-        SOLD = "sold", "Vendue"
-        ARCHIVED = "archived", "Archivée"
-
-    PUBLIC_STATUS_TONES = {
-        PublicStatus.AVAILABLE: "success",
-        PublicStatus.RESERVED: "warning",
-        PublicStatus.SOLD: "danger",
-        PublicStatus.ARCHIVED: "secondary",
-    }
-
-    PUBLIC_FEED_STATUSES = {
-        Status.PUBLISHED,
-        Status.RESERVED,
-        Status.RESERVATION_ACCEPTED,
-    }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._initial_status = self.status
-
     def __str__(self):
-        return self.title
+        return self.title or f"Listing({self.id})"
 
-    def _sync_location_fields(self):
-        location = self.location_city
-        if location:
-            self.city = location.name
-            self.postal_code = location.postal_code
-
-    def get_primary_image(self):
-        primary = (
-            self.images.filter(is_primary=True).select_related("image_asset").first()
-        )
-        if primary:
-            return primary
-        return self.images.select_related("image_asset").order_by("sort_order").first()
-
-    def cancel_active_reservation(self):
-        now = timezone.now()
-        active = self.reservations.active()
-        if active.exists():
-            active.update(cancelled_at=now)
-
-    def save(self, *args, **kwargs):
-        if self.location_city:
-            self._sync_location_fields()
-        if not self.slug and self.title:
-            self.slug = slugify(self.title)[:160]
-        prev_status = self._initial_status
-        super().save(*args, **kwargs)
-        if prev_status == self.Status.RESERVED and self.status == self.Status.PUBLISHED:
-            self.cancel_active_reservation()
-        self._initial_status = self.status
-
-    def refresh_reservation_state(self):
-        now = timezone.now()
-        stale = self.reservations.filter(cancelled_at__isnull=True, expires_at__lte=now)
-        if stale.exists():
-            stale.update(cancelled_at=now)
-        active = (
-            self.reservations.filter(cancelled_at__isnull=True, expires_at__gt=now)
-            .select_related("buyer")
-            .order_by("-reserved_at")
-            .first()
-        )
-        reserved_states = {
-            self.Status.RESERVED,
-            self.Status.RESERVATION_ACCEPTED,
-        }
-        if active and self.status not in reserved_states:
-            self.status = self.Status.RESERVED
-            self.save(update_fields=["status"])
-        if not active and self.status in reserved_states:
-            self.status = self.Status.PUBLISHED
-            self.save(update_fields=["status"])
-        return active
-
-    class ChangeEvent(models.TextChoices):
-        SUBMITTED = "submitted", "Annonce soumise"
-        APPROVED = "approved", "Annonce validée"
-        REJECTED = "rejected", "Annonce rejetée"
-        STATUS_UPDATED = "status_updated", "Statut modifié"
-        DETAILS_UPDATED = "details_updated", "Détails mis à jour"
-        OTHER = "other", "Autre modification"
-
-    def record_history(self, user, event, details):
-        actor_role = (
-            ListingChangeLog.ActorRole.ADMIN
-            if user and user.is_staff
-            else ListingChangeLog.ActorRole.SELLER
-        )
-        ListingChangeLog.objects.create(
-            listing=self,
-            user=user if user and user.is_authenticated else None,
-            actor_role=actor_role,
-            event=event,
-            details=details,
-        )
+    @property
+    def city(self) -> str:
+        return self.location_city.name if self.location_city else ""
 
     @property
     def change_history(self):
         return self.change_logs.order_by("-created_at")
 
-    def increment_view_count(self):
-        Listing.objects.filter(pk=self.pk).update(view_count=F("view_count") + 1)
-        self.refresh_from_db(fields=["view_count"])
-
     def get_public_status(self):
+        """
+        Read-only UX helper.
+        (Offer detection uses QuerySet.active() which is stable.)
+        """
         if self.status == self.Status.PUBLISHED:
+            if self.offers.active().exists():
+                return self.PublicStatus.NEGOTIATING
             return self.PublicStatus.AVAILABLE
-        if self.status in {self.Status.RESERVED, self.Status.RESERVATION_ACCEPTED}:
-            return self.PublicStatus.RESERVED
         if self.status == self.Status.SOLD:
             return self.PublicStatus.SOLD
         if self.status == self.Status.ARCHIVED:
             return self.PublicStatus.ARCHIVED
         return None
-
-    @property
-    def is_reserved_state(self):
-        return self.status in {self.Status.RESERVED, self.Status.RESERVATION_ACCEPTED}
-
-    def reservation_badge_label(self, user):
-        if not self.is_reserved_state:
-            return None
-        if user and self.reserved_for_id == getattr(user, "id", None):
-            return "Réservé pour vous"
-        return "Réservé"
 
     @property
     def public_status_display(self):
@@ -278,7 +176,7 @@ class Listing(models.Model):
     def is_listed_publicly(self):
         return self.get_public_status() in {
             self.PublicStatus.AVAILABLE,
-            self.PublicStatus.RESERVED,
+            self.PublicStatus.NEGOTIATING,
         }
 
 
@@ -312,11 +210,17 @@ class ListingView(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="listing_views"
     )
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="views")
+    listing = models.ForeignKey(
+        "Listing", on_delete=models.CASCADE, related_name="views"
+    )
     viewed_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
-        unique_together = [("user", "listing")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "listing"], name="uniq_listing_view_user_listing"
+            ),
+        ]
         indexes = [
             models.Index(fields=["user", "listing"]),
             models.Index(fields=["viewed_at"]),
@@ -328,13 +232,13 @@ class ListingView(models.Model):
 
 class ListingImage(models.Model):
     listing = models.ForeignKey(
-        Listing, on_delete=models.CASCADE, related_name="images"
+        "Listing", on_delete=models.CASCADE, related_name="images"
     )
     image_asset = models.ForeignKey(
-        ImageAsset, on_delete=models.PROTECT, related_name="listing_images"
+        "mediahub.ImageAsset", on_delete=models.PROTECT, related_name="listing_images"
     )
     keyframe = models.ForeignKey(
-        Keyframe,
+        "mediahub.Keyframe",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -349,69 +253,119 @@ class ListingImage(models.Model):
         indexes = [models.Index(fields=["listing", "sort_order"])]
 
 
-class ReservationQuerySet(models.QuerySet):
+class OfferQuerySet(models.QuerySet):
     def active(self):
         now = timezone.now()
-        return self.filter(cancelled_at__isnull=True, expires_at__gt=now)
+        return self.filter(
+            status="requested",
+            cancelled_at__isnull=True,
+            expires_at__gt=now,
+        )
+
+    def expired(self):
+        now = timezone.now()
+        return self.filter(
+            status="requested",
+            cancelled_at__isnull=True,
+            expires_at__lte=now,
+        )
 
 
-class ReservationManager(models.Manager):
-    def get_queryset(self):
-        return ReservationQuerySet(self.model, using=self._db)
+class Offer(models.Model):
+    class Status(models.TextChoices):
+        REQUESTED = "requested", "Offre envoyée"
+        ACCEPTED = "accepted", "Offre acceptée"
+        REJECTED = "rejected", "Offre refusée"
+        CANCELLED = "cancelled", "Offre annulée"
 
-    def active(self):
-        return self.get_queryset().active()
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-
-class Reservation(models.Model):
     listing = models.ForeignKey(
-        Listing,
-        on_delete=models.CASCADE,
-        related_name="reservations",
+        "listings.Listing", on_delete=models.CASCADE, related_name="offers"
     )
     buyer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="reservations",
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="offers"
     )
-    reserved_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
+
+    offer_price_cents = models.PositiveIntegerField(db_index=True)
+    currency = models.CharField(max_length=3, default="EUR")
+
+    note = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.REQUESTED, db_index=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(db_index=True)
+
     cancelled_at = models.DateTimeField(null=True, blank=True)
 
-    objects = ReservationManager()
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="offers_decided",
+    )
+
+    objects = OfferQuerySet.as_manager()
 
     class Meta:
-        ordering = ["-reserved_at"]
+        indexes = [
+            models.Index(fields=["listing", "status", "expires_at"]),
+            models.Index(fields=["buyer", "status", "expires_at"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["listing", "buyer"], name="uniq_offer_per_buyer_listing"
+            ),
+            models.UniqueConstraint(
+                fields=["listing"],
+                condition=Q(status="accepted", cancelled_at__isnull=True),
+                name="uniq_accepted_offer_per_listing",
+            ),
+        ]
 
-    def is_active(self):
-        return self.cancelled_at is None and self.expires_at > timezone.now()
+    def is_expired(self) -> bool:
+        return timezone.now() >= self.expires_at
 
-    def cancel(self):
-        if not self.cancelled_at:
-            self.cancelled_at = timezone.now()
-            self.save(update_fields=["cancelled_at"])
+    def is_active(self) -> bool:
+        return (
+            self.status == self.Status.REQUESTED
+            and self.cancelled_at is None
+            and not self.is_expired()
+        )
 
 
-class ReservationLog(models.Model):
+class OfferLog(models.Model):
     class Action(models.TextChoices):
-        RESERVED = "reserved", "Réservé"
-        CANCELLED = "cancelled", "Annulé"
-        ACCEPTED = "accepted", "Accepté"
+        CREATED = "created", "Offre créée"
+        CANCELLED = "cancelled", "Offre annulée"
+        ACCEPTED = "accepted", "Offre acceptée"
+        REJECTED = "rejected", "Offre refusée"
 
-    listing = models.ForeignKey(
-        Listing, on_delete=models.CASCADE, related_name="reservation_logs"
+    offer = models.ForeignKey(
+        "listings.Offer", on_delete=models.CASCADE, related_name="logs"
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="reservation_logs",
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="offer_logs"
     )
+
     action = models.CharField(max_length=16, choices=Action.choices, db_index=True)
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["offer", "created_at"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()} ({self.offer_id})"
 
 
 class ListingReminder(models.Model):
@@ -421,25 +375,20 @@ class ListingReminder(models.Model):
         related_name="listing_reminders",
     )
     listing = models.ForeignKey(
-        Listing,
-        on_delete=models.CASCADE,
-        related_name="reminders",
+        "listings.Listing", on_delete=models.CASCADE, related_name="reminders"
     )
+
     notify_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("user", "listing")]
-
-    def save(self, *args, **kwargs):
-        if not self.notify_at:
-            available = self.listing.available_from
-            if available:
-                self.notify_at = available - timedelta(hours=6)
-            else:
-                self.notify_at = timezone.now()
-        super().save(*args, **kwargs)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "listing"], name="uniq_listing_reminder_user_listing"
+            ),
+        ]
 
 
 class SearchAlert(models.Model):
@@ -450,39 +399,35 @@ class SearchAlert(models.Model):
     )
     keyword = models.CharField(max_length=255, blank=True)
     location_city = models.ForeignKey(
-        City,
+        "location.City",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name="search_alerts",
     )
     category = models.ForeignKey(
-        Category,
+        "catalog.Category",
         null=True,
         blank=True,
         on_delete=models.PROTECT,
         related_name="search_alerts",
     )
-    is_active = models.BooleanField(default=True)
+
+    is_active = models.BooleanField(default=True, db_index=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     last_sent = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = [("user", "keyword", "location_city", "category")]
-
-    def matches(self, listing):
-        if listing.seller == self.user:
-            return False
-        if self.keyword:
-            text = f"{listing.title} {listing.description}".lower()
-            if self.keyword.lower() not in text:
-                return False
-        if self.location_city_id:
-            if listing.location_city_id != self.location_city_id:
-                return False
-        if self.category and listing.category_id != self.category_id:
-            return False
-        return True
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "keyword", "location_city", "category"],
+                name="uniq_search_alert",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "is_active", "created_at"]),
+        ]
 
     def __str__(self):
         parts = [self.keyword or "mot-clé libre"]
@@ -495,19 +440,19 @@ class SearchAlert(models.Model):
 
 class SearchAlertNotification(models.Model):
     alert = models.ForeignKey(
-        SearchAlert,
-        on_delete=models.CASCADE,
-        related_name="notifications",
+        "listings.SearchAlert", on_delete=models.CASCADE, related_name="notifications"
     )
     listing = models.ForeignKey(
-        Listing,
-        on_delete=models.CASCADE,
-        related_name="alert_notifications",
+        "listings.Listing", on_delete=models.CASCADE, related_name="alert_notifications"
     )
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("alert", "listing")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["alert", "listing"], name="uniq_search_alert_notification"
+            ),
+        ]
 
 
 class OnboardingProfile(models.Model):
@@ -523,24 +468,26 @@ class OnboardingProfile(models.Model):
         related_name="onboarding_profile",
     )
     purpose = models.CharField(max_length=10, choices=PURPOSE_CHOICES, default="buy")
+
     location_city = models.ForeignKey(
-        City,
+        "location.City",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="on_boarding_profile",
+        related_name="onboarding_profiles",
     )
     radius_km = models.PositiveIntegerField(null=True, blank=True)
     categories = models.ManyToManyField(
-        Category,
+        "catalog.Category",
         blank=True,
         related_name="onboarding_profiles",
     )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"OnboardingProfile({self.user.email})"
+        return f"OnboardingProfile({getattr(self.user, 'email', self.user_id)})"
 
 
 class Favorite(models.Model):
@@ -548,9 +495,17 @@ class Favorite(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites"
     )
     listing = models.ForeignKey(
-        Listing, on_delete=models.CASCADE, related_name="favorited_by"
+        "listings.Listing", on_delete=models.CASCADE, related_name="favorited_by"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("user", "listing")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "listing"], name="uniq_favorite_user_listing"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "created_at"]),
+            models.Index(fields=["listing", "created_at"]),
+        ]

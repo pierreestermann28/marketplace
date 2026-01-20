@@ -11,9 +11,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import FormView, TemplateView
 
-BATCH_STUCK_THRESHOLD_SECONDS = getattr(
-    settings, "BATCH_STUCK_THRESHOLD_SECONDS", 600
-)
+BATCH_STUCK_THRESHOLD_SECONDS = getattr(settings, "BATCH_STUCK_THRESHOLD_SECONDS", 600)
 
 
 def _is_batch_stuck(batch):
@@ -39,7 +37,9 @@ def _batch_status_hint(batch, is_stuck):
 
 
 def _build_batch_status_context(batch):
-    pending_count = batch.detected_items.filter(status=DetectedItem.Status.PENDING).count()
+    pending_count = batch.detected_items.filter(
+        status=DetectedItem.Status.PENDING
+    ).count()
     detected_count = batch.detected_items.count()
     is_stuck = _is_batch_stuck(batch)
     return {
@@ -52,7 +52,8 @@ def _build_batch_status_context(batch):
         "can_retry": batch.status in {BatchUpload.Status.FAILED} or is_stuck,
     }
 
-from mediahub.models import BatchUpload, ImageAsset, MediaAsset
+
+from mediahub.models import BatchUpload, ImageAsset, BatchMedia
 
 from .forms import BatchUploadForm
 from .models import DetectedItem
@@ -104,7 +105,7 @@ class BatchUploadCreateView(LoginRequiredMixin, FormView):
                 image=upload,
                 source="upload",
             )
-            MediaAsset.objects.create(batch=batch, image_asset=image_asset)
+            BatchMedia.objects.create(batch=batch, image_asset=image_asset)
         analyze_batch.delay(str(batch.id))
         return redirect("ingestion:batch_processing", batch_id=batch.id)
 
@@ -147,7 +148,9 @@ class BatchProcessingRetryView(BatchOwnerMixin, View):
             )
         context = _build_batch_status_context(batch)
         if request.headers.get("HX-Request"):
-            return render(request, "fragments/ingestion/processing_status.html", context)
+            return render(
+                request, "fragments/ingestion/processing_status.html", context
+            )
         return redirect("ingestion:batch_processing", batch_id=batch.id)
 
 
@@ -184,7 +187,9 @@ def _get_next_swipe_item(user):
 
 def _render_swipe_fragment(request, item):
     if item:
-        return render(request, "fragments/ingestion/swipe_card.html", {"current_item": item})
+        return render(
+            request, "fragments/ingestion/swipe_card.html", {"current_item": item}
+        )
     return render(request, "fragments/ingestion/swipe_empty.html")
 
 
@@ -240,7 +245,9 @@ class SwipeDecisionView(LoginRequiredMixin, View):
             )
             empty = False
         else:
-            html = render_to_string("fragments/ingestion/swipe_empty.html", request=request)
+            html = render_to_string(
+                "fragments/ingestion/swipe_empty.html", request=request
+            )
         return HttpResponse(
             json.dumps({"html": html, "empty": empty}),
             content_type="application/json",
@@ -261,7 +268,9 @@ def _get_next_swipe_item(user):
 
 def _render_swipe_fragment(request, item):
     if item:
-        return render(request, "fragments/ingestion/swipe_card.html", {"current_item": item})
+        return render(
+            request, "fragments/ingestion/swipe_card.html", {"current_item": item}
+        )
     return render(request, "fragments/ingestion/swipe_empty.html")
 
 

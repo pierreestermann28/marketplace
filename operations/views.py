@@ -12,7 +12,7 @@ from billing.models import UserEntitlement
 from commerce.models import Dispute, Order
 from ingestion.models import DetectedItem
 from listings.models import Listing
-from mediahub.models import BatchUpload
+from ingestion.models import BatchUpload
 from reports.models import Report
 
 from ingestion.views import _build_admin_counts, _get_next_admin_item

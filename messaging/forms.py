@@ -37,7 +37,9 @@ class MessageForm(forms.ModelForm):
         if EMAIL_PATTERN.search(text):
             raise forms.ValidationError("Merci de ne pas partager d’e-mail.")
         if PHONE_PATTERN.search(text):
-            raise forms.ValidationError("Merci de ne pas partager de numéro de téléphone.")
+            raise forms.ValidationError(
+                "Merci de ne pas partager de numéro de téléphone."
+            )
         if LINK_PATTERN.search(text):
             raise forms.ValidationError("Merci de ne pas poster de liens externes.")
         return text

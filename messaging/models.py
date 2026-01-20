@@ -1,12 +1,14 @@
+# messaging/models.py
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
-from listings.models import Listing
 
 
 class Conversation(models.Model):
     listing = models.ForeignKey(
-        Listing, on_delete=models.CASCADE, related_name="conversations"
+        "listings.Listing",
+        on_delete=models.CASCADE,
+        related_name="conversations",
     )
     buyer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -18,8 +20,10 @@ class Conversation(models.Model):
         on_delete=models.CASCADE,
         related_name="seller_conversations",
     )
+
     last_message_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
     reports = GenericRelation(
         "reports.Report",
         content_type_field="target_content_type",
@@ -28,33 +32,48 @@ class Conversation(models.Model):
     )
 
     class Meta:
-        unique_together = [("listing", "buyer")]
-
-    def other_user(self, user):
-        return self.seller if self.buyer == user else self.buyer
-
-    def mark_messages_read_for(self, user):
-        if not user:
-            return
-        self.messages.exclude(sender=user).filter(is_read=False).update(is_read=True)
-
-    def unread_messages_count_for(self, user):
-        if not user:
-            return 0
-        return self.messages.exclude(sender=user).filter(is_read=False).count()
+        constraints = [
+            models.UniqueConstraint(
+                fields=["listing", "buyer"],
+                name="uniq_conversation_listing_buyer",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["buyer", "-last_message_at"]),
+            models.Index(fields=["seller", "-last_message_at"]),
+            models.Index(fields=["listing", "-last_message_at"]),
+        ]
 
 
 class Message(models.Model):
     conversation = models.ForeignKey(
-        Conversation, on_delete=models.CASCADE, related_name="messages"
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name="messages",
     )
     sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="messages_sent"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="messages_sent",
     )
+
     text = models.TextField(blank=True)
-    attachment = models.FileField(upload_to="chat_attachments/%Y/%m/%d/", blank=True)
+    attachment = models.FileField(
+        upload_to="chat_attachments/%Y/%m/%d/",
+        null=True,
+        blank=True,
+    )
+
     is_read = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["conversation", "created_at"]),
+            models.Index(fields=["sender", "created_at"]),
+            models.Index(fields=["conversation", "is_read"]),
+        ]
 
 
 class BlockedUser(models.Model):
@@ -71,4 +90,13 @@ class BlockedUser(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("blocker", "blocked")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["blocker", "blocked"],
+                name="uniq_blocked_user_pair",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["blocker", "created_at"]),
+            models.Index(fields=["blocked", "created_at"]),
+        ]

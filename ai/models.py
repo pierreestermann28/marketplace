@@ -1,6 +1,7 @@
 import uuid
 from django.conf import settings
 from django.db import models
+from decimal import Decimal
 
 
 class AIModelProvider(models.TextChoices):
@@ -18,15 +19,8 @@ class AIImageAnalysis(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    listing = models.ForeignKey(
-        "listings.Listing",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="ai_analyses",
-    )
     image_asset = models.ForeignKey(
-        "mediahub.MediaAsset", on_delete=models.CASCADE, related_name="ai_analyses"
+        "mediahub.BatchMedia", on_delete=models.CASCADE, related_name="ai_analyses"
     )
 
     requested_by = models.ForeignKey(
@@ -40,14 +34,16 @@ class AIImageAnalysis(models.Model):
     provider = models.CharField(
         max_length=20, choices=AIModelProvider.choices, default=AIModelProvider.OPENAI
     )
-    model_name = models.CharField(max_length=64, default="gpt-4o-mini")  # example
+    model_name = models.CharField(
+        max_length=64, default=settings.AI_DEFAULT_MODEL
+    )  # example
     prompt_version = models.CharField(max_length=24, default="v1")
 
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.QUEUED
     )
     error_code = models.CharField(max_length=64, blank=True)
-    error_message = models.TextField(blank=True)
+    error_message = models.TextField(null=True, blank=True)
 
     # Store what you sent + what you got back (debuggable + replayable)
     input_payload = models.JSONField(default=dict, blank=True)
@@ -56,7 +52,15 @@ class AIImageAnalysis(models.Model):
     # Cost tracking (optional but very useful)
     input_tokens = models.PositiveIntegerField(default=0)
     output_tokens = models.PositiveIntegerField(default=0)
-    cost_usd = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    cost_eur = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0.0000")
+    )
+
+    # Retry
+    attempt = models.PositiveSmallIntegerField(default=0)
+
+    # Already done
+    request_id = models.CharField(max_length=64, blank=True, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -65,7 +69,7 @@ class AIImageAnalysis(models.Model):
         indexes = [
             models.Index(fields=["status", "created_at"]),
             models.Index(fields=["image_asset", "created_at"]),
-            models.Index(fields=["listing", "created_at"]),
+            models.Index(fields=["created_at"]),
         ]
 
 
@@ -94,8 +98,9 @@ class AISuggestion(models.Model):
     suggested_condition = models.CharField(
         max_length=20, blank=True
     )  # new/like_new/good/used/poor
-    price_eur_min = models.PositiveIntegerField(default=0)
-    price_eur_max = models.PositiveIntegerField(default=0)
+    suggested_attributes = models.JSONField(default=dict)
+    price_eur_min = models.PositiveIntegerField(null=True, blank=True)
+    price_eur_max = models.PositiveIntegerField(null=True, blank=True)
 
     pricing_reason = models.CharField(max_length=280, blank=True)
     quality_flags = models.JSONField(default=list, blank=True)  # ["blur", "dark", ...]

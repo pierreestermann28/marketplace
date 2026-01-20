@@ -237,6 +237,10 @@ PWA_APP_ICONS = [
 #     },
 # ]
 
+
+# AI
+AI_DEFAULT_MODEL = "gpt-4o-mini"
+
 # Stripe billing
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")

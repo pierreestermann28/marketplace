@@ -25,13 +25,14 @@ def dispatch_search_alerts(listing: Listing):
         listing_url = reverse("listing_detail", kwargs={"slug": listing.slug or "item", "uuid": listing.id})
         if base_url:
             listing_url = f"{base_url}{listing_url}"
+        location_label = listing.city or listing.postal_code or listing.country_code or "Localisation inconnue"
         message = "\n".join(
             [
                 f"Une annonce correspond à votre alerte : {alert}",
                 f"Titre : {listing.title}",
                 f"Prix : {listing.price_cents / 100 if listing.price_cents else 'À définir'} {listing.currency}",
                 f"Lien : {listing_url}",
-                f"Ville : {listing.city}",
+                f"Ville : {location_label}",
             ]
         )
         sender = getattr(settings, "DEFAULT_FROM_EMAIL", settings.SERVER_EMAIL)

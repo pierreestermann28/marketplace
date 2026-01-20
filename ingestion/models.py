@@ -1,8 +1,105 @@
 # ingestion/models.py
-from decimal import Decimal
+import uuid
 
 from django.conf import settings
 from django.db import models
+
+from mediahub.models import ImageAsset
+
+
+class BatchUpload(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        RUNNING = "RUNNING", "Running"
+        DONE = "DONE", "Done"
+        FAILED = "FAILED", "Failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="batch_uploads",
+    )
+
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+
+    sale_location = models.CharField(max_length=140, blank=True, db_index=True)
+    seller_notes = models.TextField(blank=True)
+
+    media_count = models.PositiveIntegerField(default=0)
+    processed_count = models.PositiveIntegerField(default=0)
+
+    processing_started_at = models.DateTimeField(null=True, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    error_message = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["owner", "status", "created_at"]),
+            models.Index(fields=["status", "created_at"]),
+        ]
+
+
+class BatchMedia(models.Model):
+    class Source(models.TextChoices):
+        UPLOAD = "upload", "Upload"
+        KEYFRAME = "keyframe", "Keyframe"
+        OTHER = "other", "Other"
+
+    class MediaType(models.TextChoices):
+        IMAGE = "image", "Image"
+        VIDEO = "video", "Video"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    batch = models.ForeignKey(
+        BatchUpload,
+        on_delete=models.CASCADE,
+        related_name="media_assets",
+    )
+
+    image_asset = models.OneToOneField(
+        ImageAsset,
+        on_delete=models.CASCADE,
+        related_name="ingestion_media_asset",
+    )
+
+    media_type = models.CharField(
+        max_length=12,
+        choices=MediaType.choices,
+        default=MediaType.IMAGE,
+    )
+
+    source = models.CharField(
+        max_length=20,
+        choices=Source.choices,
+        default=Source.UPLOAD,
+    )
+
+    file_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    metadata_json = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["batch", "created_at"]),
+            models.Index(fields=["batch", "source", "created_at"]),
+            models.Index(fields=["file_hash"]),
+        ]
+
+    def __str__(self):
+        return f"{self.media_type.upper()} #{self.id}"
 
 
 class DetectedItem(models.Model):
@@ -20,26 +117,19 @@ class DetectedItem(models.Model):
         related_name="detected_items",
     )
 
-    # IMPORTANT: BatchUpload et MediaAsset sont dans mediahub
+    # ✅ pointe vers ingestion.BatchUpload (source de vérité “batch IA”)
     batch = models.ForeignKey(
-        "mediahub.BatchUpload",
+        BatchUpload,
         on_delete=models.CASCADE,
         related_name="detected_items",
     )
 
     hero_asset = models.ForeignKey(
-        "mediahub.MediaAsset",
+        BatchMedia,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="hero_for_items",
-    )
-    listing = models.OneToOneField(
-        "listings.Listing",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="detected_item",
     )
 
     status = models.CharField(
@@ -48,28 +138,6 @@ class DetectedItem(models.Model):
         default=Status.PENDING,
         db_index=True,
     )
-    is_cached_result = models.BooleanField(
-        default=False,
-        db_index=True,
-        help_text="True when suggestions are reused from a previous hash match.",
-    )
-
-    # Suggestions IA (persistées, jamais recalculées sans raison)
-    title_suggested = models.CharField(max_length=120, blank=True, default="")
-    description_suggested = models.TextField(blank=True, default="")
-    category_suggested = models.CharField(max_length=64, blank=True, default="")
-
-    price_low = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
-    price_high = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
-
-    confidence = models.FloatField(null=True, blank=True)
-
-    # Tout ce que renvoie l'IA (bbox, labels, embeddings, etc.)
-    metadata_json = models.JSONField(default=dict, blank=True)
 
     current_suggestion = models.ForeignKey(
         "ai.AISuggestion",
@@ -89,58 +157,5 @@ class DetectedItem(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"DetectedItem({self.id}) {self.status} - {self.title_suggested[:30]}"
-
-    @property
-    def title_suggested_canonical(self):
-        suggestion = self.current_suggestion
-        if suggestion and suggestion.suggested_title:
-            return suggestion.suggested_title
-        return self.title_suggested
-
-    @property
-    def description_suggested_canonical(self):
-        suggestion = self.current_suggestion
-        if (
-            suggestion
-            and suggestion.analysis
-            and suggestion.analysis.output_json
-            and suggestion.analysis.output_json.get("description")
-        ):
-            return suggestion.analysis.output_json["description"]
-        return self.description_suggested
-
-    @property
-    def category_suggested_canonical(self):
-        suggestion = self.current_suggestion
-        if suggestion and suggestion.suggested_category_slug:
-            return suggestion.suggested_category_slug
-        return self.category_suggested
-
-    @property
-    def price_low_canonical(self):
-        suggestion = self.current_suggestion
-        if suggestion and suggestion.price_eur_min:
-            return Decimal(suggestion.price_eur_min)
-        return self.price_low
-
-    @property
-    def price_high_canonical(self):
-        suggestion = self.current_suggestion
-        if suggestion and suggestion.price_eur_max:
-            return Decimal(suggestion.price_eur_max)
-        return self.price_high
-
-    @property
-    def confidence_canonical(self):
-        suggestion = self.current_suggestion
-        if suggestion and suggestion.analysis and suggestion.analysis.output_json:
-            return suggestion.analysis.output_json.get("confidence") or self.confidence
-        return self.confidence
-
-    @property
-    def metadata_canonical(self):
-        suggestion = self.current_suggestion
-        if suggestion and suggestion.analysis and suggestion.analysis.output_json:
-            return suggestion.analysis.output_json
-        return self.metadata_json
+        # ⚠️ évite de référencer un champ possiblement absent si ton snippet est tronqué
+        return f"DetectedItem({self.id}) {self.status}"

@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from mediahub.models import BatchUpload, ImageAsset, MediaAsset
+from mediahub.models import BatchUpload, ImageAsset, BatchMedia
 
 from .models import DetectedItem
 from .services.publishing import publish_detected_item
@@ -41,7 +41,9 @@ class IngestionTests(TestCase):
 
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_user(email="seller@example.com", password="pass12345")
+        self.user = User.objects.create_user(
+            email="seller@example.com", password="pass12345"
+        )
         self.staff = User.objects.create_user(
             email="moderator@example.com",
             password="pass12345",
@@ -49,7 +51,9 @@ class IngestionTests(TestCase):
         )
         self.batch = BatchUpload.objects.create(owner=self.user, media_count=1)
         image_asset = ImageAsset.objects.create(user=self.user, image=make_image_file())
-        self.media_asset = MediaAsset.objects.create(batch=self.batch, image_asset=image_asset)
+        self.media_asset = BatchMedia.objects.create(
+            batch=self.batch, image_asset=image_asset
+        )
         self.detected_item = DetectedItem.objects.create(
             owner=self.user,
             batch=self.batch,
@@ -69,7 +73,9 @@ class IngestionTests(TestCase):
 
     def test_user_can_approve_swipe_sets_status(self):
         self.client.force_login(self.user)
-        url = reverse("ingestion:detecteditem_approve", kwargs={"item_id": self.detected_item.id})
+        url = reverse(
+            "ingestion:detecteditem_approve", kwargs={"item_id": self.detected_item.id}
+        )
         response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(response.status_code, 200)
         self.detected_item.refresh_from_db()
@@ -77,7 +83,9 @@ class IngestionTests(TestCase):
 
     def test_user_can_reject_swipe_sets_status(self):
         self.client.force_login(self.user)
-        url = reverse("ingestion:detecteditem_reject", kwargs={"item_id": self.detected_item.id})
+        url = reverse(
+            "ingestion:detecteditem_reject", kwargs={"item_id": self.detected_item.id}
+        )
         self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.detected_item.refresh_from_db()
         self.assertEqual(self.detected_item.status, DetectedItem.Status.USER_REJECTED)
@@ -86,7 +94,10 @@ class IngestionTests(TestCase):
         self.detected_item.status = DetectedItem.Status.USER_APPROVED
         self.detected_item.save(update_fields=["status"])
         self.client.force_login(self.staff)
-        url = reverse("ingestion:detecteditem_admin_approve", kwargs={"item_id": self.detected_item.id})
+        url = reverse(
+            "ingestion:detecteditem_admin_approve",
+            kwargs={"item_id": self.detected_item.id},
+        )
         response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(response.status_code, 200)
         self.detected_item.refresh_from_db()
@@ -97,7 +108,10 @@ class IngestionTests(TestCase):
         self.detected_item.status = DetectedItem.Status.USER_APPROVED
         self.detected_item.save(update_fields=["status"])
         self.client.force_login(self.staff)
-        url = reverse("ingestion:detecteditem_admin_reject", kwargs={"item_id": self.detected_item.id})
+        url = reverse(
+            "ingestion:detecteditem_admin_reject",
+            kwargs={"item_id": self.detected_item.id},
+        )
         response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(response.status_code, 200)
         self.detected_item.refresh_from_db()
@@ -109,7 +123,9 @@ class IngestionTests(TestCase):
         self.batch.error_message = "boom"
         self.batch.save(update_fields=["status", "error_message"])
         self.client.force_login(self.user)
-        url = reverse("ingestion:batch_processing_retry", kwargs={"batch_id": self.batch.id})
+        url = reverse(
+            "ingestion:batch_processing_retry", kwargs={"batch_id": self.batch.id}
+        )
         response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(response.status_code, 200)
         self.batch.refresh_from_db()
@@ -129,13 +145,17 @@ class IngestionTests(TestCase):
             update_fields=["title_suggested", "description_suggested", "metadata_json"]
         )
         new_batch = BatchUpload.objects.create(owner=self.user, media_count=1)
-        image_asset = ImageAsset.objects.create(user=self.user, image=make_image_file("copy.png"))
-        new_asset = MediaAsset.objects.create(batch=new_batch, image_asset=image_asset)
+        image_asset = ImageAsset.objects.create(
+            user=self.user, image=make_image_file("copy.png")
+        )
+        new_asset = BatchMedia.objects.create(batch=new_batch, image_asset=image_asset)
         analyze_batch.__wrapped__(None, str(new_batch.id))
         cached_item = DetectedItem.objects.filter(hero_asset=new_asset).first()
         self.assertIsNotNone(cached_item)
         self.assertTrue(cached_item.is_cached_result)
-        self.assertEqual(cached_item.title_suggested, self.detected_item.title_suggested)
+        self.assertEqual(
+            cached_item.title_suggested, self.detected_item.title_suggested
+        )
         self.assertEqual(cached_item.metadata_json.get("cached"), True)
 
     @override_settings(FREE_DETECTED_ITEM_QUOTA_PER_MONTH=1)
@@ -151,7 +171,10 @@ class IngestionTests(TestCase):
         self.detected_item.status = DetectedItem.Status.USER_APPROVED
         self.detected_item.save(update_fields=["status"])
         self.client.force_login(self.staff)
-        url = reverse("ingestion:detecteditem_admin_approve", kwargs={"item_id": self.detected_item.id})
+        url = reverse(
+            "ingestion:detecteditem_admin_approve",
+            kwargs={"item_id": self.detected_item.id},
+        )
         response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(response.status_code, 200)
         self.detected_item.refresh_from_db()

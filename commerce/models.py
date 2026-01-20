@@ -1,6 +1,8 @@
+# commerce/models.py
 import uuid
+import secrets
+
 from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from accounts.models import Address
 from listings.models import Listing
@@ -12,23 +14,22 @@ class Order(models.Model):
         IN_PERSON = "in_person"
 
     class Status(models.TextChoices):
-        CREATED = "created"
-        PAID = "paid"
+        CREATED = "created"  # reservation created
         MEETUP_SCHEDULED = "meetup_scheduled"
-        LABEL_READY = "label_ready"
-        IN_TRANSIT = "in_transit"
+        IN_TRANSIT = "in_transit"  # if shipping (no payment)
         AWAITING_CONFIRMATION = "awaiting_confirmation"
         COMPLETED = "completed"
         CANCELLED = "cancelled"
-        REFUNDED = "refunded"
-        DISPUTE = "dispute"
         EXPIRED = "expired"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    listing = models.ForeignKey(
-        Listing, on_delete=models.PROTECT, related_name="orders"
+    listing = models.OneToOneField(
+        Listing,
+        on_delete=models.PROTECT,
+        related_name="order",
     )
+
     buyer = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="purchases"
     )
@@ -43,11 +44,8 @@ class Order(models.Model):
         max_length=24, choices=Status.choices, default=Status.CREATED, db_index=True
     )
 
-    item_price_cents = models.PositiveIntegerField()
-    shipping_price_cents = models.PositiveIntegerField(default=0)
-    platform_fee_cents = models.PositiveIntegerField(default=0)
-    stripe_fee_cents = models.PositiveIntegerField(default=0)
-    total_paid_cents = models.PositiveIntegerField(default=0)
+    # Optional info (because no in-app payment)
+    proposed_price_cents = models.PositiveIntegerField(null=True, blank=True)
     currency = models.CharField(max_length=3, default="EUR")
 
     buyer_address = models.ForeignKey(
@@ -65,64 +63,20 @@ class Order(models.Model):
         related_name="orders_as_origin",
     )
 
-    # in-person proof
+    # in-person proof / or pickup confirmation
     handover_code = models.CharField(max_length=12, blank=True, db_index=True)
     handover_confirmed_at = models.DateTimeField(null=True, blank=True)
+
     confirmation_deadline = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
-class Payment(models.Model):
-    class Provider(models.TextChoices):
-        STRIPE = "stripe"
-
-    class Status(models.TextChoices):
-        REQUIRES_ACTION = "requires_action"
-        SUCCEEDED = "succeeded"
-        FAILED = "failed"
-        REFUNDED = "refunded"
-
-    order = models.OneToOneField(
-        Order, on_delete=models.CASCADE, related_name="payment"
-    )
-    provider = models.CharField(
-        max_length=12, choices=Provider.choices, default=Provider.STRIPE
-    )
-    status = models.CharField(max_length=24, choices=Status.choices, db_index=True)
-
-    amount_cents = models.PositiveIntegerField()
-    currency = models.CharField(max_length=3, default="EUR")
-
-    provider_payment_intent_id = models.CharField(
-        max_length=120, blank=True, db_index=True
-    )
-    provider_charge_id = models.CharField(max_length=120, blank=True, db_index=True)
-    raw = models.JSONField(default=dict, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-
-class Dispute(models.Model):
-    class Reason(models.TextChoices):
-        NO_SHOW = "no_show"
-        NOT_AS_DESCRIBED = "not_as_described"
-        NOT_RECEIVED = "not_received"
-        OTHER = "other"
-
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="disputes")
-    opened_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="disputes_opened",
-    )
-    reason = models.CharField(max_length=30, choices=Reason.choices, db_index=True)
-    message = models.TextField(blank=True)
-
-    is_resolved = models.BooleanField(default=False, db_index=True)
-    resolution = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        indexes = [
+            models.Index(fields=["seller", "status", "created_at"]),
+            models.Index(fields=["buyer", "status", "created_at"]),
+        ]
 
 
 class Review(models.Model):
@@ -143,14 +97,18 @@ class Review(models.Model):
     )
 
     role = models.CharField(max_length=20, choices=Role.choices, db_index=True)
-    rating = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
+    rating = models.PositiveSmallIntegerField()
     comment = models.TextField(blank=True)
     tags = models.JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("order", "role")]
-        indexes = [models.Index(fields=["target", "role", "created_at"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "role"], name="uniq_review_per_role_order"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["target", "role", "created_at"]),
+        ]

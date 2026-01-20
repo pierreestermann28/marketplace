@@ -16,89 +16,230 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='BatchUpload',
+            name="BatchUpload",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('PENDING', 'Pending'), ('RUNNING', 'Running'), ('DONE', 'Done'), ('FAILED', 'Failed')], db_index=True, default='PENDING', max_length=12)),
-                ('sale_location', models.CharField(blank=True, db_index=True, max_length=140)),
-                ('seller_notes', models.TextField(blank=True)),
-                ('media_count', models.PositiveIntegerField(default=0)),
-                ('processed_count', models.PositiveIntegerField(default=0)),
-                ('processing_started_at', models.DateTimeField(blank=True, null=True)),
-                ('processed_at', models.DateTimeField(blank=True, null=True)),
-                ('error_message', models.TextField(blank=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='batch_uploads', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("RUNNING", "Running"),
+                            ("DONE", "Done"),
+                            ("FAILED", "Failed"),
+                        ],
+                        db_index=True,
+                        default="PENDING",
+                        max_length=12,
+                    ),
+                ),
+                (
+                    "sale_location",
+                    models.CharField(blank=True, db_index=True, max_length=140),
+                ),
+                ("seller_notes", models.TextField(blank=True)),
+                ("media_count", models.PositiveIntegerField(default=0)),
+                ("processed_count", models.PositiveIntegerField(default=0)),
+                ("processing_started_at", models.DateTimeField(blank=True, null=True)),
+                ("processed_at", models.DateTimeField(blank=True, null=True)),
+                ("error_message", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="batch_uploads",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='ImageAsset',
+            name="ImageAsset",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('image', models.ImageField(upload_to='images/%Y/%m/%d/')),
-                ('source', models.CharField(default='upload', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='image_assets', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("image", models.ImageField(upload_to="images/%Y/%m/%d/")),
+                ("source", models.CharField(default="upload", max_length=20)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="image_assets",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='MediaAsset',
+            name="BatchMedia",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('media_type', models.CharField(choices=[('image', 'Image'), ('video', 'Video')], default='image', max_length=12)),
-                ('source', models.CharField(choices=[('upload', 'Upload'), ('keyframe', 'Keyframe'), ('other', 'Other')], default='upload', max_length=20)),
-                ('file_hash', models.CharField(blank=True, max_length=64)),
-                ('metadata_json', models.JSONField(blank=True, default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('batch', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='media_assets', to='mediahub.batchupload')),
-                ('image_asset', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='media_asset', to='mediahub.imageasset')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "media_type",
+                    models.CharField(
+                        choices=[("image", "Image"), ("video", "Video")],
+                        default="image",
+                        max_length=12,
+                    ),
+                ),
+                (
+                    "source",
+                    models.CharField(
+                        choices=[
+                            ("upload", "Upload"),
+                            ("keyframe", "Keyframe"),
+                            ("other", "Other"),
+                        ],
+                        default="upload",
+                        max_length=20,
+                    ),
+                ),
+                ("file_hash", models.CharField(blank=True, max_length=64)),
+                ("metadata_json", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "batch",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="media_assets",
+                        to="mediahub.batchupload",
+                    ),
+                ),
+                (
+                    "image_asset",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="media_asset",
+                        to="mediahub.imageasset",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='VideoUpload',
+            name="VideoUpload",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('file', models.FileField(upload_to='videos/%Y/%m/%d/')),
-                ('status', models.CharField(choices=[('uploaded', 'Uploaded'), ('processing', 'Processing'), ('ready', 'Ready'), ('failed', 'Failed')], db_index=True, default='uploaded', max_length=16)),
-                ('error_message', models.TextField(blank=True)),
-                ('duration_s', models.PositiveIntegerField(default=0)),
-                ('width', models.PositiveIntegerField(default=0)),
-                ('height', models.PositiveIntegerField(default=0)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='video_uploads', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("file", models.FileField(upload_to="videos/%Y/%m/%d/")),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("uploaded", "Uploaded"),
+                            ("processing", "Processing"),
+                            ("ready", "Ready"),
+                            ("failed", "Failed"),
+                        ],
+                        db_index=True,
+                        default="uploaded",
+                        max_length=16,
+                    ),
+                ),
+                ("error_message", models.TextField(blank=True)),
+                ("duration_s", models.PositiveIntegerField(default=0)),
+                ("width", models.PositiveIntegerField(default=0)),
+                ("height", models.PositiveIntegerField(default=0)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="video_uploads",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Keyframe',
+            name="Keyframe",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to='keyframes/%Y/%m/%d/')),
-                ('timestamp_ms', models.PositiveIntegerField(db_index=True)),
-                ('sharpness_score', models.DecimalField(decimal_places=3, default=0, max_digits=6)),
-                ('is_selected', models.BooleanField(db_index=True, default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('video', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='keyframes', to='mediahub.videoupload')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image", models.ImageField(upload_to="keyframes/%Y/%m/%d/")),
+                ("timestamp_ms", models.PositiveIntegerField(db_index=True)),
+                (
+                    "sharpness_score",
+                    models.DecimalField(decimal_places=3, default=0, max_digits=6),
+                ),
+                ("is_selected", models.BooleanField(db_index=True, default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "video",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="keyframes",
+                        to="mediahub.videoupload",
+                    ),
+                ),
             ],
         ),
         migrations.AddIndex(
-            model_name='batchupload',
-            index=models.Index(fields=['owner', 'status', 'created_at'], name='mediahub_ba_owner_i_cf00dd_idx'),
+            model_name="batchupload",
+            index=models.Index(
+                fields=["owner", "status", "created_at"],
+                name="mediahub_ba_owner_i_cf00dd_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='batchupload',
-            index=models.Index(fields=['status', 'created_at'], name='mediahub_ba_status_19b326_idx'),
+            model_name="batchupload",
+            index=models.Index(
+                fields=["status", "created_at"], name="mediahub_ba_status_19b326_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='keyframe',
-            index=models.Index(fields=['video', 'is_selected'], name='mediahub_ke_video_i_6c105d_idx'),
+            model_name="keyframe",
+            index=models.Index(
+                fields=["video", "is_selected"], name="mediahub_ke_video_i_6c105d_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='keyframe',
-            index=models.Index(fields=['video', 'timestamp_ms'], name='mediahub_ke_video_i_d38807_idx'),
+            model_name="keyframe",
+            index=models.Index(
+                fields=["video", "timestamp_ms"], name="mediahub_ke_video_i_d38807_idx"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='keyframe',
-            unique_together={('video', 'timestamp_ms')},
+            name="keyframe",
+            unique_together={("video", "timestamp_ms")},
         ),
     ]

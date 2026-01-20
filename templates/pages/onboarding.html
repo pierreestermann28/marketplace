@@ -14,6 +14,7 @@
       </p>
     </header>
 
+    {% with onboarding_filters=request.session.onboarding_filters|default:{} %}
     <form
       method="post"
       action="{% url 'onboarding' %}"
@@ -78,23 +79,31 @@
           </div>
           <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">Proximité</span>
         </div>
-        <div class="mt-4 grid gap-4 md:grid-cols-2">
-          <label class="space-y-2 text-sm">
-            <span class="font-semibold text-ink-900">Ville ou quartier</span>
-            <div class="relative"
-                 data-location-autocomplete
-                 data-location-mode="single"
-                 data-location-endpoint="{% url 'location:city-autocomplete' %}">
-              <input type="text"
-                     name="city"
-                     id="onboarding-city"
-                     class="input w-full"
-                     placeholder="Ex : Bordeaux"
-                     autocomplete="off"
-                     data-location-city-input="true" />
-              <div data-location-results class="location-autocomplete-results"></div>
-            </div>
-          </label>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <label class="space-y-2 text-sm">
+          <span class="font-semibold text-ink-900">Ville ou quartier</span>
+          <div class="relative"
+                data-location-autocomplete
+                data-location-mode="single"
+                data-location-field-name="location_city"
+                data-location-endpoint="{% url 'location:city-autocomplete' %}">
+            <input type="text"
+                   name="city"
+                   id="onboarding-city"
+                   class="input w-full"
+                   placeholder="Ex : Bordeaux"
+                   autocomplete="off"
+                   data-location-city-input="true" />
+            <div data-location-results class="location-autocomplete-results"></div>
+            <input
+              type="hidden"
+              name="location_city"
+              id="onboarding-location-city"
+              value="{{ onboarding_filters.location_city_id|default:'' }}"
+              data-location-city-hidden="true"
+            />
+          </div>
+        </label>
           <label class="space-y-2 text-sm">
             <span class="font-semibold text-ink-900 flex items-center justify-between">
               Rayon (<span id="radius-value">10 km</span>)
@@ -130,6 +139,7 @@
         </p>
       </div>
     </form>
+    {% endwith %}
   </div>
 </section>
 {% endblock %}

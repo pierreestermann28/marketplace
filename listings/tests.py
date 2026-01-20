@@ -93,10 +93,21 @@ class ListingViewTests(TestCase):
         cls.other_user = User.objects.create_user(email="other@example.com", password="password123")
         cls.category = Category.objects.create(name="Furniture", slug="furniture")
         cls.category_other = Category.objects.create(name="Decor", slug="decor")
+        cls.paris_city = City.objects.create(
+            name="Paris",
+            postal_code="75000",
+            slug="paris-75000-test",
+        )
+        cls.lyon_city = City.objects.create(
+            name="Lyon",
+            postal_code="69000",
+            slug="lyon-69000-test",
+        )
         cls.listing_main = Listing.objects.create(
             seller=cls.seller,
             title="Vintage chair",
-            city="Paris",
+            location_city=cls.paris_city,
+            postal_code=cls.paris_city.postal_code,
             status=Listing.Status.PUBLISHED,
             category=cls.category,
             currency="EUR",
@@ -104,7 +115,8 @@ class ListingViewTests(TestCase):
         cls.listing_other = Listing.objects.create(
             seller=cls.seller,
             title="Modern lamp",
-            city="Lyon",
+            location_city=cls.lyon_city,
+            postal_code=cls.lyon_city.postal_code,
             status=Listing.Status.PUBLISHED,
             category=cls.category_other,
             currency="EUR",
@@ -302,6 +314,11 @@ class ListingWorkflowTests(TestCase):
         )
         self.client.force_login(self.seller)
         url = reverse("listing_submit", kwargs={"pk": listing.id})
+        location = City.objects.create(
+            name="Paris",
+            postal_code="75001",
+            slug="paris-75001-review",
+        )
 
         response = self.client.post(
             url,
@@ -313,7 +330,8 @@ class ListingWorkflowTests(TestCase):
                 "price_cents": 2500,
                 "currency": "EUR",
                 "postal_code": "75001",
-                "city": "Paris",
+                "city": location.name,
+                "location_city": location.id,
             },
         )
 

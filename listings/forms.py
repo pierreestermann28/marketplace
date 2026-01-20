@@ -7,6 +7,7 @@ from .models import Listing, SearchAlert
 
 
 class ListingForm(forms.ModelForm):
+    city = forms.CharField(required=False, max_length=120)
     class Meta:
         model = Listing
         fields = [
@@ -17,7 +18,6 @@ class ListingForm(forms.ModelForm):
             "price_cents",
             "currency",
             "postal_code",
-            "city",
             "location_city",
         ]
         widgets = {
@@ -40,6 +40,8 @@ class ListingForm(forms.ModelForm):
             if name == "city":
                 field.widget.attrs.setdefault("data-location-city-input", "true")
                 field.widget.attrs.setdefault("autocomplete", "off")
+        if self.instance and self.instance.pk and self.instance.location_city:
+            self.fields["city"].initial = self.instance.location_city.name
 
 
 class MultiFileInput(forms.ClearableFileInput):
@@ -84,12 +86,20 @@ class PhotoUploadForm(forms.Form):
 
 
 class SearchAlertForm(forms.ModelForm):
+    city = forms.CharField(
+        required=False,
+        max_length=120,
+        widget=forms.TextInput(
+            attrs={"class": "input", "placeholder": "Ville"}
+        ),
+    )
     class Meta:
         model = SearchAlert
-        fields = ["keyword", "city", "location_city", "category"]
+        fields = ["keyword", "location_city", "category"]
         widgets = {
-            "keyword": forms.TextInput(attrs={"class": "input", "placeholder": "Mot-clé"}),
-            "city": forms.TextInput(attrs={"class": "input", "placeholder": "Ville"}),
+            "keyword": forms.TextInput(
+                attrs={"class": "input", "placeholder": "Mot-clé"}
+            ),
             "location_city": forms.HiddenInput(),
             "category": forms.Select(attrs={"class": "input"}),
         }
@@ -97,18 +107,20 @@ class SearchAlertForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = Category.objects.all()
-        if "city" in self.fields:
-            self.fields["city"].widget.attrs.setdefault("data-location-city-input", "true")
-            self.fields["city"].widget.attrs.setdefault("autocomplete", "off")
-        if "location_city" in self.fields:
-            self.fields["location_city"].widget.attrs.setdefault("data-location-city-hidden", "true")
+        self.fields["city"].widget.attrs.setdefault("data-location-city-input", "true")
+        self.fields["city"].widget.attrs.setdefault("autocomplete", "off")
+        self.fields["location_city"].widget.attrs.setdefault("data-location-city-hidden", "true")
+        if self.instance and self.instance.pk and self.instance.location_city:
+            self.fields["city"].initial = self.instance.location_city.name
 
     def clean(self):
         cleaned = super().clean()
         keyword = cleaned.get("keyword", "").strip()
         city = cleaned.get("city", "").strip()
         category = cleaned.get("category")
-        if not (keyword or city or category):
+        location = cleaned.get("location_city")
+        has_location = bool(city or location)
+        if not (keyword or has_location or category):
             raise ValidationError("Ajoutez au moins un critère pour créer une alerte.")
         cleaned["keyword"] = keyword
         cleaned["city"] = city

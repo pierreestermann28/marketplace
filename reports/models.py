@@ -1,3 +1,4 @@
+# reports/models.py
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -17,11 +18,9 @@ class Report(models.Model):
         on_delete=models.CASCADE,
         related_name="reports_created",
     )
-    reason = models.CharField(
-        max_length=32,
-        choices=Reason.choices,
-    )
+    reason = models.CharField(max_length=32, choices=Reason.choices)
     details = models.TextField(blank=True)
+
     target_content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
@@ -29,8 +28,10 @@ class Report(models.Model):
     )
     target_object_id = models.CharField(max_length=64, db_index=True)
     target = GenericForeignKey("target_content_type", "target_object_id")
+
     is_resolved = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
     resolved_at = models.DateTimeField(null=True, blank=True)
     resolved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -40,11 +41,24 @@ class Report(models.Model):
         related_name="reports_resolved",
     )
 
+    target_snapshot = models.JSONField(default=dict, blank=True)
+
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["is_resolved", "created_at"]),
+            models.Index(fields=["reason", "is_resolved", "created_at"]),
+            models.Index(fields=["target_content_type", "target_object_id"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["reporter", "target_content_type", "target_object_id"],
+                name="unique_report_per_user_target",
+            )
+        ]
 
     def __str__(self):
-        return f"{self.get_reason_display()} report by {self.reporter.email}"
+        return f"{self.get_reason_display()} report by user#{self.reporter_id}"
 
     @property
     def target_label(self):

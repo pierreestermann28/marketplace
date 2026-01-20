@@ -97,7 +97,7 @@ class HomeFeedView(ListView):
         elif city_slug:
             qs = qs.filter(location_city__slug=city_slug)
         elif city:
-            qs = qs.filter(city__icontains=city)
+            qs = qs.filter(location_city__name__icontains=city)
         elif postal_code:
             qs = qs.filter(postal_code__istartswith=postal_code)
         if category_slugs:
@@ -306,19 +306,26 @@ class OnboardingView(TemplateView):
             if slug.strip()
         ]
         city = request.POST.get("city", "").strip()
+        location_city_id = request.POST.get("location_city") or request.POST.get("location_city_id")
+        location_city = (
+            LocationCity.objects.filter(id=location_city_id).first()
+            if location_city_id
+            else None
+        )
         radius = request.POST.get("radius", "").strip()
         purpose = request.POST.get("purpose", "both")
         request.session["onboarding_filters"] = {
             "purpose": purpose,
             "categories": category_slugs,
             "city": city,
+            "location_city_id": location_city_id or "",
             "radius": radius,
         }
 
         if request.user.is_authenticated:
-            self._create_search_alerts(request.user, category_slugs, city)
+            self._create_search_alerts(request.user, category_slugs, location_city)
             self._update_onboarding_profile(
-                request.user, purpose, city, radius, category_slugs
+                request.user, purpose, location_city, radius, category_slugs
             )
 
         params = []
@@ -336,8 +343,8 @@ class OnboardingView(TemplateView):
             url = f"{url}?{query}"
         return redirect(url)
 
-    def _create_search_alerts(self, user, category_slugs, city):
-        if not category_slugs and not city:
+    def _create_search_alerts(self, user, category_slugs, location_city):
+        if not category_slugs and not location_city:
             return
         if category_slugs:
             categories = Category.objects.filter(slug__in=category_slugs)
@@ -345,7 +352,7 @@ class OnboardingView(TemplateView):
                 SearchAlert.objects.get_or_create(
                     user=user,
                     keyword="",
-                    city=city,
+                    location_city=location_city,
                     category=category,
                     defaults={"is_active": True},
                 )
@@ -353,20 +360,20 @@ class OnboardingView(TemplateView):
             SearchAlert.objects.get_or_create(
                 user=user,
                 keyword="",
-                city=city,
+                location_city=location_city,
                 category=None,
                 defaults={"is_active": True},
             )
 
-    def _update_onboarding_profile(self, user, purpose, city, radius, category_slugs):
+    def _update_onboarding_profile(self, user, purpose, location_city, radius, category_slugs):
         profile, _ = OnboardingProfile.objects.get_or_create(user=user)
         profile.purpose = purpose
-        profile.city = city
+        profile.location_city = location_city
         try:
             profile.radius_km = int(radius)
         except (TypeError, ValueError):
             profile.radius_km = None
-        profile.save(update_fields=["purpose", "city", "radius_km", "updated_at"])
+        profile.save(update_fields=["purpose", "location_city", "radius_km", "updated_at"])
         categories = Category.objects.filter(slug__in=category_slugs)
         profile.categories.set(categories)
 
@@ -643,7 +650,6 @@ class SearchAlertCreateView(LoginRequiredMixin, View):
             alert, created = SearchAlert.objects.get_or_create(
                 user=request.user,
                 keyword=form.cleaned_data["keyword"],
-                city=form.cleaned_data["city"],
                 location_city=form.cleaned_data["location_city"],
                 category=form.cleaned_data["category"],
                 defaults={"is_active": True},

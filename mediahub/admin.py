@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import BatchUpload, ImageAsset, Keyframe, MediaAsset, VideoUpload
+from .models import BatchUpload, ImageAsset, Keyframe, BatchMedia, VideoUpload
 
 
 @admin.register(ImageAsset)
@@ -48,10 +48,11 @@ class BatchUploadAdmin(admin.ModelAdmin):
     readonly_fields = ("processing_started_at", "processed_at", "created_at")
 
 
-@admin.register(MediaAsset)
+@admin.register(BatchMedia)
 class MediaAssetAdmin(admin.ModelAdmin):
     list_display = ("id", "media_type", "batch", "image_asset", "created_at")
     list_filter = ("media_type", "source", "batch__status")
     search_fields = ("batch__owner__email", "image_asset__user__email")
+
 
 # Register your models here.
