@@ -6,5 +6,7 @@ app_name = "operations"
 
 urlpatterns = [
     path("staff/operations/", OperationsDashboardView.as_view(), name="dashboard"),
-    path("staff/listings/", AdminListingModerationView.as_view(), name="admin_listings"),
+    path(
+        "staff/listings/", AdminListingModerationView.as_view(), name="admin_listings"
+    ),
 ]

@@ -8,7 +8,9 @@ from listings.models import Listing
 class AdminListingModerationTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.seller = User.objects.create_user(email="seller@example.com", password="pass")
+        self.seller = User.objects.create_user(
+            email="seller@example.com", password="pass"
+        )
         self.staff = User.objects.create_user(
             email="staff@example.com", password="pass", is_staff=True
         )
@@ -30,7 +32,9 @@ class AdminListingModerationTests(TestCase):
 
     def test_status_filter_limits_results(self):
         self.client.force_login(self.staff)
-        url = reverse("operations:admin_listings") + "?status=" + Listing.Status.PUBLISHED
+        url = (
+            reverse("operations:admin_listings") + "?status=" + Listing.Status.PUBLISHED
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         listings = list(response.context["listings"])

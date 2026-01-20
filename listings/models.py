@@ -64,7 +64,6 @@ class Listing(models.Model):
     )
 
     postal_code = models.CharField(max_length=20, blank=True, db_index=True)
-    city = models.CharField(max_length=80, blank=True, db_index=True)
     location_city = models.ForeignKey(
         City,
         null=True,
@@ -129,7 +128,7 @@ class Listing(models.Model):
         indexes = [
             models.Index(fields=["status", "created_at"]),
             models.Index(fields=["category", "status", "created_at"]),
-            models.Index(fields=["city", "status", "created_at"]),
+            models.Index(fields=["status", "created_at"]),
             models.Index(fields=["postal_code", "status", "created_at"]),
             models.Index(fields=["location_city", "status", "created_at"]),
         ]
@@ -450,7 +449,6 @@ class SearchAlert(models.Model):
         related_name="search_alerts",
     )
     keyword = models.CharField(max_length=255, blank=True)
-    city = models.CharField(max_length=80, blank=True)
     location_city = models.ForeignKey(
         City,
         null=True,
@@ -470,7 +468,7 @@ class SearchAlert(models.Model):
     last_sent = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = [("user", "keyword", "city", "location_city", "category")]
+        unique_together = [("user", "keyword", "location_city", "category")]
 
     def matches(self, listing):
         if listing.seller == self.user:
@@ -482,17 +480,14 @@ class SearchAlert(models.Model):
         if self.location_city_id:
             if listing.location_city_id != self.location_city_id:
                 return False
-        elif self.city and self.city.strip():
-            if listing.city.lower() != self.city.lower():
-                return False
         if self.category and listing.category_id != self.category_id:
             return False
         return True
 
     def __str__(self):
         parts = [self.keyword or "mot-clé libre"]
-        if self.city:
-            parts.append(self.city)
+        if self.location_city:
+            parts.append(self.location_city.name)
         if self.category:
             parts.append(self.category.name)
         return " · ".join(parts)
@@ -528,7 +523,13 @@ class OnboardingProfile(models.Model):
         related_name="onboarding_profile",
     )
     purpose = models.CharField(max_length=10, choices=PURPOSE_CHOICES, default="buy")
-    city = models.CharField(max_length=80, blank=True)
+    location_city = models.ForeignKey(
+        City,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="on_boarding_profile",
+    )
     radius_km = models.PositiveIntegerField(null=True, blank=True)
     categories = models.ManyToManyField(
         Category,
