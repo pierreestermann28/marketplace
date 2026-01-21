@@ -191,7 +191,8 @@ class ListingActionView(LoginRequiredMixin, View):
         )
         if not self.service:
             return redirect(get_listing_detail_url(listing))
-        self.service(listing=listing, user=request.user)
+        service = getattr(type(self), "service")
+        service(listing=listing, user=request.user)
         django_messages.success(request, self.success_message)
         return redirect(get_listing_detail_url(listing))
 

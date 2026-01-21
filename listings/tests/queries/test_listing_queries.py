@@ -1,10 +1,13 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from catalog.models import Category
 from location.models import City
 
-from listings.models import Favorite, Listing
+from listings.models import Favorite, Listing, Offer
 from listings.queries import (
     build_home_feed_queryset,
     build_listing_detail_queryset,
@@ -32,8 +35,15 @@ class ListingQueryTests(TestCase):
         cls.reserved = Listing.objects.create(
             seller=cls.user,
             title="Reserved item",
-            status=Listing.Status.RESERVED,
+            status=Listing.Status.PUBLISHED,
             currency="EUR",
+        )
+        Offer.objects.create(
+            listing=cls.reserved,
+            buyer=cls.user,
+            offer_price_cents=0,
+            currency="EUR",
+            expires_at=timezone.now() + timedelta(hours=24),
         )
         cls.archived = Listing.objects.create(
             seller=cls.user,
@@ -45,7 +55,7 @@ class ListingQueryTests(TestCase):
     def test_build_home_feed_queryset_respects_status_and_city(self):
         filters = {"city_ids": [str(self.city.id)]}
         queryset = build_home_feed_queryset(
-            filters, self.user, status_filter=[Listing.Status.PUBLISHED, Listing.Status.RESERVED]
+            filters, self.user, status_filter=[Listing.Status.PUBLISHED]
         )
         self.assertIn(self.published, queryset)
         self.assertNotIn(self.archived, queryset)

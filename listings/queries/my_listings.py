@@ -2,23 +2,20 @@
 
 from typing import Dict, Iterable
 
-from django.db.models import Count, Prefetch, QuerySet
+from django.db.models import Count, QuerySet
 
-from listings.models import Listing, Offer
+from listings.models import Listing
+from listings.queries.reservations import ACTIVE_RESERVATION_PREFETCH
 
 
 def get_my_listings_queryset(
     user, status_filter: Iterable[str] | None = None
 ) -> QuerySet[Listing]:
     """Return the queryset for a seller's own listings."""
-    reservation_qs = Offer.objects.active().select_related("buyer")
     qs = (
         Listing.objects.filter(seller=user)
         .select_related("category")
-        .prefetch_related(
-            "images__image_asset",
-            Prefetch("reservations", queryset=reservation_qs),
-        )
+        .prefetch_related("images__image_asset", ACTIVE_RESERVATION_PREFETCH)
         .order_by("-updated_at")
     )
     if status_filter:

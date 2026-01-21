@@ -15,11 +15,7 @@ from listings.views import get_listing_detail_url
 
 class SitemapView(View):
     def get(self, request):
-        statuses = [
-            Listing.Status.PUBLISHED,
-            Listing.Status.RESERVED,
-            Listing.Status.RESERVATION_ACCEPTED,
-        ]
+        statuses = [Listing.Status.PUBLISHED]
         listings = Listing.objects.filter(status__in=statuses).order_by("-updated_at")[
             :1000
         ]

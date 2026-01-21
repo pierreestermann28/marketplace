@@ -14,7 +14,7 @@ class WishlistView(LoginRequiredMixin, TemplateView):
         return (
             Listing.objects.filter(
                 favorited_by__user=self.request.user,
-                status__in=[Listing.Status.PUBLISHED, Listing.Status.RESERVED],
+                status=Listing.Status.PUBLISHED,
             )
             .select_related("category", "seller")
             .prefetch_related("images__image_asset")

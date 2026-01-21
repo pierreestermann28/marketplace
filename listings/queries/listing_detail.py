@@ -3,14 +3,11 @@
 from django.db.models import BooleanField, Exists, OuterRef, QuerySet, Value
 
 from listings.models import Favorite, Listing
+from listings.queries.reservations import ACTIVE_RESERVATION_PREFETCH
 
 
 def _detail_status_filter() -> list[str]:
-    return [
-        Listing.Status.PUBLISHED,
-        Listing.Status.RESERVED,
-        Listing.Status.RESERVATION_ACCEPTED,
-    ]
+    return [Listing.Status.PUBLISHED]
 
 
 def build_listing_detail_queryset(user) -> QuerySet[Listing]:
@@ -27,5 +24,5 @@ def build_listing_detail_queryset(user) -> QuerySet[Listing]:
 
     return (
         qs.select_related("category", "seller")
-        .prefetch_related("images__image_asset")
+        .prefetch_related("images__image_asset", ACTIVE_RESERVATION_PREFETCH)
     )

@@ -12,7 +12,7 @@ def user_can_view_contact_info(
         return False
     if listing.seller == user:
         return True
-    if listing.reservations.filter(buyer=user, cancelled_at__isnull=True).exists():
+    if listing.offers.active().filter(buyer=user).exists():
         return True
     try:
         from commerce.models import Order

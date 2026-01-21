@@ -35,7 +35,7 @@
                 {{ badge }}
               </span>
             {% endif %}
-            {% if request.user == conversation.buyer and listing.is_reserved_state and listing.reserved_for_id and listing.reserved_for_id != request.user.id %}
+            {% if request.user == conversation.buyer and listing.is_reserved_state and listing.reserved_for and listing.reserved_for.id != request.user.id %}
               <span class="badge bg-amber-50 text-amber-800">En attente</span>
             {% endif %}
           </div>

@@ -95,6 +95,7 @@ class Offer(models.Model):
 class OfferLog(models.Model):
     class Action(models.TextChoices):
         CREATED = "created", "Offre créée"
+        RESERVED = "reserved", "Réservation"
         CANCELLED = "cancelled", "Offre annulée"
         ACCEPTED = "accepted", "Offre acceptée"
         REJECTED = "rejected", "Offre refusée"

@@ -26,20 +26,10 @@ def create_reservation_from_conversation(*, conversation, note: str = "") -> Non
     Offer.objects.create(
         listing=listing,
         buyer=conversation.buyer,
+        offer_price_cents=listing.price_cents or 0,
+        currency=listing.currency,
         expires_at=expires_at,
-    )
-    listing.status = Listing.Status.RESERVED
-    listing.reserved_for = conversation.buyer
-    listing.reserved_at = timezone.now()
-    listing.reservation_note = note
-    listing.save(
-        update_fields=[
-            "status",
-            "reserved_for",
-            "reserved_at",
-            "reservation_note",
-            "updated_at",
-        ]
+        note=note,
     )
     OfferLog.objects.create(
         listing=listing,

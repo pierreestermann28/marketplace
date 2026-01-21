@@ -1,10 +1,13 @@
 import shutil
 import tempfile
 
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from catalog.models import Category
 from location.models import City
@@ -174,8 +177,15 @@ class ListingViewTests(TestCase):
         reserved = Listing.objects.create(
             seller=self.seller,
             title="Reserved item",
-            status=Listing.Status.RESERVED,
+            status=Listing.Status.PUBLISHED,
             currency="EUR",
+        )
+        Offer.objects.create(
+            listing=reserved,
+            buyer=self.buyer,
+            offer_price_cents=0,
+            currency="EUR",
+            expires_at=timezone.now() + timedelta(hours=24),
         )
 
         response = self.client.get(reverse("home"))
@@ -443,7 +453,7 @@ class MarketplaceFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         listing.refresh_from_db()
 
-        self.assertEqual(listing.status, Listing.Status.RESERVED)
+        self.assertEqual(listing.status, Listing.Status.PUBLISHED)
         self.assertEqual(listing.reserved_for, self.buyer)
         self.assertEqual(listing.reservation_note, "Noter la réservation")
         self.assertTrue(Offer.objects.active().filter(listing=listing).exists())

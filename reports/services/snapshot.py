@@ -1,13 +1,19 @@
 from typing import Any
 
 
+def _stringify(value):
+    if value is None:
+        return None
+    return str(value)
+
+
 def build_target_snapshot(target: Any) -> dict:
     if not target:
         return {}
 
     data = {
         "model": getattr(getattr(target, "_meta", None), "label_lower", None),
-        "id": getattr(target, "pk", None),
+        "id": _stringify(getattr(target, "pk", None)),
     }
 
     for key in ("title", "slug", "status"):
@@ -18,7 +24,7 @@ def build_target_snapshot(target: Any) -> dict:
 
     listing = getattr(target, "listing", None)
     if listing is not None:
-        data["listing_id"] = getattr(listing, "pk", None)
+        data["listing_id"] = _stringify(getattr(listing, "pk", None))
         if hasattr(listing, "title") and listing.title:
             data["listing_title"] = listing.title
 

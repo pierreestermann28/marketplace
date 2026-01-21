@@ -1,7 +1,12 @@
-# listings/services/reservations.py
 from django.db import transaction
 
-from listings.models import Listing, OfferLog
+from listings.models import Listing
+from listings.queries.reservations import get_active_reservation_offer
+from listings.services.offers import (
+    accept_offer,
+    cancel_offer,
+    OfferError,
+)
 
 
 class ReservationError(Exception):
@@ -24,25 +29,25 @@ def _ensure_seller(listing: Listing, user):
 @transaction.atomic
 def cancel_reservation(*, listing: Listing, seller) -> None:
     _ensure_seller(listing, seller)
-    reservation = listing.refresh_reservation_state()
+    reservation = get_active_reservation_offer(listing)
     if not reservation:
         raise ReservationNotFound()
-    reservation.cancel()
+    try:
+        cancel_offer(offer=reservation, buyer=reservation.buyer)
+    except OfferError as exc:
+        raise ReservationError(str(exc)) from exc
 
 
 @transaction.atomic
 def accept_reservation(*, listing: Listing, seller, note: str = "") -> None:
     _ensure_seller(listing, seller)
-    reservation = listing.refresh_reservation_state()
+    reservation = get_active_reservation_offer(listing)
     if not reservation:
         raise ReservationNotFound()
-    if listing.status != Listing.Status.RESERVED:
-        raise ReservationInvalid("Le statut de l'annonce ne permet pas d'accepter la réservation.")
-    listing.status = Listing.Status.RESERVATION_ACCEPTED
-    listing.save(update_fields=["status"])
-    OfferLog.objects.create(
-        listing=listing,
-        user=seller,
-        action=OfferLog.Action.ACCEPTED,
-        note=note or "Acceptation manuelle.",
-    )
+    try:
+        accept_offer(offer=reservation, seller=seller)
+    except OfferError as exc:
+        raise ReservationInvalid(str(exc)) from exc
+    if note:
+        reservation.note = note
+        reservation.save(update_fields=["note"])

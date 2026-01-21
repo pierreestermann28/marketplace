@@ -173,6 +173,30 @@ class Listing(models.Model):
             self.PublicStatus.NEGOTIATING,
         }
 
+    @property
+    def active_reservation(self):
+        if hasattr(self, "_cached_active_reservation"):
+            return getattr(self, "_cached_active_reservation")
+        from listings.queries.reservations import get_active_reservation_offer
+
+        reservation = get_active_reservation_offer(self)
+        setattr(self, "_cached_active_reservation", reservation)
+        return reservation
+
+    @property
+    def reserved_for(self):
+        reservation = self.active_reservation
+        return getattr(reservation, "buyer", None)
+
+    @property
+    def reservation_note(self):
+        reservation = self.active_reservation
+        return getattr(reservation, "note", "")
+
+    @property
+    def is_reserved_state(self) -> bool:
+        return bool(self.active_reservation)
+
 
 class ListingView(models.Model):
     user = models.ForeignKey(

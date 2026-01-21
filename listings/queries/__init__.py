@@ -11,6 +11,7 @@ from .listing_feed import (
 )
 from .my_listings import get_listing_status_counts, get_my_listings_queryset
 from .contact_visibility import user_can_view_contact_info
+from .reservations import ACTIVE_RESERVATION_PREFETCH, get_active_reservation_offer
 
 __all__ = [
     "build_filters_from_params",
@@ -23,4 +24,6 @@ __all__ = [
     "get_my_listings_queryset",
     "get_listing_status_counts",
     "user_can_view_contact_info",
+    "ACTIVE_RESERVATION_PREFETCH",
+    "get_active_reservation_offer",
 ]

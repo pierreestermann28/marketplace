@@ -249,7 +249,7 @@ class ListingDetailView(DetailView):
         photo_gallery = (
             [primary_image] + secondary_images if primary_image else secondary_images
         )
-        active_reservation = listing.refresh_reservation_state()
+        active_reservation = listing.active_reservation
         stats = ensure_reputation_stats(user=listing.seller)
         review_stats = self._build_seller_review_stats(listing.seller)
         listing_url = get_listing_detail_url(listing)
@@ -396,8 +396,6 @@ class MyListingsView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        for listing in context["listings"]:
-            listing.active_reservation = listing.refresh_reservation_state()
         context["reservation_expiration_hours"] = getattr(
             settings, "RESERVATION_HOLD_HOURS", 24
         )
