@@ -1,4 +1,7 @@
 # messaging/services/conversations.py
+from datetime import datetime
+from typing import Optional, Tuple
+
 from django.db import transaction
 
 from messaging.models import Conversation, Message
@@ -33,10 +36,15 @@ def unread_messages_count(conversation: Conversation, user) -> int:
 
 
 @transaction.atomic
-def get_or_create_conversation(*, listing, buyer, seller) -> Conversation:
-    conversation, _ = Conversation.objects.get_or_create(
+def get_or_create_conversation(
+    *, listing, buyer, seller, initial_last_message_at: Optional[datetime] = None
+) -> Tuple[Conversation, bool]:
+    conversation, created = Conversation.objects.get_or_create(
         listing=listing,
         buyer=buyer,
         defaults={"seller": seller},
     )
-    return conversation
+    if created and initial_last_message_at is not None:
+        conversation.last_message_at = initial_last_message_at
+        conversation.save(update_fields=["last_message_at"])
+    return conversation, created

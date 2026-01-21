@@ -7,7 +7,7 @@ from typing import Iterable, List, Tuple
 
 from django.db.models import QuerySet
 
-from catalog.models import Category
+from catalog.services import find_category_by_slug_or_name
 from commerce.models import Order
 from listings.models import Favorite, Listing, ListingView, SearchAlert
 from location.models import City as LocationCity
@@ -213,7 +213,7 @@ class ListingRecommendationEngine:
     def _build_reason(self) -> str:
         if self.category_scores:
             top_slug = max(self.category_scores, key=self.category_scores.get)
-            category = Category.objects.filter(slug=top_slug).only("name").first()
+            category = find_category_by_slug_or_name(top_slug)
             if category:
                 return f"vos favoris dans {category.name}"
             return "vos favoris"

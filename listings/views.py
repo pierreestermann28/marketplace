@@ -29,9 +29,13 @@ from django.views.generic import (
     UpdateView,
 )
 
-from mediahub.models import ImageAsset
+from mediahub.services import create_image_asset
 
-from catalog.models import Category
+from catalog.services import (
+    get_categories_with_listings,
+    list_categories,
+    resolve_category_slugs,
+)
 
 from .forms import ListingForm, PhotoUploadForm, SearchAlertForm
 from django.utils.text import slugify
@@ -136,7 +140,7 @@ class HomeFeedView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.all()
+        context["categories"] = list_categories(order_by=["name"])
         selected_city_ids = []
         for value in self.request.GET.getlist("city_ids"):
             if not value.strip():
@@ -171,7 +175,7 @@ class HomeFeedView(ListView):
             context["filters"]["querystring"]
         )
         context["featured_categories"] = (
-            Category.objects.filter(listings__status__in=self.status_filter)
+            get_categories_with_listings(self.status_filter)
             .annotate(count=Count("listings"))
             .order_by("-count")[:6]
         )
@@ -212,15 +216,8 @@ class HomeFeedView(ListView):
         if not category_slugs:
             return []
         unique_slugs = list(dict.fromkeys(category_slugs))
-        categories = (
-            Category.objects.filter(slug__in=unique_slugs)
-            .order_by("name")
-            .values("name", "slug")
-        )
-        return [
-            {"name": category["name"], "slug": category["slug"]}
-            for category in categories
-        ]
+        categories = resolve_category_slugs(unique_slugs)
+        return [{"name": category.name, "slug": category.slug} for category in categories]
 
     def _get_filter_querystring(self):
         params = self.request.GET.copy()
@@ -298,7 +295,7 @@ class OnboardingView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.order_by("name")[:12]
+        context["categories"] = list_categories(order_by=["name"])[:12]
         profile = None
         if self.request.user.is_authenticated:
             profile = (
@@ -360,7 +357,7 @@ class OnboardingView(TemplateView):
         if not category_slugs and not location_city:
             return
         if category_slugs:
-            categories = Category.objects.filter(slug__in=category_slugs)
+            categories = resolve_category_slugs(category_slugs)
             for category in categories:
                 SearchAlert.objects.get_or_create(
                     user=user,
@@ -391,7 +388,7 @@ class OnboardingView(TemplateView):
         profile.save(
             update_fields=["purpose", "location_city", "radius_km", "updated_at"]
         )
-        categories = Category.objects.filter(slug__in=category_slugs)
+        categories = resolve_category_slugs(category_slugs)
         profile.categories.set(categories)
 
 
@@ -838,7 +835,7 @@ class ListingStartView(LoginRequiredMixin, FormView):
         except (TypeError, ValueError):
             primary_index = 0
         for image in images:
-            asset = ImageAsset.objects.create(user=self.request.user, image=image)
+            asset = create_image_asset(user=self.request.user, image=image)
             ListingImage.objects.create(
                 listing=listing,
                 image_asset=asset,
@@ -866,7 +863,7 @@ class PhotoUploadView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         images = self.request.FILES.getlist("images")
         for image in images:
-            asset = ImageAsset.objects.create(user=self.request.user, image=image)
+            asset = create_image_asset(user=self.request.user, image=image)
             ListingImage.objects.create(listing=self.listing, image_asset=asset)
         return HttpResponseRedirect(self.get_success_url())
 

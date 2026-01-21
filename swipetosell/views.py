@@ -8,7 +8,7 @@ from django.views import View
 
 import redis
 
-from catalog.models import Category
+from catalog.services import get_categories_with_listings
 from listings.models import Listing
 from listings.views import get_listing_detail_url
 
@@ -23,9 +23,7 @@ class SitemapView(View):
         listings = Listing.objects.filter(status__in=statuses).order_by("-updated_at")[
             :1000
         ]
-        category_paths = Category.objects.filter(
-            listings__status__in=statuses
-        ).distinct()
+        category_paths = get_categories_with_listings(statuses)
         city_rows = (
             Listing.objects.filter(status__in=statuses)
             .exclude(city__exact="")

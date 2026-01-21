@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import FormView
@@ -9,7 +8,7 @@ from listings.models import Listing
 from listings.views import get_listing_detail_url
 from messaging.models import Conversation
 from .forms import ReportForm
-from .models import Report
+from .services import AlreadyReportedError, create_report
 
 
 class _BaseReportCreateView(LoginRequiredMixin, FormView):
@@ -24,11 +23,20 @@ class _BaseReportCreateView(LoginRequiredMixin, FormView):
         raise NotImplementedError
 
     def form_valid(self, form):
-        report = form.save(commit=False)
-        report.reporter = self.request.user
-        report.target_content_type = ContentType.objects.get_for_model(self.target)
-        report.target_object_id = str(self.target.pk)
-        report.save()
+        try:
+            report = create_report(
+                reporter=self.request.user,
+                target=self.target,
+                reason=form.cleaned_data["reason"],
+                details=form.cleaned_data.get("details", ""),
+            )
+        except AlreadyReportedError:
+            messages.info(
+                self.request,
+                "Vous avez déjà signalé cet élément. Nous traitons votre demande.",
+            )
+            return redirect(self.get_success_url())
+
         self.on_report_created(report)
         return redirect(self.get_success_url())
 

@@ -14,7 +14,14 @@ from django.views.generic import DetailView, RedirectView, TemplateView
 from listings.models import Listing, Offer, OfferLog
 
 from .forms import MessageForm
-from .models import BlockedUser, Conversation, Message
+from .models import Conversation
+from .services import (
+    get_other_user,
+    get_or_create_conversation,
+    is_blocked,
+    mark_messages_read,
+    send_message,
+)
 from reports.forms import ReportForm
 
 CONVERSATION_RATE_LIMIT = 5
@@ -36,10 +43,11 @@ def _increment_rate(key, window):
 
 
 def _is_blocked(sender, receiver):
-    return BlockedUser.objects.filter(
-        models.Q(blocker=sender, blocked=receiver)
-        | models.Q(blocker=receiver, blocked=sender)
-    ).exists()
+    if not sender or not receiver:
+        return False
+    return is_blocked(sender=sender, receiver=receiver) or is_blocked(
+        sender=receiver, receiver=sender
+    )
 
 
 class ConversationDashboardView(LoginRequiredMixin, TemplateView):
@@ -104,12 +112,12 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         conversation = context.get("conversation")
         if conversation:
-            conversation.mark_messages_read_for(self.request.user)
+            mark_messages_read(conversation=conversation, user=self.request.user)
         context["form"] = MessageForm(
             conversation=conversation,
             sender=self.request.user,
         )
-        other = conversation.other_user(self.request.user) if conversation else None
+        other = get_other_user(conversation, self.request.user) if conversation else None
         context["other_user"] = other
         context["other_user_blocked"] = (
             _is_blocked(self.request.user, other) if other else False
@@ -135,7 +143,7 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
             conversation=conversation,
             sender=request.user,
         )
-        other = conversation.other_user(request.user)
+        other = get_other_user(conversation, request.user)
         if _is_blocked(request.user, other):
             form.add_error(None, "Cette conversation est bloquée.")
             return self._render_with_form(conversation, form)
@@ -149,13 +157,11 @@ class ConversationDetailView(LoginRequiredMixin, DetailView):
             )
             return self._render_with_form(conversation, form)
         if form.is_valid():
-            now = timezone.now()
-            message = form.save(commit=False)
-            message.conversation = conversation
-            message.sender = request.user
-            message.save()
-            conversation.last_message_at = now
-            conversation.save(update_fields=["last_message_at"])
+            send_message(
+                conversation=conversation,
+                sender=request.user,
+                text=form.cleaned_data["text"],
+            )
 
             if request.headers.get("HX-Request"):
                 conversation = self.get_queryset().get(pk=conversation.pk)
@@ -261,10 +267,11 @@ class ConversationStartView(LoginRequiredMixin, RedirectView):
         if _is_blocked(self.request.user, listing.seller):
             django_messages.error(self.request, "Cette conversation est bloquée.")
             return reverse("messages:list")
-        conversation, created = Conversation.objects.get_or_create(
+        conversation, _ = get_or_create_conversation(
             listing=listing,
             buyer=self.request.user,
-            defaults={"seller": listing.seller, "last_message_at": timezone.now()},
+            seller=listing.seller,
+            initial_last_message_at=timezone.now(),
         )
         return f"{reverse('messages:list')}?conversation={conversation.pk}"
 

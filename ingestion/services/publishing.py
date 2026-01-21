@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from billing.entitlements import ensure_listing_quota, record_listing_publication
-from catalog.models import Category
+from catalog.services import find_category_by_slug_or_name
 from ingestion.models import BatchMedia, DetectedItem
 from listings.models import Listing, ListingImage
 
@@ -72,10 +72,4 @@ def _resolve_category(suggestion: Optional[str]):
     normalized = suggestion.strip()
     if not normalized:
         return None
-    slug = slugify(normalized)
-    category = None
-    if slug:
-        category = Category.objects.filter(slug__iexact=slug).first()
-    if not category:
-        category = Category.objects.filter(name__iexact=normalized).first()
-    return category
+    return find_category_by_slug_or_name(normalized)

@@ -11,6 +11,15 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import FormView, TemplateView
 
+from mediahub.services import create_image_asset
+from ingestion.models import BatchUpload, BatchMedia
+
+from .forms import BatchUploadForm
+from .models import DetectedItem
+from billing.entitlements import QuotaExceeded
+from .tasks import analyze_batch
+from .services import batches, items, publishing, queries
+
 BATCH_STUCK_THRESHOLD_SECONDS = getattr(settings, "BATCH_STUCK_THRESHOLD_SECONDS", 600)
 
 
@@ -22,13 +31,13 @@ def _is_batch_stuck(batch):
     ).total_seconds() > BATCH_STUCK_THRESHOLD_SECONDS
 
 
-def _batch_status_hint(batch, is_stuck):
+def _batch_status_hint(batch, is_stuck, progress):
     if batch.status == BatchUpload.Status.PENDING:
         return "Traitement programmé. Préparez-vous à voir vos cartes."
     if batch.status == BatchUpload.Status.RUNNING:
         if is_stuck:
             return "L’analyse semble bloquée. Vous pouvez la relancer."
-        return f"Analyse en cours ({batch.progress_percentage}%)."
+        return f"Analyse en cours ({progress}%)."
     if batch.status == BatchUpload.Status.DONE:
         return "Analyse terminée. Vous pouvez passer au swipe."
     if batch.status == BatchUpload.Status.FAILED:
@@ -41,26 +50,17 @@ def _build_batch_status_context(batch):
         status=DetectedItem.Status.PENDING
     ).count()
     detected_count = batch.detected_items.count()
+    progress = batches.progress_percentage(batch=batch)
     is_stuck = _is_batch_stuck(batch)
     return {
         "batch": batch,
         "pending_count": pending_count,
         "detected_count": detected_count,
-        "progress": batch.progress_percentage,
+        "progress": progress,
         "is_stuck": is_stuck,
-        "status_hint": _batch_status_hint(batch, is_stuck),
+        "status_hint": _batch_status_hint(batch, is_stuck, progress),
         "can_retry": batch.status in {BatchUpload.Status.FAILED} or is_stuck,
     }
-
-
-from mediahub.models import ImageAsset
-from ingestion.models import BatchUpload, BatchMedia
-
-from .forms import BatchUploadForm
-from .models import DetectedItem
-from billing.entitlements import QuotaExceeded
-from .tasks import analyze_batch
-from .services.publishing import publish_detected_item
 
 
 class BatchOwnerMixin(LoginRequiredMixin):
@@ -101,11 +101,7 @@ class BatchUploadCreateView(LoginRequiredMixin, FormView):
         batch.seller_notes = form.cleaned_data.get("seller_notes", "") or ""
         batch.save(update_fields=["sale_location", "seller_notes"])
         for upload in files:
-            image_asset = ImageAsset.objects.create(
-                user=self.request.user,
-                image=upload,
-                source="upload",
-            )
+            image_asset = create_image_asset(user=self.request.user, image=upload)
             BatchMedia.objects.create(batch=batch, image_asset=image_asset)
         analyze_batch.delay(str(batch.id))
         return redirect("ingestion:batch_processing", batch_id=batch.id)
@@ -141,7 +137,7 @@ class BatchProcessingRetryView(BatchOwnerMixin, View):
                 "Le traitement est déjà lancé. Patientez ou attendez la fin.",
             )
         else:
-            batch.reset_for_retry()
+            batches.reset_for_retry(batch=batch)
             analyze_batch.delay(str(batch.id))
             django_messages.success(
                 request,
@@ -174,18 +170,6 @@ class BatchSwipeView(BatchOwnerMixin, TemplateView):
         return context
 
 
-def _user_pending_items(user):
-    return (
-        DetectedItem.objects.filter(owner=user, status=DetectedItem.Status.PENDING)
-        .select_related("hero_asset__image_asset")
-        .order_by("created_at")
-    )
-
-
-def _get_next_swipe_item(user):
-    return _user_pending_items(user).first()
-
-
 def _render_swipe_fragment(request, item):
     if item:
         return render(
@@ -202,7 +186,7 @@ class SwipeListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        pending_qs = _user_pending_items(self.request.user)
+        pending_qs = queries.get_user_pending_items(self.request.user)
         items = list(pending_qs[:SWIPE_PREFETCH_LIMIT])
         context["items"] = items
         context["pending_count"] = pending_qs.count()
@@ -211,7 +195,7 @@ class SwipeListView(LoginRequiredMixin, TemplateView):
 
 class SwipeNextCardView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        next_item = _get_next_swipe_item(request.user)
+        next_item = queries.get_next_user_item(request.user)
         return _render_swipe_fragment(request, next_item)
 
 
@@ -229,13 +213,13 @@ class SwipeDecisionView(LoginRequiredMixin, View):
         if item.status != DetectedItem.Status.PENDING:
             return HttpResponse(status=409)
         if decision == "keep":
-            item.status = DetectedItem.Status.USER_APPROVED
+            items.user_approve(item=item)
         elif decision == "reject":
-            item.status = DetectedItem.Status.USER_REJECTED
+            items.user_reject(item=item)
         else:
             item.status = DetectedItem.Status.EDITED
-        item.save(update_fields=["status", "updated_at"])
-        next_item = _get_next_swipe_item(request.user)
+            item.save(update_fields=["status", "updated_at"])
+        next_item = queries.get_next_user_item(request.user)
         html = ""
         empty = True
         if next_item:
@@ -253,18 +237,6 @@ class SwipeDecisionView(LoginRequiredMixin, View):
             json.dumps({"html": html, "empty": empty}),
             content_type="application/json",
         )
-
-
-def _user_pending_items(user):
-    return (
-        DetectedItem.objects.filter(owner=user, status=DetectedItem.Status.PENDING)
-        .select_related("hero_asset__image_asset")
-        .order_by("created_at")
-    )
-
-
-def _get_next_swipe_item(user):
-    return _user_pending_items(user).first()
 
 
 def _render_swipe_fragment(request, item):
@@ -315,8 +287,7 @@ class DetectedItemApproveView(DetectedItemActionMixin, View):
             return self.render_next_card(request, item.batch)
 
         with transaction.atomic():
-            item.status = DetectedItem.Status.USER_APPROVED
-            item.save(update_fields=["status", "updated_at"])
+            items.user_approve(item=item)
         return self.render_next_card(request, item.batch)
 
 
@@ -325,8 +296,7 @@ class DetectedItemRejectView(DetectedItemActionMixin, View):
         item = self.get_item()
         if item.status != DetectedItem.Status.PENDING:
             return self.render_next_card(request, item.batch)
-        item.status = DetectedItem.Status.USER_REJECTED
-        item.save(update_fields=["status", "updated_at"])
+        items.user_reject(item=item)
         return self.render_next_card(request, item.batch)
 
 
@@ -343,8 +313,8 @@ class AdminSwipeFragmentView(UserPassesTestMixin, View):
         return self.request.user.is_staff
 
     def get(self, request, *args, **kwargs):
-        next_item = _get_next_admin_item()
-        context = _build_admin_counts()
+        next_item = queries.get_next_admin_item()
+        context = queries.get_admin_counts()
         context["current_item"] = next_item
         template = (
             "fragments/ingestion/admin_swipe_card.html"
@@ -365,8 +335,8 @@ class DetectedItemAdminActionMixin(DetectedItemActionMixin, UserPassesTestMixin)
         )
 
     def render_admin_card(self, request):
-        next_item = _get_next_admin_item()
-        context = _build_admin_counts()
+        next_item = queries.get_next_admin_item()
+        context = queries.get_admin_counts()
         context["current_item"] = next_item
         template = (
             "fragments/ingestion/admin_swipe_card.html"
@@ -385,9 +355,9 @@ class DetectedItemAdminApproveView(DetectedItemAdminActionMixin, View):
         try:
             with transaction.atomic():
                 listing = publish_detected_item(item, skip_quota=True)
-                item.status = DetectedItem.Status.ADMIN_APPROVED
                 item.listing = listing
-                item.save(update_fields=["status", "listing", "updated_at"])
+                item.save(update_fields=["listing"])
+                items.admin_approve(item=item)
         except QuotaExceeded as exc:
             return _render_quota_prompt(request, item, str(exc))
         return self.render_admin_card(request)
@@ -398,33 +368,12 @@ class DetectedItemAdminRejectView(DetectedItemAdminActionMixin, View):
         item = self.get_item()
         if item.status != DetectedItem.Status.USER_APPROVED:
             return self.render_admin_card(request)
-        item.status = DetectedItem.Status.ADMIN_REJECTED
-        item.save(update_fields=["status", "updated_at"])
+        items.admin_reject(item=item)
         return self.render_admin_card(request)
 
 
-def _get_next_admin_item():
-    return (
-        DetectedItem.objects.filter(status=DetectedItem.Status.USER_APPROVED)
-        .select_related("owner", "batch", "hero_asset__image_asset")
-        .order_by("updated_at")
-        .first()
-    )
-
-
-def _build_admin_counts():
-    return {
-        "pending_admin_count": DetectedItem.objects.filter(
-            status=DetectedItem.Status.USER_APPROVED
-        ).count(),
-        "pending_user_count": DetectedItem.objects.filter(
-            status=DetectedItem.Status.PENDING
-        ).count(),
-    }
-
-
 def _render_quota_prompt(request, item, message):
-    context = _build_admin_counts()
+    context = queries.get_admin_counts()
     context["current_item"] = item
     context["quota_error_message"] = message
     context["upgrade_url"] = getattr(settings, "PREMIUM_UPGRADE_URL", "/pricing")

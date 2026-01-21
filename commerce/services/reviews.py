@@ -1,6 +1,7 @@
 # commerce/services/reviews.py
-from django.db import IntegrityError, transaction
+from django.db import transaction
 
+from accounts.services import rebuild_reputation_for_user
 from commerce.models import Order, Review
 
 
@@ -28,15 +29,18 @@ def create_review(
     if rating < 1 or rating > 5:
         raise ValueError("rating must be 1..5")
 
-    try:
-        return Review.objects.create(
-            order=order,
-            author=author,
-            target=target,
-            role=role,
-            rating=rating,
-            comment=comment or "",
-            tags=tags or [],
-        )
-    except IntegrityError:
-        raise ReviewNotAllowed("Review already exists for this role")
+    review, _ = Review.objects.update_or_create(
+        order=order,
+        role=role,
+        defaults={
+            "author": author,
+            "target": target,
+            "rating": rating,
+            "comment": comment or "",
+            "tags": tags or [],
+        },
+    )
+
+    rebuild_reputation_for_user(user=target)
+
+    return review

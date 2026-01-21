@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from catalog.models import Category
+from catalog.services import list_categories
 
 from .models import Listing, SearchAlert
 
@@ -106,7 +106,7 @@ class SearchAlertForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["category"].queryset = Category.objects.all()
+        self.fields["category"].queryset = list_categories()
         self.fields["city"].widget.attrs.setdefault("data-location-city-input", "true")
         self.fields["city"].widget.attrs.setdefault("autocomplete", "off")
         self.fields["location_city"].widget.attrs.setdefault("data-location-city-hidden", "true")

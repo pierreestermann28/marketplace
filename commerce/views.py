@@ -6,6 +6,7 @@ from django.views.generic import FormView
 
 from .forms import ReviewForm
 from .models import Order, Review
+from .services.reviews import ReviewNotAllowed, create_review
 
 
 class ReviewCreateView(LoginRequiredMixin, FormView):
@@ -26,23 +27,15 @@ class ReviewCreateView(LoginRequiredMixin, FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        target = self.order.seller if self.role == Review.Role.BUYER_TO_SELLER else self.order.buyer
-        Review.objects.update_or_create(
-            order=self.order,
-            role=self.role,
-            defaults={
-                "author": self.request.user,
-                "target": target,
-                "rating": form.cleaned_data["rating"],
-                "comment": form.cleaned_data.get("comment", "").strip(),
-            },
-        )
-        stats = getattr(target, "reputation", None)
-        if not stats:
-            from accounts.models import ReputationStats
-
-            stats = ReputationStats.for_user(target)
-        stats.rebuild_from_reviews()
+        try:
+            review = create_review(
+                order=self.order,
+                author=self.request.user,
+                rating=form.cleaned_data["rating"],
+                comment=form.cleaned_data.get("comment", "").strip(),
+            )
+        except ReviewNotAllowed as exc:
+            raise PermissionDenied(str(exc))
         return redirect(
             reverse(
                 "listing_detail",
