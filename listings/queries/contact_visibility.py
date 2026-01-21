@@ -2,7 +2,7 @@ from typing import Optional
 
 from django.contrib.auth import get_user_model
 
-from .models import Listing
+from listings.models import Listing
 
 
 def user_can_view_contact_info(

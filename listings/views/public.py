@@ -10,6 +10,8 @@ from catalog.services import get_categories_with_listings, list_categories
 from commerce.models import Review
 from location.models import City as LocationCity
 
+from accounts.services.reputation import ensure_reputation_stats
+
 from listings.models import (
     Favorite,
     Listing,
@@ -248,9 +250,7 @@ class ListingDetailView(DetailView):
             [primary_image] + secondary_images if primary_image else secondary_images
         )
         active_reservation = listing.refresh_reservation_state()
-        stats = getattr(listing.seller, "reputation", None)
-        if not stats:
-            stats = ReputationStats.for_user(listing.seller)
+        stats = ensure_reputation_stats(user=listing.seller)
         review_stats = self._build_seller_review_stats(listing.seller)
         listing_url = get_listing_detail_url(listing)
         context.update(

@@ -76,3 +76,8 @@ def rebuild_reputation_for_user(*, user: User) -> ReputationStats:
 
     User.objects.filter(pk=user.pk).update(trust_score=trust)
     return stats
+
+
+def ensure_reputation_stats(*, user: User) -> ReputationStats:
+    stats, _ = ReputationStats.objects.get_or_create(user=user)
+    return stats

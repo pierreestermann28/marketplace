@@ -75,7 +75,7 @@ class EntitlementTests(TestCase):
         STRIPE_SECRET_KEY="sk_test",
         STRIPE_PREMIUM_PRICE_ID="price_123",
     )
-    @patch("accounts.views.stripe.Subscription.retrieve")
+    @patch("accounts.services.subscriptions.stripe.Subscription.retrieve")
     def test_stripe_checkout_sets_premium(self, mock_subscription):
         mock_subscription.return_value = {
             "id": "sub_test",
