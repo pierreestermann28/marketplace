@@ -1,29 +1,32 @@
 from django.urls import path
 
-from .views import (
+from .views.buyer import (
+    ListingFavoriteToggleView,
+    OnboardingView,
+    SearchAlertCreateView,
+    SearchAlertDeleteView,
+)
+from .views.htmx import HomeFeedPartialView, WishlistView
+from .views.public import (
     CategoryListingView,
     CityListingView,
     HomeFeedView,
     ListingDetailView,
-    ListingFavoriteToggleView,
-    ListingMarkSoldView,
-    ListingReminderCreateView,
-    ListingArchiveView,
-    ListingUnarchiveView,
-    HomeFeedPartialView,
-    ListingStartView,
-    ListingModerationDetailView,
     MyListingsView,
-    OnboardingView,
+    SuggestionFeedView,
+)
+from .views.seller import (
+    ListingArchiveView,
+    ListingMarkSoldView,
+    ListingModerationDetailView,
+    ListingReminderCreateView,
+    ListingStartView,
+    ListingUnarchiveView,
     PhotoUploadView,
     ReservationAcceptView,
     ReservationCancelView,
     ReviewQueueView,
-    SearchAlertCreateView,
-    SearchAlertDeleteView,
     SubmitForReviewView,
-    SuggestionFeedView,
-    WishlistView,
 )
 
 urlpatterns = [
