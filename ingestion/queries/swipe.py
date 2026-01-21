@@ -1,5 +1,4 @@
-# ingestion/services/queries.py
-from typing import Dict, Optional
+from typing import Dict
 
 from ingestion.models import DetectedItem
 

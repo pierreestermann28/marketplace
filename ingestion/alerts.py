@@ -4,7 +4,7 @@ from django.core.mail import mail_admins
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import DetectedItem
+from ingestion.models import DetectedItem
 
 
 PENDING_ALERT_THRESHOLD = getattr(settings, "INGESTION_PENDING_ALERT_THRESHOLD", 120)

@@ -10,7 +10,6 @@ from .batches import (
 from .media import create_batch_media, set_batch_media_hash, set_batch_media_metadata
 from .items import user_approve, user_reject, admin_approve, admin_reject
 from .publishing import publish_detected_item
-from . import queries
 
 __all__ = [
     "mark_processing",
@@ -27,5 +26,4 @@ __all__ = [
     "admin_approve",
     "admin_reject",
     "publish_detected_item",
-    "queries",
 ]

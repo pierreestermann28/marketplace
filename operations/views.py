@@ -9,7 +9,7 @@ from billing.models import UserEntitlement
 from listings.models import Listing
 from reports.models import Report
 
-from ingestion.services.queries import get_admin_counts, get_next_admin_item
+from ingestion.queries import get_admin_counts, get_next_admin_item
 from .services import (
     get_operation_counts,
     get_pending_review_listings,
