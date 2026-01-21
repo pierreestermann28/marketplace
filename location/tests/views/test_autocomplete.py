@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import City
+from location.models import City
 
 
 class CityAutocompleteTests(TestCase):

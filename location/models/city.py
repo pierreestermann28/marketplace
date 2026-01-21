@@ -12,19 +12,27 @@ class City(models.Model):
     department_name = models.CharField(max_length=120, blank=True)
     region_code = models.CharField(max_length=3, blank=True)
     region_name = models.CharField(max_length=120, blank=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    latitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )
+    longitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["name", "postal_code"]
         indexes = [
             models.Index(fields=["postal_code"], name="location_city_postal_idx"),
             models.Index(fields=["name"], name="location_city_name_idx"),
-            models.Index(fields=["name", "postal_code"], name="location_city_name_postal_idx"),
+            models.Index(
+                fields=["name", "postal_code"], name="location_city_name_postal_idx"
+            ),
             models.Index(Lower("name"), name="location_city_name_lower_idx"),
         ]
         constraints = [
-            models.UniqueConstraint(fields=["name", "postal_code"], name="location_city_name_postal_uniq")
+            models.UniqueConstraint(
+                fields=["name", "postal_code"], name="location_city_name_postal_uniq"
+            )
         ]
 
     def __str__(self):

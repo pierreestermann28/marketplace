@@ -1,5 +1,4 @@
-# location/services/__init__.py
-from .queries import (
+from .cities import (
     autocomplete_cities,
     get_city_by_name_postal,
     get_city_by_slug,
@@ -8,9 +7,9 @@ from .queries import (
 )
 
 __all__ = [
+    "autocomplete_cities",
     "search_cities",
+    "serialize_city",
     "get_city_by_slug",
     "get_city_by_name_postal",
-    "autocomplete_cities",
-    "serialize_city",
 ]
