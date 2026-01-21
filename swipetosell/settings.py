@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
-
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -101,7 +101,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "swipetosell"),
         "USER": os.environ.get("POSTGRES_USER", "postgres"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "changeme"),
         "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
     }
@@ -236,7 +236,17 @@ PWA_APP_ICONS = [
 #         "sizes": "2048x2732",
 #     },
 # ]
+# Test
+RUNNING_TESTS = ("test" in sys.argv) or os.environ.get("DJANGO_TESTS") == "1"
+USE_SQLITE_FOR_TESTS = os.environ.get("DJANGO_USE_SQLITE_FOR_TESTS") == "1"
 
+if RUNNING_TESTS and USE_SQLITE_FOR_TESTS:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
 
 # AI
 AI_DEFAULT_MODEL = "gpt-4o-mini"

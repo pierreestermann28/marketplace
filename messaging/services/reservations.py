@@ -23,7 +23,7 @@ def create_reservation_from_conversation(*, conversation, note: str = "") -> Non
     expires_at = timezone.now() + timedelta(
         hours=getattr(settings, "RESERVATION_HOLD_HOURS", 24)
     )
-    Offer.objects.create(
+    offer = Offer.objects.create(
         listing=listing,
         buyer=conversation.buyer,
         offer_price_cents=listing.price_cents or 0,
@@ -32,7 +32,7 @@ def create_reservation_from_conversation(*, conversation, note: str = "") -> Non
         note=note,
     )
     OfferLog.objects.create(
-        listing=listing,
+        offer=offer,
         user=conversation.seller,
         action=OfferLog.Action.RESERVED,
         note=note,

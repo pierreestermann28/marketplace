@@ -464,7 +464,7 @@ class MarketplaceFlowTests(TestCase):
         self.assertTrue(Offer.objects.active().filter(listing=listing).exists())
         self.assertTrue(
             OfferLog.objects.filter(
-                listing=listing, action=OfferLog.Action.RESERVED
+                offer__listing=listing, action=OfferLog.Action.RESERVED
             ).exists()
         )
 

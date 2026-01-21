@@ -175,13 +175,9 @@ class Listing(models.Model):
 
     @property
     def active_reservation(self):
-        if hasattr(self, "_cached_active_reservation"):
-            return getattr(self, "_cached_active_reservation")
         from listings.queries.reservations import get_active_reservation_offer
 
-        reservation = get_active_reservation_offer(self)
-        setattr(self, "_cached_active_reservation", reservation)
-        return reservation
+        return get_active_reservation_offer(self)
 
     @property
     def reserved_for(self):
