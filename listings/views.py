@@ -231,7 +231,9 @@ class HomeFeedView(ListView):
 
     def _get_recommendations(self):
         engine = ListingRecommendationEngine(self.request.user)
-        recommended_ids, reason = engine.recommend(limit=6)
+        recommendation = engine.recommend(limit=6)
+        recommended_ids = recommendation.listing_ids
+        reason = recommendation.reason
         if not recommended_ids:
             return [], reason
         image_qs = self._image_prefetch_queryset()

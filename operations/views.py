@@ -9,7 +9,7 @@ from billing.models import UserEntitlement
 from listings.models import Listing
 from reports.models import Report
 
-from ingestion.views import _build_admin_counts, _get_next_admin_item
+from ingestion.services.queries import get_admin_counts, get_next_admin_item
 from .services import (
     get_operation_counts,
     get_pending_review_listings,
@@ -49,8 +49,8 @@ class OperationsDashboardView(UserPassesTestMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(get_operation_counts())
-        context.update(_build_admin_counts())
-        context["current_item"] = _get_next_admin_item()
+        context.update(get_admin_counts())
+        context["current_item"] = get_next_admin_item()
         context["pending_review_listings"] = get_pending_review_listings()
         context["batch_summaries"] = get_recent_batch_summaries()
         context["premium_entitlements"] = get_recent_entitlements()

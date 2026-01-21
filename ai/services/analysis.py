@@ -2,40 +2,47 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, Optional, Union
 
 from django.conf import settings
 from django.utils import timezone
-
-from ai.models import AIImageAnalysis, AISuggestion, AIModelProvider
 
 
 def create_analysis(
     *,
     image_asset,
     requested_by=None,
-    provider: AIModelProvider | str = AIModelProvider.OPENAI,
-    model_name: str | None = None,
+    provider: Union[str, "AIModelProvider"] = "openai",
+    model_name: Optional[str] = None,
     prompt_version: str = "v1",
-    status: AIImageAnalysis.Status = AIImageAnalysis.Status.SUCCEEDED,
+    status: Optional[str] = None,
     input_payload: Optional[Dict] = None,
     output_json: Optional[Dict] = None,
     error_code: str = "",
-    error_message: str | None = None,
+    error_message: Optional[str] = None,
     input_tokens: int = 0,
     output_tokens: int = 0,
     cost_eur: Decimal = Decimal("0.0000"),
     attempt: int = 0,
     request_id: str = "",
     completed_at=None,
-) -> AIImageAnalysis:
+) -> "AIImageAnalysis":
+    from ai.models import AIImageAnalysis
+
+    provider_value = (
+        provider.value if hasattr(provider, "value") else provider
+    )
+    status_value = (
+        status or AIImageAnalysis.Status.SUCCEEDED
+    )
+
     return AIImageAnalysis.objects.create(
         image_asset=image_asset,
         requested_by=requested_by,
-        provider=provider,
+        provider=provider_value,
         model_name=model_name or settings.AI_DEFAULT_MODEL,
         prompt_version=prompt_version,
-        status=status,
+        status=status_value,
         error_code=error_code,
         error_message=error_message or "",
         input_payload=input_payload or {},
@@ -51,7 +58,7 @@ def create_analysis(
 
 def create_suggestion(
     *,
-    analysis: AIImageAnalysis,
+    analysis: "AIImageAnalysis",
     suggested_category_slug: str = "",
     suggested_title: str = "",
     suggested_condition: str = "",
@@ -59,10 +66,12 @@ def create_suggestion(
     price_eur_min: Optional[int] = None,
     price_eur_max: Optional[int] = None,
     pricing_reason: str = "",
-    quality_flags: Iterable[str] | None = None,
+    quality_flags: Optional[Iterable[str]] = None,
     user_accepted: bool = False,
     accepted_at=None,
-) -> AISuggestion:
+) -> "AISuggestion":
+    from ai.models import AISuggestion
+
     return AISuggestion.objects.create(
         analysis=analysis,
         suggested_category_slug=suggested_category_slug,

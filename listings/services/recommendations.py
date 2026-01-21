@@ -47,7 +47,7 @@ class ListingRecommendationEngine:
     BASE_SCORE = 0.05
 
     def __init__(self, user):
-        self.user = user
+        self.user = user if getattr(user, "is_authenticated", False) else None
 
         self.category_scores: Counter[str] = Counter()
         self.city_scores: Counter[str] = Counter()  # key: city_id as str
@@ -59,7 +59,7 @@ class ListingRecommendationEngine:
         self._collect_signals()
 
     def recommend(self, limit: int = 6) -> RecommendationResult:
-        if not getattr(self.user, "is_authenticated", False):
+        if not self.user:
             return RecommendationResult([], "Suggestions personnalisées")
 
         candidates = self._candidate_queryset()
@@ -91,6 +91,8 @@ class ListingRecommendationEngine:
     # -------------------------
 
     def _collect_signals(self) -> None:
+        if not self.user:
+            return
         self._collect_favorite_signals()
         self._collect_order_signals()
         self._collect_alert_signals()
