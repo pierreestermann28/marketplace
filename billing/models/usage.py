@@ -32,6 +32,10 @@ class UsageCounter(models.Model):
             models.Index(fields=["period", "scope"]),
         ]
 
+    def increment(self, amount: int = 1):
+        self.count += amount
+        self.save(update_fields=["count"])
+
     def __str__(self):
         return (
             f"UsageCounter(user_id={self.user_id}, scope={self.scope}, "

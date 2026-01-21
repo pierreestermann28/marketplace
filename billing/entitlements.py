@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from billing.models import UsageCounter, UserEntitlement, current_month_period
 from ingestion.models import DetectedItem
+from listings.models import Listing
 
 
 def get_user_entitlement(user):
@@ -20,17 +21,23 @@ def is_premium(user):
 
 
 def get_free_listing_quota(user):
+    override_quota = getattr(settings, "FREE_LISTING_QUOTA_PER_MONTH", None)
+    if override_quota is not None:
+        return override_quota
     entitlement = get_user_entitlement(user)
     if entitlement:
         return entitlement.free_listing_quota
-    return getattr(settings, "FREE_LISTING_QUOTA_PER_MONTH", 3)
+    return 3
 
 
 def get_free_detected_item_quota(user):
+    override_quota = getattr(settings, "FREE_DETECTED_ITEM_QUOTA_PER_MONTH", None)
+    if override_quota is not None:
+        return override_quota
     entitlement = get_user_entitlement(user)
     if entitlement:
         return entitlement.free_detected_item_quota
-    return getattr(settings, "FREE_DETECTED_ITEM_QUOTA_PER_MONTH", 5)
+    return 5
 
 
 def _listing_usage_this_month(user):
@@ -40,7 +47,14 @@ def _listing_usage_this_month(user):
         scope=UsageCounter.SCOPE_LISTING_PUBLICATION,
         period=period,
     ).first()
-    return counter.count if counter else 0
+    if counter:
+        return counter.count
+    if not user:
+        return 0
+    return Listing.objects.filter(
+        seller=user,
+        status=Listing.Status.PUBLISHED,
+    ).count()
 
 
 def can_publish_listing(user):
@@ -58,7 +72,9 @@ class QuotaExceeded(Exception):
 
 def ensure_listing_quota(user):
     if not can_publish_listing(user):
-        raise QuotaExceeded("Quota mensuel de publications atteint. Passez à l’offre premium.")
+        raise QuotaExceeded(
+            "Quota mensuel de publications atteint. Passez à l’offre premium."
+        )
 
 
 def record_listing_publication(user, amount=1):
@@ -77,7 +93,7 @@ def detected_item_usage_window(user):
     window_days = getattr(settings, "DETECTED_ITEM_QUOTA_WINDOW_DAYS", 30)
     window_start = timezone.now() - timedelta(days=window_days)
     return DetectedItem.objects.filter(
-        owner=user, is_cached_result=False, created_at__gte=window_start
+        owner=user
     ).count()
 
 
@@ -92,6 +108,4 @@ def can_generate_detected_items(user):
 def quota_remaining_detected_items(user):
     if is_premium(user):
         return None
-    return max(
-        get_free_detected_item_quota(user) - detected_item_usage_window(user), 0
-    )
+    return max(get_free_detected_item_quota(user) - detected_item_usage_window(user), 0)

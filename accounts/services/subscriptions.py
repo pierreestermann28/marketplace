@@ -98,7 +98,7 @@ def apply_premium_entitlement(user, subscription_payload: Optional[Dict] = None)
                 timestamp = None
             if timestamp:
                 premium_until = timezone.datetime.fromtimestamp(
-                    timestamp, tz=timezone.utc
+                    timestamp, tz=timezone.UTC
                 )
     entitlement.premium_until = premium_until
     entitlement.save(update_fields=["is_premium", "premium_until"])

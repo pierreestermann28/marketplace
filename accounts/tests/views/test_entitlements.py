@@ -1,7 +1,11 @@
 from datetime import timedelta
+import hashlib
+import hmac
 import json
+import time
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -27,9 +31,20 @@ class EntitlementTests(TestCase):
         User = get_user_model()
         self.user = User.objects.create_user(email="user@example.com", password="pass")
 
+    def _stripe_signature(self, payload):
+        secret = settings.STRIPE_WEBHOOK_SECRET
+        timestamp = str(int(time.time()))
+        signed_payload = f"{timestamp}.{payload}".encode("utf-8")
+        signature = hmac.new(
+            secret.encode("utf-8"), signed_payload, digestmod=hashlib.sha256
+        ).hexdigest()
+        return f"t={timestamp},v1={signature}"
+
     @override_settings(FREE_LISTING_QUOTA_PER_MONTH=1)
     def test_can_publish_listing_respects_quota(self):
-        Listing.objects.create(seller=self.user, status=Listing.Status.PUBLISHED, title="Test")
+        Listing.objects.create(
+            seller=self.user, status=Listing.Status.PUBLISHED, title="Test"
+        )
         self.assertFalse(can_publish_listing(self.user))
 
     def test_premium_user_can_publish_unlimited(self):
@@ -38,7 +53,9 @@ class EntitlementTests(TestCase):
         entitlement.premium_until = timezone.now() + timedelta(days=30)
         entitlement.save()
         for _ in range(5):
-            Listing.objects.create(seller=self.user, status=Listing.Status.PUBLISHED, title="Test")
+            Listing.objects.create(
+                seller=self.user, status=Listing.Status.PUBLISHED, title="Test"
+            )
         self.assertTrue(can_publish_listing(self.user))
 
     @override_settings(FREE_DETECTED_ITEM_QUOTA_PER_MONTH=1)
@@ -79,7 +96,9 @@ class EntitlementTests(TestCase):
     def test_stripe_checkout_sets_premium(self, mock_subscription):
         mock_subscription.return_value = {
             "id": "sub_test",
-            "current_period_end": int((timezone.now() + timedelta(days=30)).timestamp()),
+            "current_period_end": int(
+                (timezone.now() + timedelta(days=30)).timestamp()
+            ),
             "status": "active",
             "metadata": {"user_id": str(self.user.pk)},
         }
@@ -93,9 +112,7 @@ class EntitlementTests(TestCase):
                 }
             },
         }
-        header = stripe.WebhookSignature.generate_test_header(
-            json.dumps(payload), "whsec_test"
-        )
+        header = self._stripe_signature(json.dumps(payload))
         response = self.client.post(
             reverse("accounts:stripe_webhook"),
             data=json.dumps(payload),
@@ -126,9 +143,7 @@ class EntitlementTests(TestCase):
                 }
             },
         }
-        header = stripe.WebhookSignature.generate_test_header(
-            json.dumps(payload), "whsec_test"
-        )
+        header = self._stripe_signature(json.dumps(payload))
         response = self.client.post(
             reverse("accounts:stripe_webhook"),
             data=json.dumps(payload),
