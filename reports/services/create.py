@@ -2,7 +2,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError, transaction
 
 from reports.models import Report
-from reports.services.snapshot import build_target_snapshot
+from reports.services.snapshot import build_target_snapshot, _normalize_snapshot
 
 
 class AlreadyReportedError(Exception):
@@ -21,7 +21,7 @@ def create_report(
         details=details,
         target_content_type=ct,
         target_object_id=str(target.pk),
-        target_snapshot=(
+        target_snapshot=_normalize_snapshot(
             snapshot if snapshot is not None else build_target_snapshot(target)
         ),
     )

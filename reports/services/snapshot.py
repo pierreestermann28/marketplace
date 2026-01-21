@@ -1,10 +1,25 @@
 from typing import Any
 
 
+PRIMITIVE_TYPES = (str, int, float, bool, type(None))
+
+
 def _stringify(value):
     if value is None:
         return None
     return str(value)
+
+
+def _normalize_value(value):
+    if isinstance(value, PRIMITIVE_TYPES):
+        return value
+    return _stringify(value)
+
+
+def _normalize_snapshot(snapshot):
+    if not isinstance(snapshot, dict):
+        return {}
+    return {key: _normalize_value(val) for key, val in snapshot.items()}
 
 
 def build_target_snapshot(target: Any) -> dict:
