@@ -1,149 +1,136 @@
 {% extends "layouts/app.html" %}
-
 {% block title %}Onboarding | Swipe2Sell{% endblock %}
-
 {% block page_content %}
-<section class="min-h-screen bg-gradient-to-b from-white via-ink-50 to-ink-100 py-12">
-  <div class="container-app space-y-10">
-    <header class="space-y-3 text-center">
-      <p class="text-xs uppercase tracking-[0.5em] text-ink-400">Swipe2Sell – onboarding express</p>
-      <h1 class="text-3xl font-semibold text-ink-900">Votre feed intelligent en 30 secondes</h1>
-      <p class="text-sm text-ink-600">
-        Trois questions, zéro formulaire lourd. On créé une alerte sauvegardée, on filtre votre feed et
-        on vous présente des annonces pertinentes dès maintenant.
-      </p>
-    </header>
-
-    {% with onboarding_filters=request.session.onboarding_filters|default:{} %}
-    <form
-      method="post"
-      action="{% url 'onboarding' %}"
-      class="space-y-6"
-      id="onboarding-form"
-      data-user-authenticated="{{ request.user.is_authenticated|yesno:'true,false' }}"
-    >
-      {% csrf_token %}
-
-      <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-ink-500">1. Pourquoi êtes-vous là ?</p>
-            <h2 class="text-xl font-semibold text-ink-900">Acheter, vendre ou les deux ?</h2>
-          </div>
-          <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">30 sec chrono</span>
-        </div>
-        <div class="mt-5 flex flex-wrap gap-3" data-purpose-group>
-          <button type="button" class="chip purpose-chip" data-purpose-chip="buy">Acheter</button>
-          <button type="button" class="chip purpose-chip" data-purpose-chip="sell">Vendre</button>
-          <button type="button" class="chip purpose-chip" data-purpose-chip="both">Acheter & Vendre</button>
-        </div>
-        <input type="hidden" name="purpose" id="onboarding-purpose" value="buy" />
-        <p class="mt-4 text-sm text-ink-500">
-          Les choix sont partagés entre votre feed “Pour vous” et vos outils de vente, pas d’effort de
-          synthèse supplémentaire.
-        </p>
-      </section>
-
-      <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-ink-500">2. Vos univers préférés</p>
-            <h2 class="text-xl font-semibold text-ink-900">Choisissez jusqu’à 6 catégories</h2>
-          </div>
-          <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400" id="onboarding-category-count">0 sélectionnée</span>
-        </div>
-        <p class="mt-2 text-sm text-ink-600">
-          Restez libre : vous pouvez modifier ces sélections plus tard, mais on commence par ce qui vous branche.
-        </p>
-        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" data-category-grid>
-          {% for category in categories %}
-            <button
-              type="button"
-              class="chip chip-secondary text-left"
-              data-category-chip
-              data-slug="{{ category.slug }}"
-            >
-              {{ category.name }}
-            </button>
-          {% endfor %}
-        </div>
-        <div class="text-xs text-ink-500" id="onboarding-category-limit">Vous pouvez sélectionner jusqu’à 6 catégories.</div>
-        <div data-category-inputs></div>
-      </section>
-
-      <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.4em] text-ink-500">3. Où cherchez-vous ?</p>
-            <h2 class="text-xl font-semibold text-ink-900">Ville + rayon</h2>
-          </div>
-          <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">Proximité</span>
-        </div>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <label class="space-y-2 text-sm">
-          <span class="font-semibold text-ink-900">Ville ou quartier</span>
-          <div class="relative"
-                data-location-autocomplete
-                data-location-mode="single"
-                data-location-field-name="location_city"
-                data-location-endpoint="{% url 'location:city-autocomplete' %}">
-            <input type="text"
-                   name="city"
-                   id="onboarding-city"
-                   class="input w-full"
-                   placeholder="Ex : Bordeaux"
-                   autocomplete="off"
-                   data-location-city-input="true" />
-            <div data-location-results class="location-autocomplete-results"></div>
-            <input
-              type="hidden"
-              name="location_city"
-              id="onboarding-location-city"
-              value="{{ onboarding_filters.location_city_id|default:'' }}"
-              data-location-city-hidden="true"
-            />
-          </div>
-        </label>
-          <label class="space-y-2 text-sm">
-            <span class="font-semibold text-ink-900 flex items-center justify-between">
-              Rayon (<span id="radius-value">10 km</span>)
-            </span>
-            <input type="range"
-                   name="radius"
-                   id="onboarding-radius"
-                   min="5"
-                   max="100"
-                   step="5"
-                   value="10"
-                   class="accent-brand w-full" />
-          </label>
-        </div>
-        <p class="mt-3 text-sm text-ink-500">
-          Les paramètres de proximité alimentent instantanément le fil Nearby et sont stockés pendant 24 h.
-        </p>
-      </section>
-
-      <div class="space-y-3 text-center">
+  <section class="min-h-screen bg-gradient-to-b from-white via-ink-50 to-ink-100 py-12">
+    <div class="container-app space-y-10">
+      <header class="space-y-3 text-center">
+        <p class="text-xs uppercase tracking-[0.5em] text-ink-400">Swipe2Sell – onboarding express</p>
+        <h1 class="text-3xl font-semibold text-ink-900">Votre feed intelligent en 30 secondes</h1>
         <p class="text-sm text-ink-600">
-          Finalise ton inscription pour débloquer ton feed personnalisé et commencer à recevoir les meilleures annonces.
+          Trois questions, zéro formulaire lourd. On créé une alerte sauvegardée, on filtre votre feed et
+          on vous présente des annonces pertinentes dès maintenant.
         </p>
-        <button type="submit" class="btn btn-primary w-full px-6 py-3 text-base font-semibold">
-          Finaliser mon compte et voir mes suggestions
-        </button>
-        <p class="text-xs text-ink-500">
-          {% if request.user.is_authenticated %}
-            Ces critères seront sauvegardés sur ton compte et alimenteront directement le feed Suggestion.
-          {% else %}
-            Connecte-toi pour que tes préférences soient mémorisées et que tes alertes se déclenchent.
-          {% endif %}
-        </p>
-      </div>
-    </form>
-    {% endwith %}
-  </div>
-</section>
+      </header>
+      {% with onboarding_filters=onboarding_filters %}
+        <form method="post"
+              action="{% url 'onboarding' %}"
+              class="space-y-6"
+              id="onboarding-form"
+              data-user-authenticated="{{ request.user.is_authenticated|yesno:'true,false' }}">
+          {% csrf_token %}
+          <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-ink-500">1. Pourquoi êtes-vous là ?</p>
+                <h2 class="text-xl font-semibold text-ink-900">Acheter, vendre ou les deux ?</h2>
+              </div>
+              <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">30 sec chrono</span>
+            </div>
+            <div class="mt-5 flex flex-wrap gap-3" data-purpose-group>
+              <button type="button" class="chip purpose-chip" data-purpose-chip="buy">Acheter</button>
+              <button type="button" class="chip purpose-chip" data-purpose-chip="sell">Vendre</button>
+              <button type="button" class="chip purpose-chip" data-purpose-chip="both">Acheter & Vendre</button>
+            </div>
+            <input type="hidden" name="purpose" id="onboarding-purpose" value="buy" />
+            <p class="mt-4 text-sm text-ink-500">
+              Les choix sont partagés entre votre feed “Pour vous” et vos outils de vente, pas d’effort de
+              synthèse supplémentaire.
+            </p>
+          </section>
+          <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-ink-500">2. Vos univers préférés</p>
+                <h2 class="text-xl font-semibold text-ink-900">Choisissez jusqu’à 6 catégories</h2>
+              </div>
+              <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400"
+                    id="onboarding-category-count">0 sélectionnée</span>
+            </div>
+            <p class="mt-2 text-sm text-ink-600">
+              Restez libre : vous pouvez modifier ces sélections plus tard, mais on commence par ce qui vous branche.
+            </p>
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                 data-category-grid>
+              {% for category in categories %}
+                <button type="button"
+                        class="chip chip-secondary text-left"
+                        data-category-chip
+                        data-slug="{{ category.slug }}">{{ category.name }}</button>
+              {% endfor %}
+            </div>
+            <div class="text-xs text-ink-500" id="onboarding-category-limit">Vous pouvez sélectionner jusqu’à 6 catégories.</div>
+            <div data-category-inputs></div>
+          </section>
+          <section class="rounded-3xl border border-ink-100 bg-white/80 p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-ink-500">3. Où cherchez-vous ?</p>
+                <h2 class="text-xl font-semibold text-ink-900">Ville + rayon</h2>
+              </div>
+              <span class="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">Proximité</span>
+            </div>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+              <label class="space-y-2 text-sm">
+                <span class="font-semibold text-ink-900">Ville ou quartier</span>
+                <div class="relative"
+                     data-location-autocomplete
+                     data-location-mode="single"
+                     data-location-field-name="location_city"
+                     data-location-endpoint="{% url 'location:city-autocomplete' %}">
+                  <input type="text"
+                         name="city"
+                         id="onboarding-city"
+                         class="input w-full"
+                         placeholder="Ex : Bordeaux"
+                         autocomplete="off"
+                         data-location-city-input="true" />
+                  <div data-location-results class="location-autocomplete-results"></div>
+                  <input type="hidden"
+                         name="location_city"
+                         id="onboarding-location-city"
+                         value="{{ onboarding_filters.location_city_id|default:'' }}"
+                         data-location-city-hidden="true" />
+                </div>
+              </label>
+              <label class="space-y-2 text-sm">
+                <span class="font-semibold text-ink-900 flex items-center justify-between">
+                  Rayon (<span id="radius-value">10 km</span>)
+                </span>
+                <input type="range"
+                       name="radius"
+                       id="onboarding-radius"
+                       min="5"
+                       max="100"
+                       step="5"
+                       value="10"
+                       class="accent-brand w-full" />
+              </label>
+            </div>
+            <p class="mt-3 text-sm text-ink-500">
+              Les paramètres de proximité alimentent instantanément le fil Nearby et sont stockés pendant 24 h.
+            </p>
+          </section>
+          <div class="space-y-3 text-center">
+            <p class="text-sm text-ink-600">
+              Finalise ton inscription pour débloquer ton feed personnalisé et commencer à recevoir les meilleures annonces.
+            </p>
+            <button type="submit"
+                    class="btn btn-primary w-full px-6 py-3 text-base font-semibold">
+              Finaliser mon compte et voir mes suggestions
+            </button>
+            <p class="text-xs text-ink-500">
+              {% if request.user.is_authenticated %}
+                Ces critères seront sauvegardés sur ton compte et alimenteront directement le feed Suggestion.
+              {% else %}
+                Connecte-toi pour que tes préférences soient mémorisées et que tes alertes se déclenchent.
+              {% endif %}
+            </p>
+          </div>
+        </form>
+      {% endwith %}
+    </div>
+  </section>
 {% endblock %}
-
 {% block extra_js %}
   <script>
     document.addEventListener("DOMContentLoaded", function () {

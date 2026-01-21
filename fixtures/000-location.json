@@ -1,0 +1,77 @@
+[
+  {
+    "model": "location.city",
+    "pk": 1,
+    "fields": {
+      "name": "Paris",
+      "postal_code": "75010",
+      "slug": "paris-75010",
+      "department_code": "75",
+      "department_name": "Paris",
+      "region_code": "11",
+      "region_name": "Île-de-France",
+      "latitude": 48.8687,
+      "longitude": 2.3504
+    }
+  },
+  {
+    "model": "location.city",
+    "pk": 2,
+    "fields": {
+      "name": "Lyon",
+      "postal_code": "69002",
+      "slug": "lyon-69002",
+      "department_code": "69",
+      "department_name": "Rhône",
+      "region_code": "84",
+      "region_name": "Auvergne-Rhône-Alpes",
+      "latitude": 45.7578,
+      "longitude": 4.8320
+    }
+  },
+  {
+    "model": "location.city",
+    "pk": 3,
+    "fields": {
+      "name": "Toulouse",
+      "postal_code": "31000",
+      "slug": "toulouse-31000",
+      "department_code": "31",
+      "department_name": "Haute-Garonne",
+      "region_code": "76",
+      "region_name": "Occitanie",
+      "latitude": 43.6047,
+      "longitude": 1.4442
+    }
+  },
+  {
+    "model": "location.city",
+    "pk": 4,
+    "fields": {
+      "name": "Paris",
+      "postal_code": "75011",
+      "slug": "paris-75011",
+      "department_code": "75",
+      "department_name": "Paris",
+      "region_code": "11",
+      "region_name": "Île-de-France",
+      "latitude": 48.8546,
+      "longitude": 2.3590
+    }
+  },
+  {
+    "model": "location.city",
+    "pk": 5,
+    "fields": {
+      "name": "Nice",
+      "postal_code": "06300",
+      "slug": "nice-06300",
+      "department_code": "06",
+      "department_name": "Alpes-Maritimes",
+      "region_code": "93",
+      "region_name": "Provence-Alpes-Côte d'Azur",
+      "latitude": 43.7034,
+      "longitude": 7.2663
+    }
+  }
+]

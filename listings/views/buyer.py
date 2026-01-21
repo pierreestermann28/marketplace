@@ -39,6 +39,9 @@ class OnboardingView(TemplateView):
                 .first()
             )
         context["onboarding_profile"] = profile
+        context["onboarding_filters"] = (
+            self.request.session.get("onboarding_filters") or {}
+        )
         return context
 
     def post(self, request, *args, **kwargs):

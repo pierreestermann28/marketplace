@@ -5,8 +5,6 @@
     "fields": {
       "name": "Electronics",
       "slug": "electronics",
-      "parent": null,
-      "ai_hints": { "keywords": ["electronics", "devices", "gadgets"] },
       "created_at": "2026-01-01T00:00:00Z"
     }
   },
@@ -16,8 +14,6 @@
     "fields": {
       "name": "Phones",
       "slug": "phones",
-      "parent": 1,
-      "ai_hints": { "keywords": ["phone", "smartphone", "iphone", "android"] },
       "created_at": "2026-01-01T00:00:01Z"
     }
   },
@@ -27,8 +23,6 @@
     "fields": {
       "name": "Computers",
       "slug": "computers",
-      "parent": 1,
-      "ai_hints": { "keywords": ["laptop", "desktop", "pc", "macbook"] },
       "created_at": "2026-01-01T00:00:02Z"
     }
   },
@@ -38,8 +32,6 @@
     "fields": {
       "name": "Audio",
       "slug": "audio",
-      "parent": 1,
-      "ai_hints": { "keywords": ["headphones", "speaker", "earbuds"] },
       "created_at": "2026-01-01T00:00:03Z"
     }
   },
@@ -49,8 +41,6 @@
     "fields": {
       "name": "Home",
       "slug": "home",
-      "parent": null,
-      "ai_hints": { "keywords": ["home", "house", "interior"] },
       "created_at": "2026-01-01T00:00:04Z"
     }
   },
@@ -60,8 +50,6 @@
     "fields": {
       "name": "Furniture",
       "slug": "furniture",
-      "parent": 5,
-      "ai_hints": { "keywords": ["sofa", "table", "chair", "bed"] },
       "created_at": "2026-01-01T00:00:05Z"
     }
   },
@@ -71,8 +59,6 @@
     "fields": {
       "name": "Kitchen",
       "slug": "kitchen",
-      "parent": 5,
-      "ai_hints": { "keywords": ["cookware", "appliance", "utensils"] },
       "created_at": "2026-01-01T00:00:06Z"
     }
   },
@@ -82,8 +68,6 @@
     "fields": {
       "name": "Fashion",
       "slug": "fashion",
-      "parent": null,
-      "ai_hints": { "keywords": ["clothing", "shoes", "accessories"] },
       "created_at": "2026-01-01T00:00:07Z"
     }
   },
@@ -93,8 +77,6 @@
     "fields": {
       "name": "Women",
       "slug": "women",
-      "parent": 8,
-      "ai_hints": { "keywords": ["dress", "women", "handbag"] },
       "created_at": "2026-01-01T00:00:08Z"
     }
   },
@@ -104,8 +86,6 @@
     "fields": {
       "name": "Men",
       "slug": "men",
-      "parent": 8,
-      "ai_hints": { "keywords": ["men", "jacket", "sneakers"] },
       "created_at": "2026-01-01T00:00:09Z"
     }
   },
@@ -115,8 +95,6 @@
     "fields": {
       "name": "Kids",
       "slug": "kids",
-      "parent": null,
-      "ai_hints": { "keywords": ["kids", "baby", "children"] },
       "created_at": "2026-01-01T00:00:10Z"
     }
   },
@@ -126,8 +104,6 @@
     "fields": {
       "name": "Toys",
       "slug": "toys",
-      "parent": 11,
-      "ai_hints": { "keywords": ["toys", "games", "puzzle"] },
       "created_at": "2026-01-01T00:00:11Z"
     }
   },
@@ -137,8 +113,6 @@
     "fields": {
       "name": "Sports",
       "slug": "sports",
-      "parent": null,
-      "ai_hints": { "keywords": ["sports", "fitness", "outdoor"] },
       "created_at": "2026-01-01T00:00:12Z"
     }
   },
@@ -148,8 +122,6 @@
     "fields": {
       "name": "Outdoors",
       "slug": "outdoors",
-      "parent": 13,
-      "ai_hints": { "keywords": ["camping", "hiking", "bike"] },
       "created_at": "2026-01-01T00:00:13Z"
     }
   },
@@ -159,8 +131,6 @@
     "fields": {
       "name": "Books & Media",
       "slug": "books-media",
-      "parent": null,
-      "ai_hints": { "keywords": ["books", "games", "movies", "vinyl"] },
       "created_at": "2026-01-01T00:00:14Z"
     }
   }
