@@ -191,24 +191,23 @@ class ListingActionView(LoginRequiredMixin, View):
         )
         if not self.service:
             return redirect(get_listing_detail_url(listing))
-        service = getattr(type(self), "service")
-        service(listing=listing, user=request.user)
+        self.service(listing=listing, user=request.user)
         django_messages.success(request, self.success_message)
         return redirect(get_listing_detail_url(listing))
 
 
 class ListingMarkSoldView(ListingActionView):
-    service = mark_sold
+    service = staticmethod(mark_sold)
     success_message = "Annonce marquée comme vendue."
 
 
 class ListingArchiveView(ListingActionView):
-    service = archive_listing
+    service = staticmethod(archive_listing)
     success_message = "Annonce archivée."
 
 
 class ListingUnarchiveView(ListingActionView):
-    service = reactivate_listing
+    service = staticmethod(reactivate_listing)
     success_message = "Annonce réactivée."
 
 

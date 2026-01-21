@@ -105,6 +105,9 @@ class ListingViewTests(TestCase):
         cls.other_user = User.objects.create_user(
             email="other@example.com", password="password123"
         )
+        cls.buyer = User.objects.create_user(
+            email="buyer@example.com", password="password123"
+        )
         cls.category = Category.objects.create(name="Furniture", slug="furniture")
         cls.category_other = Category.objects.create(name="Decor", slug="decor")
         cls.paris_city = City.objects.create(
@@ -202,7 +205,7 @@ class ListingViewTests(TestCase):
 
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 302)
 
     def test_my_listings_requires_login(self):
         response = self.client.get(reverse("my_listings"))
@@ -454,6 +457,8 @@ class MarketplaceFlowTests(TestCase):
         listing.refresh_from_db()
 
         self.assertEqual(listing.status, Listing.Status.PUBLISHED)
+        self.assertIsNotNone(listing.active_reservation)
+        self.assertTrue(listing.is_reserved_state)
         self.assertEqual(listing.reserved_for, self.buyer)
         self.assertEqual(listing.reservation_note, "Noter la réservation")
         self.assertTrue(Offer.objects.active().filter(listing=listing).exists())
@@ -480,6 +485,7 @@ class MarketplaceFlowTests(TestCase):
         listing.refresh_from_db()
 
         self.assertEqual(listing.status, Listing.Status.PUBLISHED)
+        self.assertIsNone(listing.active_reservation)
         self.assertIsNone(listing.reserved_for)
         self.assertEqual(listing.reservation_note, "")
         self.assertFalse(Offer.objects.active().filter(listing=listing).exists())

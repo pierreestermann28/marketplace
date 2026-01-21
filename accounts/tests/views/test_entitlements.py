@@ -16,7 +16,7 @@ from billing.entitlements import (
     QuotaExceeded,
 )
 from billing.models import UserEntitlement, UsageCounter
-from mediahub.models import BatchUpload
+from ingestion.models import BatchUpload
 from listings.models import Listing
 from ingestion.models import DetectedItem
 from django.contrib.auth import get_user_model
