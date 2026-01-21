@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import stripe
 
-from billing.entitlements import get_user_entitlement
+from billing.services import get_user_entitlement
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
