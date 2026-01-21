@@ -34,7 +34,7 @@ from listings.services import record_listing_view
 from listings.services.images import get_primary_image
 from listings.services.recommendations import ListingRecommendationEngine
 from reports.forms import ReportForm
-from listings.utils import user_can_view_contact_info
+from listings.queries import user_can_view_contact_info
 
 
 def get_listing_detail_url(listing):
@@ -158,8 +158,6 @@ class HomeFeedView(ListView):
         if page_obj.has_next():
             links["next"] = self._build_canonical_url(page_obj.next_page_number())
         return links
-
-
 
 
 class CategoryListingView(HomeFeedView):

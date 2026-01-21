@@ -7,13 +7,10 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from catalog.models import Category
-
+from location.models import City
 from messaging.models import Conversation
 
-from location.models import City
-
-from .models import Favorite, Listing, Offer, OfferLog
-
+from listings.models import Favorite, Listing, Offer, OfferLog
 
 PNG_BYTES = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
