@@ -46,7 +46,7 @@ def get_listing_detail_url(listing):
 
 class HomeFeedView(ListView):
     model = Listing
-    template_name = "pages/home.html"
+    template_name = "listings/home.html"
     context_object_name = "listings"
     paginate_by = 24
     status_filter = [Listing.Status.PUBLISHED]
@@ -163,7 +163,7 @@ class HomeFeedView(ListView):
 
 
 class CategoryListingView(HomeFeedView):
-    template_name = "pages/listings_feed.html"
+    template_name = "listings/listings_feed.html"
 
     def dispatch(self, request, *args, **kwargs):
         self.category = get_object_or_404(Category, slug=kwargs["slug"])
@@ -188,7 +188,7 @@ class CategoryListingView(HomeFeedView):
 
 
 class CityListingView(HomeFeedView):
-    template_name = "pages/listings_feed.html"
+    template_name = "listings/listings_feed.html"
 
     def dispatch(self, request, *args, **kwargs):
         self.location_city = get_object_or_404(LocationCity, slug=kwargs["slug"])
@@ -216,12 +216,12 @@ class CityListingView(HomeFeedView):
 
 
 class SuggestionFeedView(HomeFeedView):
-    template_name = "pages/suggestions.html"
+    template_name = "listings/suggestions.html"
 
 
 class ListingDetailView(DetailView):
     model = Listing
-    template_name = "pages/listing_detail.html"
+    template_name = "listings/listing_detail.html"
     context_object_name = "listing"
 
     def get_queryset(self):

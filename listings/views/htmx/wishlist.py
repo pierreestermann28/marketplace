@@ -8,7 +8,7 @@ from listings.models import Listing, SearchAlert
 
 
 class WishlistView(LoginRequiredMixin, TemplateView):
-    template_name = "pages/wishlist.html"
+    template_name = "listings/wishlist.html"
 
     def get_listings(self):
         return (

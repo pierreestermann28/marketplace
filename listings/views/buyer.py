@@ -25,7 +25,7 @@ from listings.services import (
 
 
 class OnboardingView(TemplateView):
-    template_name = "pages/onboarding.html"
+    template_name = "listings/onboarding.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
