@@ -139,6 +139,29 @@ def archive_listing(*, listing: Listing, user) -> Listing:
     return listing
 
 
+@transaction.atomic
+def reactivate_listing(*, listing: Listing, user) -> Listing:
+    listing.status = Listing.Status.PUBLISHED
+    listing.needs_review = False
+    _prepare_listing_fields(listing)
+    listing.save(
+        update_fields=[
+            "status",
+            "needs_review",
+            "postal_code",
+            "slug",
+            "updated_at",
+        ]
+    )
+    record_listing_history(
+        listing=listing,
+        user=user,
+        event=Listing.ChangeEvent.STATUS_UPDATED,
+        details="Listing reactivated",
+    )
+    return listing
+
+
 def _prepare_listing_fields(listing: Listing) -> None:
     # sync postal_code from city
     if listing.location_city:

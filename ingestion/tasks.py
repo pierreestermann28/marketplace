@@ -19,7 +19,8 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger("ingestion.tasks")
 
-from ai.models import AIImageAnalysis, AISuggestion, AIModelProvider
+from ai.models import AIImageAnalysis, AIModelProvider
+from ai.services import create_analysis, create_suggestion
 from billing.entitlements import (
     detected_item_usage_window,
     get_free_detected_item_quota,
@@ -137,7 +138,7 @@ def analyze_batch(self, batch_id):
                     "media_type": asset.media_type,
                     "confidence": confidence,
                 }
-                analysis = AIImageAnalysis.objects.create(
+                analysis = create_analysis(
                     image_asset=asset,
                     requested_by=batch.owner,
                     provider=AIModelProvider.OPENAI,
@@ -151,7 +152,7 @@ def analyze_batch(self, batch_id):
                     },
                     completed_at=timezone.now(),
                 )
-                suggestion = AISuggestion.objects.create(
+                suggestion = create_suggestion(
                     analysis=analysis,
                     suggested_title=title or "Objet détecté",
                     suggested_category_slug="Misc",

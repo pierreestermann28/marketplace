@@ -8,6 +8,7 @@ from .listings import (
     mark_sold,
     archive_listing,
     record_listing_history,
+    reactivate_listing,
 )
 from .images import get_primary_image, set_primary_image
 from .views import record_listing_view
@@ -22,6 +23,7 @@ __all__ = [
     "moderate_reject",
     "mark_sold",
     "archive_listing",
+    "reactivate_listing",
     "record_listing_history",
     "get_primary_image",
     "set_primary_image",
