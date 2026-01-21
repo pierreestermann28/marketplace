@@ -8,7 +8,7 @@ from django.views.generic import DetailView, FormView, ListView, UpdateView
 
 from ingestion.models import DetectedItem
 from listings.forms import ListingForm, PhotoUploadForm
-from listings.models import Listing, ListingReminder, Review
+from listings.models import Listing, ListingReminder
 from listings.services import (
     accept_reservation,
     add_images_to_listing,

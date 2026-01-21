@@ -6,8 +6,8 @@ from .views.buyer import (
     SearchAlertCreateView,
     SearchAlertDeleteView,
 )
-from .views.htmx import HomeFeedPartialView, WishlistView
-from .views.public import (
+from listings.views.htmx import HomeFeedPartialView, WishlistView
+from listings.views.public import (
     CategoryListingView,
     CityListingView,
     HomeFeedView,
@@ -15,7 +15,7 @@ from .views.public import (
     MyListingsView,
     SuggestionFeedView,
 )
-from .views.seller import (
+from listings.views.seller import (
     ListingArchiveView,
     ListingMarkSoldView,
     ListingModerationDetailView,
@@ -32,14 +32,38 @@ from .views.seller import (
 urlpatterns = [
     path("", HomeFeedView.as_view(), name="home"),
     path("onboarding/", OnboardingView.as_view(), name="onboarding"),
-    path("items/<uuid:listing_id>/favorite/", ListingFavoriteToggleView.as_view(), name="listing_favorite"),
-    path("items/<uuid:listing_id>/cancel-reservation/", ReservationCancelView.as_view(), name="listing_cancel_reservation"),
-    path("items/<uuid:listing_id>/remind/", ListingReminderCreateView.as_view(), name="listing_remind"),
+    path(
+        "items/<uuid:listing_id>/favorite/",
+        ListingFavoriteToggleView.as_view(),
+        name="listing_favorite",
+    ),
+    path(
+        "items/<uuid:listing_id>/cancel-reservation/",
+        ReservationCancelView.as_view(),
+        name="listing_cancel_reservation",
+    ),
+    path(
+        "items/<uuid:listing_id>/remind/",
+        ListingReminderCreateView.as_view(),
+        name="listing_remind",
+    ),
     path("alerts/create/", SearchAlertCreateView.as_view(), name="search_alert_create"),
-    path("alerts/<int:pk>/delete/", SearchAlertDeleteView.as_view(), name="search_alert_delete"),
-    path("categories/<slug:slug>/", CategoryListingView.as_view(), name="category_listings"),
+    path(
+        "alerts/<int:pk>/delete/",
+        SearchAlertDeleteView.as_view(),
+        name="search_alert_delete",
+    ),
+    path(
+        "categories/<slug:slug>/",
+        CategoryListingView.as_view(),
+        name="category_listings",
+    ),
     path("villes/<slug:slug>/", CityListingView.as_view(), name="city_listings"),
-    path("items/<slug:slug>-<uuid:uuid>/", ListingDetailView.as_view(), name="listing_detail"),
+    path(
+        "items/<slug:slug>-<uuid:uuid>/",
+        ListingDetailView.as_view(),
+        name="listing_detail",
+    ),
     path(
         "items/<uuid:listing_id>/mark-sold/",
         ListingMarkSoldView.as_view(),
@@ -65,7 +89,9 @@ urlpatterns = [
     path("wishlist/", WishlistView.as_view(), name="wishlist"),
     path("sell/create/", ListingStartView.as_view(), name="listing_create"),
     path("sell/<uuid:pk>/photos/", PhotoUploadView.as_view(), name="listing_photos"),
-    path("sell/<uuid:pk>/submit/", SubmitForReviewView.as_view(), name="listing_submit"),
+    path(
+        "sell/<uuid:pk>/submit/", SubmitForReviewView.as_view(), name="listing_submit"
+    ),
     path("staff/review-queue/", ReviewQueueView.as_view(), name="review_queue"),
     path(
         "staff/review-queue/<uuid:pk>/",

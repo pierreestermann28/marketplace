@@ -3,11 +3,12 @@ from django.core.exceptions import ValidationError
 
 from catalog.services import list_categories
 
-from .models import Listing, SearchAlert
+from listings.models import Listing, SearchAlert
 
 
 class ListingForm(forms.ModelForm):
     city = forms.CharField(required=False, max_length=120)
+
     class Meta:
         model = Listing
         fields = [
@@ -82,17 +83,18 @@ class MultiFileField(forms.Field):
 
 
 class PhotoUploadForm(forms.Form):
-    images = MultiFileField(required=True, widget=MultiFileInput(attrs={"multiple": True}))
+    images = MultiFileField(
+        required=True, widget=MultiFileInput(attrs={"multiple": True})
+    )
 
 
 class SearchAlertForm(forms.ModelForm):
     city = forms.CharField(
         required=False,
         max_length=120,
-        widget=forms.TextInput(
-            attrs={"class": "input", "placeholder": "Ville"}
-        ),
+        widget=forms.TextInput(attrs={"class": "input", "placeholder": "Ville"}),
     )
+
     class Meta:
         model = SearchAlert
         fields = ["keyword", "location_city", "category"]
@@ -109,7 +111,9 @@ class SearchAlertForm(forms.ModelForm):
         self.fields["category"].queryset = list_categories()
         self.fields["city"].widget.attrs.setdefault("data-location-city-input", "true")
         self.fields["city"].widget.attrs.setdefault("autocomplete", "off")
-        self.fields["location_city"].widget.attrs.setdefault("data-location-city-hidden", "true")
+        self.fields["location_city"].widget.attrs.setdefault(
+            "data-location-city-hidden", "true"
+        )
         if self.instance and self.instance.pk and self.instance.location_city:
             self.fields["city"].initial = self.instance.location_city.name
 

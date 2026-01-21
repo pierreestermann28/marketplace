@@ -16,7 +16,7 @@ from .images import (
     get_primary_image,
     set_primary_image,
 )
-from .views import record_listing_view
+from .listing_views import record_listing_view
 from .reminders import ensure_reminder_notify_at, register_listing_reminder
 from .alerts import (
     alert_matches_listing,
@@ -38,6 +38,8 @@ from .reservations import (
     ReservationInvalid,
     ReservationNotFound,
 )
+
+from .email import dispatch_search_alerts
 
 __all__ = [
     "create_listing",
@@ -70,4 +72,5 @@ __all__ = [
     "ReservationError",
     "ReservationInvalid",
     "ReservationNotFound",
+    "dispatch_search_alerts",
 ]

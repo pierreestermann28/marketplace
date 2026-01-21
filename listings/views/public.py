@@ -1,37 +1,23 @@
-import urllib.parse
-
 from django.conf import settings
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import (
-    Avg,
-    BooleanField,
-    Count,
-    Exists,
-    OuterRef,
-    Prefetch,
-    Q,
-    Value,
-)
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Avg, Count, Exists, OuterRef, Prefetch
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.views.generic import DetailView, ListView, TemplateView
+from django.views.generic import DetailView, ListView
 
 from catalog.models import Category
-from catalog.services import (
-    get_categories_with_listings,
-    list_categories,
-)
+from catalog.services import get_categories_with_listings, list_categories
 from commerce.models import Review
-from ingestion.models import DetectedItem
 from location.models import City as LocationCity
 
 from listings.models import (
     Favorite,
     Listing,
+    ListingImage,
     ListingReminder,
     ListingView,
-    OnboardingProfile,
 )
+from listings.queries.listing_detail import build_listing_detail_queryset
 from listings.queries.listing_feed import (
     build_filters_from_params,
     build_home_feed_queryset,
@@ -40,14 +26,15 @@ from listings.queries.listing_feed import (
     resolve_selected_categories,
     resolve_selected_cities,
 )
-from listings.services import (
-    create_onboarding_alerts,
-    record_listing_view,
-    update_onboarding_profile,
+from listings.queries.my_listings import (
+    get_listing_status_counts,
+    get_my_listings_queryset,
 )
+from listings.services import record_listing_view
+from listings.services.images import get_primary_image
 from listings.services.recommendations import ListingRecommendationEngine
 from reports.forms import ReportForm
-from .utils import user_can_view_contact_info
+from listings.utils import user_can_view_contact_info
 
 
 def get_listing_detail_url(listing):
@@ -174,16 +161,6 @@ class HomeFeedView(ListView):
 
 
 
-class HomeFeedPartialView(HomeFeedView):
-    template_name = "fragments/home/listings_feed.html"
-    paginate_by = 24
-    context_object_name = "listings"
-
-    def get(self, request, *args, **kwargs):
-        self.object_list = self.get_queryset()
-        context = self.get_context_data()
-        return render(request, self.get_template_names(), context)
-
 
 class CategoryListingView(HomeFeedView):
     template_name = "pages/listings_feed.html"
@@ -248,28 +225,7 @@ class ListingDetailView(DetailView):
     context_object_name = "listing"
 
     def get_queryset(self):
-        qs = (
-            Listing.objects.filter(
-                status__in=[
-                    Listing.Status.PUBLISHED,
-                    Listing.Status.RESERVED,
-                    Listing.Status.RESERVATION_ACCEPTED,
-                ]
-            )
-            .select_related("category", "seller")
-            .prefetch_related("images__image_asset")
-        )
-        if self.request.user.is_authenticated:
-            qs = qs.annotate(
-                is_favorited=Exists(
-                    Favorite.objects.filter(
-                        user=self.request.user, listing=OuterRef("pk")
-                    )
-                )
-            )
-        else:
-            qs = qs.annotate(is_favorited=Value(False, output_field=BooleanField()))
-        return qs
+        return build_listing_detail_queryset(self.request.user)
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -436,19 +392,9 @@ class MyListingsView(LoginRequiredMixin, ListView):
     ]
 
     def get_queryset(self):
-        reservation_qs = Offer.objects.active().select_related("buyer")
-        qs = (
-            Listing.objects.filter(seller=self.request.user)
-            .select_related("category")
-            .prefetch_related(
-                "images__image_asset", Prefetch("reservations", queryset=reservation_qs)
-            )
-            .order_by("-updated_at")
+        return get_my_listings_queryset(
+            user=self.request.user, status_filter=self._get_status_filter()
         )
-        status_filter = self._get_status_filter()
-        if status_filter:
-            qs = qs.filter(status__in=status_filter)
-        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -469,13 +415,7 @@ class MyListingsView(LoginRequiredMixin, ListView):
         return context
 
     def _build_status_summary(self):
-        counts = {
-            row["status"]: row["count"]
-            for row in Listing.objects.filter(seller=self.request.user)
-            .values("status")
-            .annotate(count=Count("status"))
-        }
-        return counts
+        return get_listing_status_counts(self.request.user)
 
     def _build_status_cards(self, summary):
         cards = []
