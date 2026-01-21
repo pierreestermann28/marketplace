@@ -8,51 +8,51 @@ App Work Summary
 
 1. **listings**
    - **Done**: Models split under `listings/models/`, services/queries/views reorganized (with `htmx/` split), URLs wired, tests in `listings/tests/{views,queries,services}/`.
-   - **Templates to do**: Move HTMX fragments to `templates/fragments/listings/`, relocate any app-level templates under `templates/listings/`.
+   - **Templates to do**: Completed — moved listing pages into `templates/listings/`, fragments remain under `templates/fragments/listings/`.
 
 2. **accounts**
-   - **Done**: Models/services/queries/views refactored to match architecture; views packaged.
-   - **Templates to do**: Migrate account-specific fragments/templates into the global templates tree.
+   - **Done**: Models/services/queries/views refactored to match architecture; views packaged; account templates already under `templates/accounts/`.
+   - **Templates to do**: None remaining (global templates already in place).
 
 3. **ai**
    - **Done**: Restructured models/services/queries/views per architecture; cross-imports cleaned.
-   - **Templates to do**: Move AI templates/fragments into `templates/`/`templates/fragments/ai/`.
+   - **Templates to do**: None (no AI-specific pages/fragments exist yet).
 
 4. **billing**
    - **Done**: Core code refactored to models/services/queries/views packages.
-   - **Templates to do**: Consolidate billing-related templates/fragments under the global templates directories.
+   - **Templates to do**: None (no billing templates currently exist).
 
 5. **catalog**
    - **Done**: Catalog app adherence ensured for models/services/queries/views.
-   - **Templates to do**: Shift catalog templates/fragments to `templates/` and `templates/fragments/catalog/`.
+   - **Templates to do**: None (no catalog templates currently exist).
 
 6. **commerce**
    - **Done**: Commerce models/services/queries/views reorganized.
-   - **Templates to do**: Move commerce templates/fragments into `templates/fragments/commerce/`.
+   - **Templates to do**: None (commerce uses only shared templates for now).
 
 7. **ingestion**
    - **Done**: Packaged models/services/queries/views; HTMX views separated.
-   - **Templates to do**: Relocate ingestion fragments/templates into global templates tree.
+   - **Templates to do**: None (already in `templates/ingestion/` + `templates/fragments/ingestion/`).
 
 8. **location**
    - **Done**: Services/queries/views reorganized; models kept compliant.
-   - **Templates to do**: Transition location templates/fragments to `templates/fragments/location/`.
+   - **Templates to do**: None (uses only shared components/templates already compliant).
 
 9. **mediahub**
    - **Done**: Models/services/queries/views restructured.
-   - **Templates to do**: Move mediahub fragments/templates under `templates/fragments/mediahub/`.
+   - **Templates to do**: None (no mediahub templates yet).
 
 10. **messaging**
     - **Done**: Refactor to service/query/view packages.
-    - **Templates to do**: Globalize messaging templates/fragments.
+    - **Templates to do**: None (already under `templates/messaging/` and `templates/messaging/partials/`).
 
 11. **operations**
     - **Done**: Services/queries/views reorganized; operations HTMX planned.
-    - **Templates to do**: Move templates into central templates tree.
+    - **Templates to do**: None (templates already live under `templates/operations/`).
 
 12. **reports**
     - **Done**: Initial refactor started; needs completion (models split, views packaged, queries/services wired).
-    - **Templates to do**: Once logical refactor complete, move report-related fragments/templates to `templates/fragments/reports/`.
+    - **Templates to do**: None for now (only `templates/components/reports/` in use); will relocate fragments once app UI expands.
 
 Next Steps
 ----------

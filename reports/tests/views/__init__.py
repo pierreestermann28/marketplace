@@ -1,0 +1,1 @@
+# Reports view tests package.

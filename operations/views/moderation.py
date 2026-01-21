@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import TemplateView
 
-from reports.models import Report
+from reports.queries import get_unresolved_reports
 from listings.models import Listing
 from .mixins import ReviewActionMixin
 from operations.services import handle_admin_listing_action
@@ -36,9 +36,7 @@ class AdminListingModerationView(ReviewActionMixin, UserPassesTestMixin, Templat
         context.update(
             {
                 "listings": self.get_queryset(),
-                "reports": Report.objects.filter(is_resolved=False)
-                .select_related("listing__seller", "reporter")
-                .order_by("-created_at")[:12],
+                "reports": get_unresolved_reports(limit=12),
                 "status_filter": self.request.GET.get("status") or "",
                 "status_choices_for_filter": [
                     {

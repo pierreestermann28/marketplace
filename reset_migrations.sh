@@ -15,7 +15,5 @@ find . -path "*/migrations/*.pyc" -delete
 echo "📦 Recreating migrations..."
 python manage.py makemigrations
 
-echo "🚀 Applying migrations..."
-python manage.py migrate
 
 echo "✅ Done. Clean migration state."

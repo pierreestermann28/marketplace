@@ -1,19 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse
+from django.shortcuts import redirect
 from django.views.generic import FormView
 
-from listings.models import Listing
-from listings.views import get_listing_detail_url
-from messaging.models import Conversation
-from .forms import ReportForm
-from .services import AlreadyReportedError, create_report
+from reports.forms import ReportForm
+from reports.services.create import AlreadyReportedError, create_report
 
 
 class _BaseReportCreateView(LoginRequiredMixin, FormView):
-    form_class = ReportForm
     template_name = "components/reports/report_form.html"
+    form_class = ReportForm
 
     def dispatch(self, request, *args, **kwargs):
         self.target = self.get_target()
@@ -44,30 +40,8 @@ class _BaseReportCreateView(LoginRequiredMixin, FormView):
         messages.error(self.request, "Impossible d'enregistrer le signalement.")
         return redirect(self.get_success_url())
 
-    def on_report_created(self, report):
+    def on_report_created(self, target):
         messages.success(self.request, "Merci, nous examinons le signalement.")
 
     def get_success_url(self):
         raise NotImplementedError
-
-
-class ListingReportCreateView(_BaseReportCreateView):
-    def get_target(self):
-        return get_object_or_404(Listing, pk=self.kwargs["listing_id"])
-
-    def get_success_url(self):
-        return get_listing_detail_url(self.target)
-
-
-class ConversationReportCreateView(_BaseReportCreateView):
-    def get_target(self):
-        conversation = get_object_or_404(
-            Conversation.objects.select_related("listing"), pk=self.kwargs["pk"]
-        )
-        return conversation
-
-    def on_report_created(self, report):
-        super().on_report_created(report)
-
-    def get_success_url(self):
-        return reverse("messages:detail", kwargs={"pk": self.target.pk})
