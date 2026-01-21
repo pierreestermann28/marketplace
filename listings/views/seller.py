@@ -29,6 +29,7 @@ from listings.services.reservations import (
 )
 from listings.views.public import get_listing_detail_url
 
+
 class ListingStartView(LoginRequiredMixin, FormView):
     template_name = "sell/upload_photos.html"
     form_class = PhotoUploadForm
@@ -245,7 +246,5 @@ class ListingReminderCreateView(LoginRequiredMixin, View):
                 request, "Nous vous préviendrons dès que l’annonce sera disponible."
             )
         else:
-            django_messages.info(
-                request, "Vous êtes déjà inscrit pour être prévenu."
-            )
+            django_messages.info(request, "Vous êtes déjà inscrit pour être prévenu.")
         return redirect(get_listing_detail_url(listing))
