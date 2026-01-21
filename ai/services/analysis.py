@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 from django.conf import settings
 from django.utils import timezone
+
+if TYPE_CHECKING:
+    from ai.models import AIImageAnalysis, AIModelProvider, AISuggestion
 
 
 def create_analysis(
@@ -29,12 +32,8 @@ def create_analysis(
 ) -> "AIImageAnalysis":
     from ai.models import AIImageAnalysis
 
-    provider_value = (
-        provider.value if hasattr(provider, "value") else provider
-    )
-    status_value = (
-        status or AIImageAnalysis.Status.SUCCEEDED
-    )
+    provider_value = provider.value if hasattr(provider, "value") else provider
+    status_value = status or AIImageAnalysis.Status.SUCCEEDED
 
     return AIImageAnalysis.objects.create(
         image_asset=image_asset,
