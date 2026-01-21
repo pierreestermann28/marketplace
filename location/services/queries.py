@@ -28,7 +28,11 @@ def search_cities(
     Recherche par nom (prefix) et/ou code postal.
     Utilisé pour autocomplete, formulaires, API publiques.
     """
-    limit = min(max(1, int(limit)), MAX_LIMIT) if isinstance(limit, int) else _normalize_limit(limit)
+    limit = (
+        min(max(1, int(limit)), MAX_LIMIT)
+        if isinstance(limit, int)
+        else _normalize_limit(limit)
+    )
     qs = City.objects.all()
 
     if query:

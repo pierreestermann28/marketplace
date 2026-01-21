@@ -4,9 +4,9 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import FormView
 
-from .forms import ReviewForm
-from .models import Order, Review
-from .services.reviews import ReviewNotAllowed, create_review
+from commerce.forms import ReviewForm
+from commerce.models import Order, Review
+from commerce.services.reviews import ReviewNotAllowed, create_review
 
 
 class ReviewCreateView(LoginRequiredMixin, FormView):
@@ -39,7 +39,10 @@ class ReviewCreateView(LoginRequiredMixin, FormView):
         return redirect(
             reverse(
                 "listing_detail",
-                kwargs={"slug": self.order.listing.slug or "item", "uuid": self.order.listing.id},
+                kwargs={
+                    "slug": self.order.listing.slug or "item",
+                    "uuid": self.order.listing.id,
+                },
             )
         )
 
@@ -48,6 +51,8 @@ class ReviewCreateView(LoginRequiredMixin, FormView):
         context["order"] = self.order
         context["role"] = self.role
         context["target_user"] = (
-            self.order.seller if self.role == Review.Role.BUYER_TO_SELLER else self.order.buyer
+            self.order.seller
+            if self.role == Review.Role.BUYER_TO_SELLER
+            else self.order.buyer
         )
         return context

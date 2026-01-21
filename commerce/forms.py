@@ -1,7 +1,7 @@
 from django import forms
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from .models import Review
+from commerce.models import Review
 
 
 class ReviewForm(forms.ModelForm):
