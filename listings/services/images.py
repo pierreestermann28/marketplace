@@ -59,7 +59,9 @@ def attach_listing_images(
 
 def _set_sort_and_primary(*, listing: Listing, primary_index: int) -> None:
     listing_images = list(
-        listing.images.select_related("image_asset").order_by("sort_order", "created_at")
+        listing.images.select_related("image_asset").order_by(
+            "sort_order", "created_at"
+        )
     )
     if not listing_images:
         return
