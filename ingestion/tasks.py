@@ -3,6 +3,7 @@ import logging
 import random
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -59,6 +60,30 @@ def _find_cached_detected_item(owner, file_hash):
         )
         .order_by("-updated_at")
         .first()
+    )
+
+
+def _create_stub_detected_item(batch, asset):
+    price = Decimal("25.00")
+    low = price
+    high = price + Decimal("10.00")
+    title = asset.image_asset.image.name.split("/")[-1]
+    confidence = random.uniform(0.6, 0.9)
+    metadata = {
+        "asset_id": str(asset.id),
+        "stub_detection": True,
+    }
+    DetectedItem.objects.create(
+        owner=batch.owner,
+        batch=batch,
+        hero_asset=asset,
+        title_suggested=title or "Objet détecté",
+        description_suggested="Détection simulée pour démonstration",
+        category_suggested="Misc",
+        price_low=low,
+        price_high=high,
+        confidence=confidence,
+        metadata_json=metadata,
     )
 
 
@@ -126,6 +151,11 @@ def analyze_batch(self, batch_id):
                         },
                     )
                     return
+
+                if not settings.AI_ENABLE_DETECTION:
+                    _create_stub_detected_item(batch=batch, asset=asset)
+                    batch.mark_asset_processed()
+                    continue
 
                 price = Decimal("25.00")
                 low = price

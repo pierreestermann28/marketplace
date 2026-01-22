@@ -263,6 +263,9 @@ STRIPE_CHECKOUT_CANCEL_URL = os.environ.get(
     "STRIPE_CHECKOUT_CANCEL_URL", "/accounts/pricing/?canceled=1"
 )
 
+AI_ENABLE_DETECTION = False
+
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

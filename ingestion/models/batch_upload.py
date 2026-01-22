@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import F
 
 
 class BatchUpload(models.Model):
@@ -45,3 +46,8 @@ class BatchUpload(models.Model):
             models.Index(fields=["owner", "status", "created_at"]),
             models.Index(fields=["status", "created_at"]),
         ]
+
+    def mark_asset_processed(self, *, commit=True):
+        self.processed_count = F("processed_count") + 1
+        self.save(update_fields=["processed_count"])
+        self.refresh_from_db(fields=["processed_count"])
