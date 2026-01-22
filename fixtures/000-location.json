@@ -34,8 +34,8 @@
     "pk": 3,
     "fields": {
       "name": "Toulouse",
-      "postal_code": "31000",
-      "slug": "toulouse-31000",
+      "postal_code": "31000525",
+      "slug": "toulouseeeeeeee-3100",
       "department_code": "31",
       "department_name": "Haute-Garonne",
       "region_code": "76",
@@ -64,8 +64,8 @@
     "pk": 5,
     "fields": {
       "name": "Nice",
-      "postal_code": "06300",
-      "slug": "nice-06300",
+      "postal_code": "0630058",
+      "slug": "eeePAIDnice-06300",
       "department_code": "06",
       "department_name": "Alpes-Maritimes",
       "region_code": "93",

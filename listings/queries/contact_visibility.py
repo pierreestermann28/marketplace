@@ -20,9 +20,7 @@ def user_can_view_contact_info(
         return False
 
     unlocked_statuses = {
-        Order.Status.PAID,
         Order.Status.MEETUP_SCHEDULED,
-        Order.Status.LABEL_READY,
         Order.Status.IN_TRANSIT,
         Order.Status.AWAITING_CONFIRMATION,
         Order.Status.COMPLETED,

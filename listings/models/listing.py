@@ -173,6 +173,11 @@ class Listing(models.Model):
             self.PublicStatus.NEGOTIATING,
         }
 
+    def get_primary_image(self):
+        from listings.services.images import get_primary_image
+
+        return get_primary_image(listing=self)
+
     @property
     def active_reservation(self):
         from listings.queries.reservations import get_active_reservation_offer
