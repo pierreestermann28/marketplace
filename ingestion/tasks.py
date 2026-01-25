@@ -66,73 +66,33 @@ def _find_cached_detected_item(owner, file_hash):
     )
 
 
-def _create_stub_detected_item(batch, asset):
-    price = Decimal("25.00")
-    low = price
-    high = price + Decimal("15.00")
-    title = asset.image_asset.image.name.split("/")[-1]
-    confidence = random.uniform(0.6, 0.9)
-    categories = [
-        "Électronique",
-        "Mode",
-        "Maison",
-        "Décoration",
-        "Sport",
-        "Luxe",
-        "Kids",
-    ]
-    metadata = {
-        "asset_id": str(asset.id),
-        "stub_detection": True,
-        "media_type": asset.media_type,
-    }
-    DetectedItem.objects.create(
-        owner=batch.owner,
-        batch=batch,
-        hero_asset=asset,
-        title_suggested=f"Titre généré par l’IA – {title or 'Objet'}",
-        description_suggested="Description générée par l’IA pour alimenter la preview.",
-        category_suggested=random.choice(categories),
-        price_low=low,
-        price_high=high,
-        confidence=confidence,
-        metadata_json=metadata,
-    )
-
-
 def _create_detected_from_cache(batch, asset, cached):
-    metadata = dict(cached.metadata_json or {})
-    metadata["asset_id"] = str(asset.id)
-    metadata.setdefault("cached_from", str(cached.id))
     DetectedItem.objects.create(
         owner=batch.owner,
         batch=batch,
         hero_asset=asset,
-        title_suggested=cached.title_suggested,
-        description_suggested=cached.description_suggested,
-        category_suggested=cached.category_suggested,
-        price_low=cached.price_low,
-        price_high=cached.price_high,
-        confidence=cached.confidence,
-        metadata_json=metadata,
-        is_cached_result=True,
+        status=cached.status,
         current_suggestion=cached.current_suggestion,
     )
     batch.mark_asset_processed()
 
 
-def _create_detected_from_analysis(batch, asset):
+def _create_detected_from_analysis(batch, asset, *, stub=False):
     price = Decimal("25.00")
     low = price
     high = price + Decimal("15.00")
-    title = asset.image_asset.image.name.split("/")[-1]
-    description = f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
-    confidence = random.uniform(0.5, 0.98)
-    metadata = {
-        "asset_id": str(asset.id),
-        "media_type": asset.media_type,
-        "confidence": confidence,
-    }
+    owner_label = asset.batch.owner.get_full_name() or asset.batch.owner.email
+    title = (
+        f"Titre généré par l’IA – {asset.image_asset.image.name.split('/')[-1]}"
+        if stub
+        else asset.image_asset.image.name.split("/")[-1]
+    )
+    description = (
+        "Description générée par l’IA pour alimenter la preview."
+        if stub
+        else f"Objet détecté issu de {owner_label}"
+    )
+    confidence = random.uniform(0.6, 0.9) if stub else random.uniform(0.5, 0.98)
     analysis = create_analysis(
         image_asset=asset,
         requested_by=batch.owner,
@@ -140,17 +100,19 @@ def _create_detected_from_analysis(batch, asset):
         status=AIImageAnalysis.Status.SUCCEEDED,
         input_payload={"asset_id": str(asset.id)},
         output_json={
-            "title": title,
             "description": description,
             "confidence": confidence,
-            "metadata": metadata,
+            "price_low": float((low.quantize(ROUND_HALF_UP)) if low is not None else 0),
+            "price_high": float(
+                (high.quantize(ROUND_HALF_UP)) if high is not None else 0
+            ),
         },
         completed_at=timezone.now(),
     )
     suggestion = create_suggestion(
         analysis=analysis,
         suggested_title=title or "Objet détecté",
-        suggested_category_slug="Misc",
+        suggested_category_slug="Décoration" if stub else "Misc",
         price_eur_min=int(low.quantize(ROUND_HALF_UP)),
         price_eur_max=int(high.quantize(ROUND_HALF_UP)),
         pricing_reason="IA heuristics – batch upload",
@@ -190,7 +152,7 @@ def analyze_batch(self, batch_id):
     mark_processing(batch=batch)
     assets = list(batch.media_assets.all())
     if not assets:
-        batch.mark_failed("No assets found for batch")
+        mark_failed(batch=batch, message="No assets found for batch")
         return
 
     owner_premium = is_premium(batch.owner)
@@ -222,12 +184,10 @@ def analyze_batch(self, batch_id):
                     return
 
                 if not settings.AI_ENABLE_DETECTION:
-                    _create_stub_detected_item(batch=batch, asset=asset)
-                    batch.mark_asset_processed()
-                    continue
-
-                _create_detected_from_analysis(batch, asset)
-                usage += 1
+                    _create_detected_from_analysis(batch, asset, stub=True)
+                else:
+                    _create_detected_from_analysis(batch, asset)
+                    usage += 1
 
         mark_done(batch=batch)
         logger.info(

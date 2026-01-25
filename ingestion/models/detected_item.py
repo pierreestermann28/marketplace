@@ -56,3 +56,54 @@ class DetectedItem(models.Model):
 
     def __str__(self) -> str:
         return f"DetectedItem({self.id}) {self.status}"
+
+    def _suggestion(self):
+        return self.current_suggestion
+
+    def _analysis_json(self):
+        suggestion = self._suggestion()
+        if suggestion and suggestion.analysis:
+            return suggestion.analysis.output_json or {}
+        return {}
+
+    @property
+    def title_suggested(self):
+        suggestion = self._suggestion()
+        if suggestion:
+            return suggestion.suggested_title
+        return ""
+
+    @property
+    def description_suggested(self):
+        return self._analysis_json().get("description", "")
+
+    @property
+    def category_suggested(self):
+        suggestion = self._suggestion()
+        if suggestion:
+            return suggestion.suggested_category_slug
+        return ""
+
+    @property
+    def title_suggested_canonical(self):
+        return self.title_suggested
+
+    @property
+    def description_suggested_canonical(self):
+        return self.description_suggested
+
+    @property
+    def category_suggested_canonical(self):
+        return self.category_suggested
+
+    @property
+    def price_low_canonical(self):
+        return self._analysis_json().get("price_low")
+
+    @property
+    def price_high_canonical(self):
+        return self._analysis_json().get("price_high")
+
+    @property
+    def confidence_canonical(self):
+        return self._analysis_json().get("confidence")
