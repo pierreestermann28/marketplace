@@ -66,20 +66,30 @@ def _find_cached_detected_item(owner, file_hash):
 def _create_stub_detected_item(batch, asset):
     price = Decimal("25.00")
     low = price
-    high = price + Decimal("10.00")
+    high = price + Decimal("15.00")
     title = asset.image_asset.image.name.split("/")[-1]
     confidence = random.uniform(0.6, 0.9)
+    categories = [
+        "Électronique",
+        "Mode",
+        "Maison",
+        "Décoration",
+        "Sport",
+        "Luxe",
+        "Kids",
+    ]
     metadata = {
         "asset_id": str(asset.id),
         "stub_detection": True,
+        "media_type": asset.media_type,
     }
     DetectedItem.objects.create(
         owner=batch.owner,
         batch=batch,
         hero_asset=asset,
-        title_suggested=title or "Objet détecté",
-        description_suggested="Détection simulée pour démonstration",
-        category_suggested="Misc",
+        title_suggested=f"Titre généré par l’IA – {title or 'Objet'}",
+        description_suggested="Description générée par l’IA pour alimenter la preview.",
+        category_suggested=random.choice(categories),
         price_low=low,
         price_high=high,
         confidence=confidence,

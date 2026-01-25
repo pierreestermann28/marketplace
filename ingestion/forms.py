@@ -21,7 +21,6 @@ class BatchUploadForm(forms.Form):
                 "data-location-city-input": "true",
             }
         ),
-        help_text="L’indication principale du lieu ou de la ville ciblée.",
     )
     seller_notes = forms.CharField(
         required=False,
