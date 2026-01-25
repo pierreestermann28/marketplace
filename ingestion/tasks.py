@@ -7,8 +7,6 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from ingestion.services import mark_processing, mark_failed, mark_done
-
 try:
     from celery import shared_task
 except ImportError:  # pragma: no cover
@@ -93,6 +91,30 @@ def _create_detected_from_analysis(batch, asset, *, stub=False):
         else f"Objet détecté issu de {owner_label}"
     )
     confidence = random.uniform(0.6, 0.9) if stub else random.uniform(0.5, 0.98)
+    price_precision = Decimal("1")
+    low_decimal = Decimal(str(low)) if low is not None else None
+    high_decimal = Decimal(str(high)) if high is not None else None
+    price_low_float = (
+        float(low_decimal.quantize(price_precision, rounding=ROUND_HALF_UP))
+        if low_decimal is not None
+        else 0
+    )
+    price_high_float = (
+        float(high_decimal.quantize(price_precision, rounding=ROUND_HALF_UP))
+        if high_decimal is not None
+        else 0
+    )
+    price_min = (
+        int(low_decimal.quantize(price_precision, rounding=ROUND_HALF_UP))
+        if low_decimal is not None
+        else 0
+    )
+    price_max = (
+        int(high_decimal.quantize(price_precision, rounding=ROUND_HALF_UP))
+        if high_decimal is not None
+        else 0
+    )
+
     analysis = create_analysis(
         image_asset=asset,
         requested_by=batch.owner,
@@ -102,10 +124,8 @@ def _create_detected_from_analysis(batch, asset, *, stub=False):
         output_json={
             "description": description,
             "confidence": confidence,
-            "price_low": float((low.quantize(ROUND_HALF_UP)) if low is not None else 0),
-            "price_high": float(
-                (high.quantize(ROUND_HALF_UP)) if high is not None else 0
-            ),
+            "price_low": price_low_float,
+            "price_high": price_high_float,
         },
         completed_at=timezone.now(),
     )
@@ -113,8 +133,8 @@ def _create_detected_from_analysis(batch, asset, *, stub=False):
         analysis=analysis,
         suggested_title=title or "Objet détecté",
         suggested_category_slug="Décoration" if stub else "Misc",
-        price_eur_min=int(low.quantize(ROUND_HALF_UP)),
-        price_eur_max=int(high.quantize(ROUND_HALF_UP)),
+        price_eur_min=price_min,
+        price_eur_max=price_max,
         pricing_reason="IA heuristics – batch upload",
         quality_flags=[asset.media_type] if asset.media_type else [],
     )
@@ -122,13 +142,6 @@ def _create_detected_from_analysis(batch, asset, *, stub=False):
         owner=batch.owner,
         batch=batch,
         hero_asset=asset,
-        title_suggested=title or "Objet détecté",
-        description_suggested=description,
-        category_suggested="Misc",
-        price_low=low,
-        price_high=high,
-        confidence=confidence,
-        metadata_json=metadata,
         current_suggestion=suggestion,
     )
     batch.mark_asset_processed()
