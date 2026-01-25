@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from ingestion.services import mark_processing, mark_failed, mark_done
+
 try:
     from celery import shared_task
 except ImportError:  # pragma: no cover
@@ -28,6 +30,7 @@ from billing.entitlements import (
     is_premium,
 )
 from ingestion.models import BatchUpload
+from ingestion.services.batches import mark_processing, mark_done, mark_failed
 from .models import DetectedItem
 
 
@@ -97,6 +100,78 @@ def _create_stub_detected_item(batch, asset):
     )
 
 
+def _create_detected_from_cache(batch, asset, cached):
+    metadata = dict(cached.metadata_json or {})
+    metadata["asset_id"] = str(asset.id)
+    metadata.setdefault("cached_from", str(cached.id))
+    DetectedItem.objects.create(
+        owner=batch.owner,
+        batch=batch,
+        hero_asset=asset,
+        title_suggested=cached.title_suggested,
+        description_suggested=cached.description_suggested,
+        category_suggested=cached.category_suggested,
+        price_low=cached.price_low,
+        price_high=cached.price_high,
+        confidence=cached.confidence,
+        metadata_json=metadata,
+        is_cached_result=True,
+        current_suggestion=cached.current_suggestion,
+    )
+    batch.mark_asset_processed()
+
+
+def _create_detected_from_analysis(batch, asset):
+    price = Decimal("25.00")
+    low = price
+    high = price + Decimal("15.00")
+    title = asset.image_asset.image.name.split("/")[-1]
+    description = f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
+    confidence = random.uniform(0.5, 0.98)
+    metadata = {
+        "asset_id": str(asset.id),
+        "media_type": asset.media_type,
+        "confidence": confidence,
+    }
+    analysis = create_analysis(
+        image_asset=asset,
+        requested_by=batch.owner,
+        provider=AIModelProvider.OPENAI,
+        status=AIImageAnalysis.Status.SUCCEEDED,
+        input_payload={"asset_id": str(asset.id)},
+        output_json={
+            "title": title,
+            "description": description,
+            "confidence": confidence,
+            "metadata": metadata,
+        },
+        completed_at=timezone.now(),
+    )
+    suggestion = create_suggestion(
+        analysis=analysis,
+        suggested_title=title or "Objet détecté",
+        suggested_category_slug="Misc",
+        price_eur_min=int(low.quantize(ROUND_HALF_UP)),
+        price_eur_max=int(high.quantize(ROUND_HALF_UP)),
+        pricing_reason="IA heuristics – batch upload",
+        quality_flags=[asset.media_type] if asset.media_type else [],
+    )
+    DetectedItem.objects.create(
+        owner=batch.owner,
+        batch=batch,
+        hero_asset=asset,
+        title_suggested=title or "Objet détecté",
+        description_suggested=description,
+        category_suggested="Misc",
+        price_low=low,
+        price_high=high,
+        confidence=confidence,
+        metadata_json=metadata,
+        current_suggestion=suggestion,
+    )
+    batch.mark_asset_processed()
+
+
 @shared_task(bind=True, name="ingestion.analyze_batch", max_retries=1)
 def analyze_batch(self, batch_id):
     logger.info("Celery analyze_batch start", extra={"batch_id": str(batch_id)})
@@ -112,7 +187,7 @@ def analyze_batch(self, batch_id):
     if batch.status == BatchUpload.Status.DONE:
         return
 
-    batch.mark_processing()
+    mark_processing(batch=batch)
     assets = list(batch.media_assets.all())
     if not assets:
         batch.mark_failed("No assets found for batch")
@@ -128,29 +203,13 @@ def analyze_batch(self, batch_id):
                 file_hash = _ensure_asset_hash(asset)
                 cached = _find_cached_detected_item(batch.owner, file_hash)
                 if cached:
-                    metadata = dict(cached.metadata_json or {})
-                    metadata["asset_id"] = str(asset.id)
-                    metadata.setdefault("cached_from", str(cached.id))
-                    DetectedItem.objects.create(
-                        owner=batch.owner,
-                        batch=batch,
-                        hero_asset=asset,
-                        title_suggested=cached.title_suggested,
-                        description_suggested=cached.description_suggested,
-                        category_suggested=cached.category_suggested,
-                        price_low=cached.price_low,
-                        price_high=cached.price_high,
-                        confidence=cached.confidence,
-                        metadata_json=metadata,
-                        is_cached_result=True,
-                        current_suggestion=cached.current_suggestion,
-                    )
-                    batch.mark_asset_processed()
+                    _create_detected_from_cache(batch, asset, cached)
                     continue
 
                 if quota_limit is not None and usage >= quota_limit:
-                    batch.mark_failed(
-                        "Quota mensuel d’IA atteint. Passez à l’abonnement pour continuer."
+                    mark_failed(
+                        batch=batch,
+                        message="Quota mensuel d’IA atteint. Passez à l’abonnement pour continuer.",
                     )
                     logger.warning(
                         "Detected item quota exceeded",
@@ -167,62 +226,14 @@ def analyze_batch(self, batch_id):
                     batch.mark_asset_processed()
                     continue
 
-                price = Decimal("25.00")
-                low = price
-                high = price + Decimal("15.00")
-                title = asset.image_asset.image.name.split("/")[-1]
-                description = f"Objet détecté issu de {asset.batch.owner.get_full_name() or asset.batch.owner.email}"
-                confidence = random.uniform(0.5, 0.98)
-                metadata = {
-                    "asset_id": str(asset.id),
-                    "media_type": asset.media_type,
-                    "confidence": confidence,
-                }
-                analysis = create_analysis(
-                    image_asset=asset,
-                    requested_by=batch.owner,
-                    provider=AIModelProvider.OPENAI,
-                    status=AIImageAnalysis.Status.SUCCEEDED,
-                    input_payload={"asset_id": str(asset.id)},
-                    output_json={
-                        "title": title,
-                        "description": description,
-                        "confidence": confidence,
-                        "metadata": metadata,
-                    },
-                    completed_at=timezone.now(),
-                )
-                suggestion = create_suggestion(
-                    analysis=analysis,
-                    suggested_title=title or "Objet détecté",
-                    suggested_category_slug="Misc",
-                    price_eur_min=int(low.quantize(ROUND_HALF_UP)),
-                    price_eur_max=int(high.quantize(ROUND_HALF_UP)),
-                    pricing_reason="IA heuristics – batch upload",
-                    quality_flags=[asset.media_type] if asset.media_type else [],
-                )
-                DetectedItem.objects.create(
-                    owner=batch.owner,
-                    batch=batch,
-                    hero_asset=asset,
-                    title_suggested=title or "Objet détecté",
-                    description_suggested=description,
-                    category_suggested="Misc",
-                    price_low=low,
-                    price_high=high,
-                    confidence=confidence,
-                    metadata_json=metadata,
-                    current_suggestion=suggestion,
-                )
-                if quota_limit is not None:
-                    usage += 1
-                batch.mark_asset_processed()
+                _create_detected_from_analysis(batch, asset)
+                usage += 1
 
-        batch.mark_done()
+        mark_done(batch=batch)
         logger.info(
             "Celery analyze_batch completed",
             extra={"batch_id": str(batch.id), "processed_count": len(assets)},
         )
     except Exception as exc:  # pragma: no cover
-        batch.mark_failed(str(exc))
+        mark_failed(batch=batch, message=str(exc))
         raise
